@@ -3,6 +3,7 @@ package org.jax.Parsers;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.jax.DateModel.SourceSystemEnumType;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -49,10 +50,10 @@ public interface ObservationFact {
     Date start_date();
 
     /**
-     * Return modifier_cd
+     * Return modifier_cd, split by colon ":"
      * @return
      */
-    Coding modifier_cd();
+    List<String> modifier_cd();
 
     /**
      * Return instance_num. The number is extremely unlikely to have overflow problem. But pay attention.
@@ -76,6 +77,7 @@ public interface ObservationFact {
 
     /**
      * Unknown data type. Change to a more specific one if necessary
+     * note: skip bracket, eg "[L]" should be returned as 'L'
      * @return
      */
     char valueflag_cd();

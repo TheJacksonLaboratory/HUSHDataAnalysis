@@ -4,16 +4,24 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.jax.DateModel.SourceSystemEnumType;
 
 import java.util.Date;
+import java.util.List;
 
+/**
+ * @TODO: implement methods in this class and pass unit test
+ */
 public class ObservationFactImpl implements ObservationFact {
 
     String record;
 
     public ObservationFactImpl(String record) {
         this.record = record;
-        //@TODO: parse this record
+        //@TODO: parse this record for getters
+        parse(this.record);
     }
 
+    private void parse(String s){
+        //implement
+    }
 
     @Override
     public int encounter_num() {
@@ -41,7 +49,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public Coding modifier_cd() {
+    public List<String> modifier_cd() {
         return null;
     }
 
@@ -97,7 +105,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public int confidence_num() {
-        return 0;
+        return Integer.MIN_VALUE;
     }
 
     @Override
