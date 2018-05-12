@@ -11,7 +11,7 @@ import java.util.Date;
 
 
 /**
- * @TODO: implement methods in this class, and pass the unit test
+ * TODO: implement methods in this class, and pass the unit test
  */
 public class PatientDimensionImpl  {
    // private static final Logger logger = LoggerFactory.getLogger(PatientDimensionImpl.class);
@@ -19,7 +19,7 @@ public class PatientDimensionImpl  {
 
     private String patientRecord;
 
-    private static int PATIENTNUM_IDX = 0;
+    private static int PATIENT_NUM_IDX = 0;
     private static int VITAL_STATUTS_IDX = 0;
     private static int BIRTHDATE_IDX = 0;
     private static int DEATHDATE_IDX = 0;
@@ -33,11 +33,16 @@ public class PatientDimensionImpl  {
     private static int STATECITYZIP_IDX = 0;
     private static int INCOME_IDX = 0;
     private static int PATIENT_BLOB_IDX = 0;
+    private static int LOCATION_CD_IDX = 0;
+    private static int OBSERVATION_BLOB_IDX = 0;
+    private static int CONFIDENCE_NUM_IDX = 0;
+    private static int SOURCESYSTEM_IDX = 0;
     private static int UPDATE_DATE_IDX = 0;
     private static int DOWNLOAD_DATE_IDX = 0;
     private static int IMPORT_DATE_IDX = 0;
-    private static int SOURCESYSTEM_IDX = 0;
     private static int UPLOAD_ID_IDX = 0;
+    private static int TEXT_SEARCH_IDX = 0;
+
 
     private int patient_num;
     private String vital_status_cd;
@@ -63,7 +68,7 @@ public class PatientDimensionImpl  {
 
     public void setIndices(String header) {
         String fields[] = header.split(",");
-        if (fields.length < 19) {
+        if (fields.length < 23) {
             //logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
@@ -72,7 +77,7 @@ public class PatientDimensionImpl  {
             String field = fields[i];
             switch (fields[i]) {
                 case "\"patient_num\"":
-                    PATIENTNUM_IDX = i;
+                    PATIENT_NUM_IDX = i;
                     initializedvalues++;
                     break;
                 case "\"vital_status_cd\"":
@@ -149,8 +154,7 @@ public class PatientDimensionImpl  {
                     break;
             }
         }
-
-            if (initializedvalues != 19) {
+            if (initializedvalues != 24) {
                 // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
                 //logger.error("The offending line was: " + fields);
                 System.exit(1);
@@ -159,11 +163,11 @@ public class PatientDimensionImpl  {
 
     public void patientDimensionEntry() {
         String []A = patientRecord.split(",");
-        if (A.length < UPLOAD_ID_IDX ) {
+        if (A.length < TEXT_SEARCH_IDX ) {
            // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
             System.exit(1);
         }
-        patient_num = Integer.parseInt(A[PATIENTNUM_IDX]);
+        patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
         //TODO change to Date format
         birth_date = A[BIRTHDATE_IDX].substring(1,A[BIRTHDATE_IDX].length()-1);
@@ -194,34 +198,25 @@ public class PatientDimensionImpl  {
     public String birth_date() {return birth_date;}
 
 
-    public String death_date() {
-        return death_date;
-    }
+    public String death_date() {return death_date;}
 
 
-    public String sex_cd() {
-        return sex_cd;
-    }
+
+    public String sex_cd() {return sex_cd;}
 
 
-    public int age_in_years_num() {
-        return age_in_years_num;
-    }
+
+    public int age_in_years_num() {return age_in_years_num;}
 
 
-    public int language_cd() {
-        return language_cd;
-    }
+
+    public int language_cd() {return language_cd;}
 
 
-    public int race() {
-        return race_cd;
-    }
+    public int race() {return race_cd;}
 
 
-    public int marital_status_cd() {
-        return marital_status_cd;
-    }
+    public int marital_status_cd() {return marital_status_cd;}
 
 
     /**
@@ -240,23 +235,19 @@ public class PatientDimensionImpl  {
     }
 
 
-    public Date update_date() {
-        return null;
+    public Date update_date() {return null;
     }
 
 
-    public Date download_date() {
-        return null;
+    public Date download_date() {return null;
     }
 
 
-    public Date import_date() {
-        return null;
+    public Date import_date() {return null;
     }
 
 
-    public SourceSystemEnumType sourcesystem_cd() {
-        return null;
+    public SourceSystemEnumType sourcesystem_cd() {return null;
     }
 
 
