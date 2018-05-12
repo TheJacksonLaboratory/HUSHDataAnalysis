@@ -165,6 +165,7 @@ public class PatientDimensionImpl  {
         }
         patient_num = Integer.parseInt(A[PATIENTNUM_IDX]);
         vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
+        //TODO change to Date format
         birth_date = A[BIRTHDATE_IDX].substring(1,A[BIRTHDATE_IDX].length()-1);
         death_date = A[DEATHDATE_IDX].substring(1,A[DEATHDATE_IDX].length()-1);
         import_date = A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
