@@ -38,18 +38,28 @@ public class ObservationFactImpl implements ObservationFact {
     private static int TEXT_SEARCH_IDX = 0;
 
     private int patient_num;
-    private String encounter_num;
-    private String birth_date;
-    private String death_date;
-    private String import_date;
-    private String download_date;
-    private String update_date;
+    private int encounter_num;
+    private String concept_cd;
+    private String provider_id;
+    private String start_dat;
+    private String modifier_cd;
+    private int instance_num;
     private static SimpleDateFormat dateFormat;
-    private String sex_cd;
-    private int age_in_years_num;
-    private int language_cd;
-    private int race_cd;
-    private int marital_status_cd;
+    private String valtype_cd;
+    private String tval_char;
+    private String nval_num;
+    private String valueflag_cd;
+    private String quantity_num;
+    private String units_cd;
+    private String end_dat;
+    private String location_cd;
+    private String observation_blob;
+    private String confidence_num;
+    private String update_date;
+    private String download_date;
+    private String import_date;
+    private String sourcesystem_cd;
+    private String text_search_index;
     private String upload_id;
 
     public ObservationFactImpl(String record) {
@@ -153,7 +163,7 @@ public class ObservationFactImpl implements ObservationFact {
                     IMPORT_DATE_IDX = i;
                     initializedvalues++;
                     break;
-                case "\"sourcesystem_c\"":
+                case "\"sourcesystem_cd\"":
                     SOURCESYSTEM_IDX = i;
                     initializedvalues++;
                     break;
@@ -175,9 +185,35 @@ public class ObservationFactImpl implements ObservationFact {
             // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
             System.exit(1);
         }
-
         patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
-        encounter_num = A[ENCOUNTER_NUM_IDX].substring(1,A[ENCOUNTER_NUM_IDX].length()-1);
+        encounter_num = Integer.parseInt(A[ENCOUNTER_NUM_IDX]);
+        concept_cd  = A[CONCEPT_CD_IDX];
+        provider_id = A[PROVIDER_ID_IDX].substring(1,A[PROVIDER_ID_IDX].length()-1);
+        start_dat = A[START_DAT_IDX].substring(1,A[START_DAT_IDX].length()-1);
+        modifier_cd = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
+        instance_num = Integer.parseInt(A[INSTANCE_NUM_IDX]);
+        valtype_cd = A[VALTYPE_CD_IDX].substring(1,A[VALTYPE_CD_IDX].length()-1);
+        tval_char = A[TVAL_CHAR_IDX].substring(1,A[TVAL_CHAR_IDX].length()-1);
+        nval_num = A[NVAL_NUM_IDX].substring(1,A[NVAL_NUM_IDX].length()-1);
+        valueflag_cd = A[VALUEFLAG_CD__IDX].substring(1,A[VALUEFLAG_CD__IDX].length()-1);
+        quantity_num = A[QUANTITY_NUM_IDX].substring(1,A[QUANTITY_NUM_IDX].length()-1);
+        units_cd = A[UNITS_CD_IDX].substring(1,A[UNITS_CD_IDX].length()-1);
+        end_dat = A[END_DAT_IDX].substring(1,A[END_DAT_IDX].length()-1);
+        location_cd = A[LOCATION_CD_IDX].substring(1,A[LOCATION_CD_IDX].length()-1);
+        observation_blob = A[OBSERVATION_BLOB_IDX].substring(1,A[OBSERVATION_BLOB_IDX].length()-1);
+        confidence_num = A[CONFIDENCE_NUM_IDX].substring(1,A[CONFIDENCE_NUM_IDX].length()-1);
+        update_date = A[UPDATE_DATE_IDX].substring(1,A[UPDATE_DATE_IDX].length()-1);
+        download_date = A[DOWNLOAD_DATE_IDX].substring(1,A[DOWNLOAD_DATE_IDX].length()-1);
+        import_date = A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
+        sourcesystem_cd = A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length()-1);
+        upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
+        text_search_index = A[TEXT_SEARCH_IDX].substring(1,A[TEXT_SEARCH_IDX].length()-1);
+
+
+
+
+
+
     }
 
     @Override
