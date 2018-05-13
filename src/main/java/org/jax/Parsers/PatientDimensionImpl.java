@@ -2,8 +2,8 @@ package org.jax.Parsers;
 
 import org.hl7.fhir.dstu3.model.Address;
 import org.jax.DateModel.SourceSystemEnumType;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -14,7 +14,8 @@ import java.util.Date;
  * TODO: implement methods in this class, and pass the unit test
  */
 public class PatientDimensionImpl  {
-   // private static final Logger logger = LoggerFactory.getLogger(PatientDimensionImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger
+            (PatientDimensionImpl.class);
 
 
     private String patientRecord;
@@ -69,7 +70,7 @@ public class PatientDimensionImpl  {
     public void setIndices(String header) {
         String fields[] = header.split(",");
         if (fields.length < 23) {
-            //logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
+            logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
         int initializedvalues = 0;
