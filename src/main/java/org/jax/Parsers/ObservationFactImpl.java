@@ -209,11 +209,6 @@ public class ObservationFactImpl implements ObservationFact {
         upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
         text_search_index = A[TEXT_SEARCH_IDX].substring(1,A[TEXT_SEARCH_IDX].length()-1);
 
-
-
-
-
-
     }
 
     @Override
