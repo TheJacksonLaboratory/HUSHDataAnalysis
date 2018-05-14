@@ -19,9 +19,9 @@ public interface PatientDimension {
 
     String vital_status_cd();
 
-    String birth_date();
+    Date birth_date();
 
-    String death_date();
+    Date death_date();
 
     /**
      * Return sex (char[1])

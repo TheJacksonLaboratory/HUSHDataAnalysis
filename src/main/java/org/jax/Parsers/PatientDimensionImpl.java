@@ -13,7 +13,7 @@ import java.util.Date;
 /**
  * TODO: implement methods in this class, and pass the unit test
  */
-public class PatientDimensionImpl  implements PatientDimension {
+public class PatientDimensionImpl implements PatientDimension {
     private static final Logger logger = LoggerFactory.getLogger
             (PatientDimensionImpl.class);
 
@@ -181,6 +181,9 @@ public class PatientDimensionImpl  implements PatientDimension {
        // if(A[AGE_YEARS_IDX] != "") {
          //   age_in_years_num = Integer.parseInt(A[AGE_YEARS_IDX].substring(1, A[AGE_YEARS_IDX].length() - 1));
         //}
+        if (A[AGE_YEARS_IDX].startsWith("\"") && A[AGE_YEARS_IDX].endsWith("\"")) {
+
+        }
         marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
         race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
         language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
@@ -196,7 +199,8 @@ public class PatientDimensionImpl  implements PatientDimension {
     public String vital_status_cd() {return vital_status_cd;}
 
 
-    public String birth_date() {return birth_date;}
+    @Override
+    public Date birth_date() {return birth_date;}
 
 
     public String death_date() {return death_date;}
@@ -218,6 +222,21 @@ public class PatientDimensionImpl  implements PatientDimension {
 
 
     public int marital_status_cd() {return marital_status_cd;}
+
+    @Override
+    public String religion_cd() {
+        return null;
+    }
+
+    @Override
+    public String zip_cd() {
+        return null;
+    }
+
+    @Override
+    public Address statecityzip_path() {
+        return null;
+    }
 
 
     /**
