@@ -50,6 +50,7 @@ public interface ObservationFact {
     Date start_date();
 
     /**
+     * Database schema is VARCHAR2(100), it might be a good idea to split the strings at ":"
      * Return modifier_cd, split by colon ":"
      * @return
      */
@@ -62,13 +63,13 @@ public interface ObservationFact {
     int instance_num();
 
     /**
-     * Unknown data type. Change to a more specific one if necessary
+     * Schema VARCHAR2[3]
      * @return
      */
-    char valtype_cd();
+    String valtype_cd();
 
     /**
-     * Unknown data type. Change to a more specific one if necessary
+     * Schema VARCHAR2[50]
      * @return
      */
     String tval_char();
@@ -86,7 +87,7 @@ public interface ObservationFact {
      * Unknown data type. Change to a more specific one if necessary
      * @return
      */
-    String quatity_num();
+    double quatity_num();
 
     /**
      * Return unit
@@ -116,7 +117,7 @@ public interface ObservationFact {
      * Return confidence_num
      * @return
      */
-    int confidence_num();
+    double confidence_num();
 
     /**
      * Return update_date
@@ -147,7 +148,7 @@ public interface ObservationFact {
      * Return upload_id
      * @return
      */
-    String upload_id();
+    int upload_id();
 
     /**
      * Return text_search_index

@@ -24,10 +24,10 @@ public interface PatientDimension {
     String death_date();
 
     /**
-     * Return sex wrapped in AdministrativeGender
+     * Return sex (char[1])
      * @return
      */
-    int sex_cd();
+    char sex_cd();
 
     /**
      * No need to implement
@@ -35,11 +35,11 @@ public interface PatientDimension {
      */
     double age_in_years_num();
 
-    int language_cd();
+    String language_cd();
 
-    int race();
+    String race();
 
-    int marital_status_cd();
+    char marital_status_cd();
 
     String religion_cd();
 
@@ -71,6 +71,6 @@ public interface PatientDimension {
 
     SourceSystemEnumType sourcesystem_cd();
 
-    String upload_id();
+    int upload_id();
 
 }

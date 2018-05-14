@@ -13,7 +13,7 @@ import java.util.Date;
 /**
  * TODO: implement methods in this class, and pass the unit test
  */
-public class PatientDimensionImpl  {
+public class PatientDimensionImpl  implements PatientDimension {
     private static final Logger logger = LoggerFactory.getLogger
             (PatientDimensionImpl.class);
 
