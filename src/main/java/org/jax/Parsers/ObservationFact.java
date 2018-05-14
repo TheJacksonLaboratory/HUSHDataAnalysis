@@ -50,11 +50,10 @@ public interface ObservationFact {
     Date start_date();
 
     /**
-     * Database schema is VARCHAR2(100), it might be a good idea to split the strings at ":"
-     * Return modifier_cd, split by colon ":"
+     * Database schema is VARCHAR2(100)
      * @return
      */
-    List<String> modifier_cd();
+    String modifier_cd();
 
     /**
      * Return instance_num. The number is extremely unlikely to have overflow problem. But pay attention.
@@ -64,20 +63,34 @@ public interface ObservationFact {
 
     /**
      * Schema VARCHAR2[3]
+     * Value type:
+     * if "N", an numeric value is expected;
+     * if "T", a text data is expected
      * @return
      */
     String valtype_cd();
 
     /**
+     * Comparator of measured value
+     * if "E", measured value equals to the value
+     * if "L", measured value is less than the value
+     * extend the rules to "LE", "G", "GE" for "less than or equals to", "greater than", "greater than or equals to"
      * Schema VARCHAR2[50]
      * @return
      */
     String tval_char();
 
+    /**
+     * Actual value
+     * if value type is "N", this will be a numeric value
+     * if value type is "T", this will be a text (?)--not clear from documentation. @Commented by A.Zhang
+     * @return
+     */
     double nval_num();
 
     /**
-     * Unknown data type. Change to a more specific one if necessary
+     * Only applies to lab tests
+     * Used to indicate whether the test is abnormally high, low, critically high, critically low, or abnormal
      * note: skip bracket, eg "[L]" should be returned as 'L'
      * @return
      */
