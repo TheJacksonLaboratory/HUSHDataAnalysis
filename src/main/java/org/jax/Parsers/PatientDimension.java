@@ -1,7 +1,6 @@
 package org.jax.Parsers;
 
 import org.hl7.fhir.dstu3.model.Address;
-import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.jax.DateModel.SourceSystemEnumType;
 
 import java.util.Date;
@@ -20,15 +19,15 @@ public interface PatientDimension {
 
     String vital_status_cd();
 
-    Date birth_date();
+    String birth_date();
 
-    Date death_date();
+    String death_date();
 
     /**
      * Return sex wrapped in AdministrativeGender
      * @return
      */
-    AdministrativeGender sex_cd();
+    int sex_cd();
 
     /**
      * No need to implement
