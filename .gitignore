@@ -1,8 +1,13 @@
 
+
 .idea/
 .idea/workspace.xml
 .idea/task.xml
 .idea/dictionary/*
+
+logs/*
+
+
 *.iml
 
 logs/*
