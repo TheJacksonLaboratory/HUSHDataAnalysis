@@ -75,7 +75,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     public void setIndices_ObservFact(String header) {
         String fields[] = header.split(",");
-        if (fields.length < 19) {
+        if (fields.length < 23) {
             //logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
@@ -176,6 +176,11 @@ public class ObservationFactImpl implements ObservationFact {
                     initializedvalues++;
                     break;
             }
+        }
+        if (initializedvalues != 24) {
+            // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
+            //logger.error("The offending line was: " + fields);
+            System.exit(1);
         }
     }
 //TODO Complete parsing entries

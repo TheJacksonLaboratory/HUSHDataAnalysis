@@ -19,21 +19,21 @@ public interface PatientDimension {
 
     String vital_status_cd();
 
-    String birth_date();
+    Date birth_date();
 
-    String death_date();
+    Date death_date();
 
     /**
      * Return sex wrapped in AdministrativeGender
      * @return
      */
-    int sex_cd();
+    char sex_cd();
 
     /**
      * No need to implement
      * @return
      */
-    double age_in_years_num();
+    String age_in_years_num();
 
     int language_cd();
 

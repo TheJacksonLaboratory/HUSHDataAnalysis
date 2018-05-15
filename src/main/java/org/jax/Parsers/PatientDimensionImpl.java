@@ -1,10 +1,12 @@
 package org.jax.Parsers;
 
+
 import org.hl7.fhir.dstu3.model.Address;
 import org.jax.DateModel.SourceSystemEnumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -13,9 +15,8 @@ import java.util.Date;
 /**
  * TODO: implement methods in this class, and pass the unit test
  */
-public class PatientDimensionImpl  {
-    private static final Logger logger = LoggerFactory.getLogger
-            (PatientDimensionImpl.class);
+public class PatientDimensionImpl implements PatientDimension {
+    private static final Logger logger = LoggerFactory.getLogger(PatientDimensionImpl.class);
 
 
     private String patientRecord;
@@ -48,17 +49,22 @@ public class PatientDimensionImpl  {
     private int patient_num;
     private String vital_status_cd;
     private String birth_date;
+    private Date birthDate;
     private String death_date;
+    private Date deathDate;
     private String import_date;
+    private Date importDate;
     private String download_date;
+    private Date downloadDate;
     private String update_date;
+    private Date updateDate;
     private static SimpleDateFormat dateFormat;
-    private String sex_cd;
-    private int age_in_years_num;
+    private char sex_cd;
+    private String age_in_years_num;
     private int language_cd;
     private int race_cd;
     private int marital_status_cd;
-    private String upload_id;
+    private int upload_id;
 
 
 
@@ -69,7 +75,7 @@ public class PatientDimensionImpl  {
 
     public void setIndices(String header) {
         String fields[] = header.split(",");
-        if (fields.length < 23) {
+        if (fields.length < 19) {
             logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
@@ -155,14 +161,14 @@ public class PatientDimensionImpl  {
                     break;
             }
         }
-            if (initializedvalues != 24) {
+            if (initializedvalues != 19) {
                 // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
                 //logger.error("The offending line was: " + fields);
                 System.exit(1);
             }
     }
 
-    public void patientDimensionEntry() {
+    public void patientDimensionEntry() throws ParseException {
         String []A = patientRecord.split(",");
         if (A.length < TEXT_SEARCH_IDX ) {
            // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
@@ -170,17 +176,29 @@ public class PatientDimensionImpl  {
         }
         patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
-        //TODO change to Date format
-        birth_date = A[BIRTHDATE_IDX].substring(1,A[BIRTHDATE_IDX].length()-1);
+        if(!A[BIRTHDATE_IDX].equals(" ")) {
+            birth_date = A[BIRTHDATE_IDX].substring(1, A[BIRTHDATE_IDX].length() - 1);
+            birthDate = dateFormat.parse(birth_date);
+        }
+        else{
+             System.out.println();
+        }
         death_date = A[DEATHDATE_IDX].substring(1,A[DEATHDATE_IDX].length()-1);
+        deathDate = dateFormat.parse(death_date);
         import_date = A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
+        importDate = dateFormat.parse(import_date);
         download_date = A[DOWNLOAD_DATE_IDX].substring(1,A[DOWNLOAD_DATE_IDX].length()-1);
+        downloadDate = dateFormat.parse(download_date);
         update_date = A[UPDATE_DATE_IDX].substring(1,A[UPDATE_DATE_IDX].length()-1);
-        sex_cd = A[SEX_CD_IDX].substring(1,A[SEX_CD_IDX].length()-1);
+        updateDate = dateFormat.parse(update_date);
+        sex_cd = A[SEX_CD_IDX].matches("\"F\"")? 'F' : 'M';
         //TODO
-       // if(A[AGE_YEARS_IDX] != "") {
-         //   age_in_years_num = Integer.parseInt(A[AGE_YEARS_IDX].substring(1, A[AGE_YEARS_IDX].length() - 1));
-        //}
+        if(A[AGE_YEARS_IDX].equals("")) {
+            age_in_years_num = " ";
+        }
+            else if (A[AGE_YEARS_IDX].contains("\" \"")){
+              age_in_years_num = A[AGE_YEARS_IDX].substring(1, A[AGE_YEARS_IDX].length() - 1);
+        }
         marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
         race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
         language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
@@ -189,40 +207,56 @@ public class PatientDimensionImpl  {
     }
 
 
-
+    @Override
     public int patient_num() {return patient_num;}
 
-
+    @Override
     public String vital_status_cd() {return vital_status_cd;}
 
+    @Override
+    public Date birth_date() {return birthDate;}
 
-    public String birth_date() {return birth_date;}
-
-
-    public String death_date() {return death_date;}
-
-
-
-    public String sex_cd() {return sex_cd;}
+    @Override
+    public Date death_date() {return deathDate;}
 
 
+    @Override
+    public char sex_cd() {return sex_cd;}
 
-    public int age_in_years_num() {return age_in_years_num;}
+
+    @Override
+    public String age_in_years_num() {return age_in_years_num;}
 
 
-
+    @Override
     public int language_cd() {return language_cd;}
 
-
+    @Override
     public int race() {return race_cd;}
 
-
+    @Override
     public int marital_status_cd() {return marital_status_cd;}
+
+    @Override
+    public String religion_cd() {
+        return null;
+    }
+
+    @Override
+    public String zip_cd() {
+        return null;
+    }
+
+    @Override
+    public Address statecityzip_path() {
+        return null;
+    }
 
 
     /**
      * No need to implement unless the data is available
      */
+    @Override
     public String income_cd() {
         throw new UnsupportedOperationException();
     }
@@ -231,27 +265,24 @@ public class PatientDimensionImpl  {
     /**
      * No need to implement unless the data is available
      */
+    @Override
     public String patient_blob() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public Date update_date() {return updateDate;}
 
-    public Date update_date() {return null;
-    }
+    @Override
+    public Date download_date() {return downloadDate;}
 
+    @Override
+    public Date import_date() {return importDate;}
 
-    public Date download_date() {return null;
-    }
+    @Override
+    public SourceSystemEnumType sourcesystem_cd() {return null;}
 
-
-    public Date import_date() {return null;
-    }
-
-
-    public SourceSystemEnumType sourcesystem_cd() {return null;
-    }
-
-
+    @Override
     public String upload_id() {
         return null;
     }
