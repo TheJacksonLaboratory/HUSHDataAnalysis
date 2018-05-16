@@ -1,3 +1,4 @@
+## this table describes the cumulative counts (from most frequent to least frequent) for each distinct observation in OBSERVATION_FACT.txt. Step 20 means top 20; step 100 means top 100. Refer to graph for visualization. Skip this line when read in data ##
 step,count
 20,15815596
 40,20525587
