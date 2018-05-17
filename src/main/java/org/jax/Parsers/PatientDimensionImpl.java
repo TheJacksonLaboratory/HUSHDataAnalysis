@@ -21,6 +21,9 @@ public class PatientDimensionImpl implements PatientDimension {
 
     private String patientRecord;
 
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-DD HH:mm:ss");
+
+
     private static int PATIENT_NUM_IDX = 0;
     private static int VITAL_STATUTS_IDX = 0;
     private static int BIRTHDATE_IDX = 0;
@@ -58,7 +61,6 @@ public class PatientDimensionImpl implements PatientDimension {
     private Date downloadDate;
     private String update_date;
     private Date updateDate;
-    private static SimpleDateFormat dateFormat;
     private char sex_cd;
     private String age_in_years_num;
     private int language_cd;
@@ -170,35 +172,56 @@ public class PatientDimensionImpl implements PatientDimension {
 
     public void patientDimensionEntry() throws ParseException {
         String []A = patientRecord.split(",");
-        if (A.length < TEXT_SEARCH_IDX ) {
+        if (A.length < UPLOAD_ID_IDX ) {
            // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
             System.exit(1);
         }
         patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
-        if(!A[BIRTHDATE_IDX].equals(" ")) {
+        if(!A[BIRTHDATE_IDX].equals("\"\"")) {
             birth_date = A[BIRTHDATE_IDX].substring(1, A[BIRTHDATE_IDX].length() - 1);
             birthDate = dateFormat.parse(birth_date);
         }
         else{
-             System.out.println();
+             System.out.println("Birth date is empty!");
+             birthDate = null;
         }
-        death_date = A[DEATHDATE_IDX].substring(1,A[DEATHDATE_IDX].length()-1);
-        deathDate = dateFormat.parse(death_date);
-        import_date = A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
-        importDate = dateFormat.parse(import_date);
-        download_date = A[DOWNLOAD_DATE_IDX].substring(1,A[DOWNLOAD_DATE_IDX].length()-1);
-        downloadDate = dateFormat.parse(download_date);
-        update_date = A[UPDATE_DATE_IDX].substring(1,A[UPDATE_DATE_IDX].length()-1);
-        updateDate = dateFormat.parse(update_date);
+        if(!A[DEATHDATE_IDX].equals("\"\"")) {
+            death_date = A[DEATHDATE_IDX].substring(1, A[DEATHDATE_IDX].length() - 1);
+            deathDate = dateFormat.parse(death_date);
+        }
+        else{
+            System.out.println("The patient is alive:-)!");
+            deathDate = null;
+        }
+        if(!A[IMPORT_DATE_IDX].equals("\"\"")){
+            import_date= A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
+            importDate = dateFormat.parse(import_date);
+        }
+        else{
+            System.out.println("Import date is not available!");
+            importDate = null;
+
+        }
+        if(!A[DOWNLOAD_DATE_IDX].equals("\"\"")) {
+            download_date = A[DOWNLOAD_DATE_IDX].substring(1, A[DOWNLOAD_DATE_IDX].length() - 1);
+            downloadDate = dateFormat.parse(download_date);
+        }
+        else{
+            System.out.println("Import date is not available!");
+            downloadDate = null;
+        }
+
+      /*  if(!A[UPLOAD_ID_IDX].equals("")) {
+            update_date = A[UPDATE_DATE_IDX].substring(1, A[UPDATE_DATE_IDX].length() - 1);
+            updateDate = dateFormat.parse(update_date);
+        }
+        else{
+            System.out.println("Upload date is not available!");
+            updateDate = null;
+        }*/
         sex_cd = A[SEX_CD_IDX].matches("\"F\"")? 'F' : 'M';
-        //TODO
-        if(A[AGE_YEARS_IDX].equals("")) {
-            age_in_years_num = " ";
-        }
-            else if (A[AGE_YEARS_IDX].contains("\" \"")){
-              age_in_years_num = A[AGE_YEARS_IDX].substring(1, A[AGE_YEARS_IDX].length() - 1);
-        }
+
         marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
         race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
         language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
