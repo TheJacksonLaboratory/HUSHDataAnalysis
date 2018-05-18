@@ -26,7 +26,7 @@ public class PatientDimensionImplTest  {
     private static String patient1 = "176974728,\"UD\",\"1979-08-07 00:00:00\",\"\",\"F\",,\"114\",\"9\",\"2\",\"\",\"\",\"\"," +
             "\"\",\"\",\"2017-03-12 00:00:00\",\"\",\"2015-03-19 00:00:00\",\"EPIC\",";
 
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @BeforeClass
     public static void setupIndices()  {
@@ -46,7 +46,7 @@ public class PatientDimensionImplTest  {
         patient.patientDimensionEntry();
         assertEquals("UD", patient.vital_status_cd());
     }
-    @Test//TODO
+    @Test
     public void testBirth_date() throws Exception {
         PatientDimensionImpl patient = new PatientDimensionImpl(patient1);
         patient.patientDimensionEntry();
@@ -107,7 +107,7 @@ public class PatientDimensionImplTest  {
         PatientDimensionImpl patient = new PatientDimensionImpl(patient1);
 
         assertNotNull(patient.import_date());
-        assertEquals("2015-03-19 00:00:00", patient.import_date());
+        assertEquals("2015-03-19 00:00:00", patient.import_date().toString());
     }
     @Test
     public void testSourcesystem_cd() throws Exception {
