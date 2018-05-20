@@ -46,7 +46,7 @@ public class ObservationFactImpl implements ObservationFact {
     private int patient_num;
     private int encounter_num;
     private String concept_cd;
-    private String provider_id;
+    private Coding provider_id;
     private Date startDate;
     private String start_dat;
     private String modifier_cd;
@@ -218,8 +218,8 @@ public class ObservationFactImpl implements ObservationFact {
 
 
         concept_cd  = A[CONCEPT_CD_IDX];
-        provider_id = A[PROVIDER_ID_IDX].substring(1,A[PROVIDER_ID_IDX].length()-1);
-        modifier_cd = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
+        //provider_id = A[PROVIDER_ID_IDX].substring(1,A[PROVIDER_ID_IDX].length()-1);
+        //modifier_cd = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
         instance_num = Integer.parseInt(A[INSTANCE_NUM_IDX]);
         valtype_cd = A[VALTYPE_CD_IDX].substring(1,A[VALTYPE_CD_IDX].length()-1);
 
@@ -349,23 +349,21 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public int encounter_num() {
-        return 0;
+        return encounter_num;
     }
 
     @Override
     public int patient_num() {
-        return 0;
+        return patient_num;
     }
 
     @Override
     public Coding concept_cd() {
-        return null;
+        return concept_cd();
     }
 
     @Override
-    public Coding provider_id() {
-        return null;
-    }
+    public Coding provider_id() { return provider_id;}
 
     @Override
     public Date start_date() {

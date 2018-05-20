@@ -2,7 +2,6 @@ package org.jax.Parsers;
 
 
 import org.hl7.fhir.dstu3.model.Address;
-import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.jax.DateModel.SourceSystemEnumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +57,7 @@ public class PatientDimensionImpl implements PatientDimension {
     private Date downloadDate;
     private String update_date;
     private Date updateDate;
-    private AdministrativeGender sex_cd;
+    private char sex_cd;
     private String age_in_years_num;
     private int language_cd;
     private int race_cd;
@@ -240,21 +239,14 @@ public class PatientDimensionImpl implements PatientDimension {
         }
 
       //sex
-        /*if(!A[SEX_CD_IDX].equals("\"\"")) {
-            sex_cd = A[SEX_CD_IDX].matches("\"F\"") ? 'F' : 'M';
+        if(!A[SEX_CD_IDX].equals("\"\"")) {
+            sex_cd = A[SEX_CD_IDX].matches("\"F\"") ? 'F' : 'M';//Assuming that that there are 2
         }
         else{
-            sex_cd = '0';
+            sex_cd = '0'; // If sex is not available
             System.err.println("Sex is not available");
-        }*/
-
-       /* if (!A[SEX_CD_IDX].equals("\"\"")){
-            sex_cd = AdministrativeGender.valueOf(A[SEX_CD_IDX].substring(1,A[SEX_CD_IDX].length() - 1));
         }
-        else{
-            System.out.println("sex_cd is not available!");
-            sex_cd = null;
-        }*/
+
        //marital_status_cd
         if(!A[MARITAL_STATUS_IDX].equals("\"\"")){
             if(A[MARITAL_STATUS_IDX].equals("UNKNOWN")){
@@ -318,7 +310,7 @@ public class PatientDimensionImpl implements PatientDimension {
 
 
     @Override
-    public AdministrativeGender sex_cd() {return sex_cd;}
+    public char sex_cd() {return sex_cd;}
 
 
     @Override

@@ -59,12 +59,12 @@ public class PatientDimensionImplTest  {
         patient.patientDimensionEntry();
         assertNull(patient.death_date());
     }
-   /* @Test //TODO Check sex format
+    @Test
     public void testSex_cd() throws Exception {
         patient.patientDimensionEntry();
         System.out.println(patient.sex_cd());
-        assertEquals(AdministrativeGender.FEMALE, patient.sex_cd());
-    }*/
+        assertEquals('F', patient.sex_cd());
+    }
 
     /*@Test No need to implement?
     public void testAge_in_years_num() throws Exception {
