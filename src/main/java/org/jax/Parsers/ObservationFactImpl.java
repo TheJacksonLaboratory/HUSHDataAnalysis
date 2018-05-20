@@ -3,16 +3,22 @@ package org.jax.Parsers;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.jax.DateModel.SourceSystemEnumType;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO: implement methods in this class and pass unit test
  */
 public class ObservationFactImpl implements ObservationFact {
+    private static final Logger logger = LoggerFactory.getLogger(PatientDimensionImpl.class);
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    String record;
+
+    private String record;
     private static int PATIENT_NUM_IDX = 0;
     private static int ENCOUNTER_NUM_IDX = 0;
     private static int CONCEPT_CD_IDX = 0;
@@ -41,10 +47,10 @@ public class ObservationFactImpl implements ObservationFact {
     private int encounter_num;
     private String concept_cd;
     private String provider_id;
+    private Date startDate;
     private String start_dat;
     private String modifier_cd;
     private int instance_num;
-    private static SimpleDateFormat dateFormat;
     private String valtype_cd;
     private String tval_char;
     private String nval_num;
@@ -52,13 +58,17 @@ public class ObservationFactImpl implements ObservationFact {
     private String quantity_num;
     private String units_cd;
     private String end_dat;
+    private Date endDate;
     private String location_cd;
     private String observation_blob;
     private String confidence_num;
+    private Date updateDate;
     private String update_date;
     private String download_date;
+    private Date downloadDate;
     private String import_date;
-    private String sourcesystem_cd;
+    private Date importDate;
+    private SourceSystemEnumType sourcesystem_cd;
     private String text_search_index;
     private String upload_id;
 
@@ -184,35 +194,156 @@ public class ObservationFactImpl implements ObservationFact {
         }
     }
 //TODO Complete parsing entries
-    public void observationFactEntry() {
+    public void observationFactEntry() throws ParseException {
         String []A = record.split(",");
         if (A.length < TEXT_SEARCH_IDX ) {
-            // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
+            logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, record));
             System.exit(1);
         }
-        patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
-        encounter_num = Integer.parseInt(A[ENCOUNTER_NUM_IDX]);
+        //encounter_num
+        if(!A[END_DAT_IDX].equals("\"\"")) {
+            encounter_num = Integer.parseInt(A[END_DAT_IDX]);
+        }
+        else{
+            System.err.println("encounter_num is not available!");
+        }
+
+        //patient_num
+        if(!A[PATIENT_NUM_IDX].equals("\"\"")) {
+            patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
+        }
+        else{
+            System.err.println("patient_num is not available!");
+        }
+
+
         concept_cd  = A[CONCEPT_CD_IDX];
         provider_id = A[PROVIDER_ID_IDX].substring(1,A[PROVIDER_ID_IDX].length()-1);
-        start_dat = A[START_DAT_IDX].substring(1,A[START_DAT_IDX].length()-1);
         modifier_cd = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
         instance_num = Integer.parseInt(A[INSTANCE_NUM_IDX]);
         valtype_cd = A[VALTYPE_CD_IDX].substring(1,A[VALTYPE_CD_IDX].length()-1);
-        tval_char = A[TVAL_CHAR_IDX].substring(1,A[TVAL_CHAR_IDX].length()-1);
+
+        //tval_char
+        if(!A[TVAL_CHAR_IDX].equals("\"\"")){
+            tval_char = A[TVAL_CHAR_IDX].substring(1,A[TVAL_CHAR_IDX].length()-1);
+        }
+        else{
+            tval_char = null;
+        }
+
+
         nval_num = A[NVAL_NUM_IDX].substring(1,A[NVAL_NUM_IDX].length()-1);
         valueflag_cd = A[VALUEFLAG_CD__IDX].substring(1,A[VALUEFLAG_CD__IDX].length()-1);
-        quantity_num = A[QUANTITY_NUM_IDX].substring(1,A[QUANTITY_NUM_IDX].length()-1);
-        units_cd = A[UNITS_CD_IDX].substring(1,A[UNITS_CD_IDX].length()-1);
-        end_dat = A[END_DAT_IDX].substring(1,A[END_DAT_IDX].length()-1);
-        location_cd = A[LOCATION_CD_IDX].substring(1,A[LOCATION_CD_IDX].length()-1);
-        observation_blob = A[OBSERVATION_BLOB_IDX].substring(1,A[OBSERVATION_BLOB_IDX].length()-1);
+
+        //quantity_num
+        if(!A[QUANTITY_NUM_IDX].equals("\"\"")){
+            quantity_num = A[QUANTITY_NUM_IDX].substring(1,A[QUANTITY_NUM_IDX].length()-1);
+        }
+        else{
+            quantity_num = null;
+        }
+
+        //units_cd
+        if(!A[UNITS_CD_IDX].equals("\"\"")){
+            units_cd = A[UNITS_CD_IDX].substring(1,A[UNITS_CD_IDX].length()-1);
+        }
+        else{
+            units_cd = null;
+        }
+
+        //start_date
+        if(!A[START_DAT_IDX].equals("\"\"")) {
+            start_dat = A[START_DAT_IDX].substring(1, A[START_DAT_IDX].length() - 1);
+            startDate = dateFormat.parse(start_dat);
+        }
+        else{
+            System.out.println("end_dat is empty!");
+            endDate = null;
+        }
+
+        //end_date
+        if(!A[END_DAT_IDX].equals("\"\"")) {
+            end_dat = A[END_DAT_IDX].substring(1, A[END_DAT_IDX].length() - 1);
+            endDate = dateFormat.parse(end_dat);
+        }
+        else{
+            System.out.println("end_dat is empty!");
+            endDate = null;
+        }
+
+        //location_cd
+        if(!A[LOCATION_CD_IDX].equals("\"\"")){
+            location_cd = A[LOCATION_CD_IDX].substring(1,A[LOCATION_CD_IDX].length()-1);
+        }
+        else{
+            location_cd = null;
+        }
+
+
+        //observation_blob
+        if(!A[OBSERVATION_BLOB_IDX].equals("\"\"")){
+            observation_blob = A[OBSERVATION_BLOB_IDX].substring(1,A[OBSERVATION_BLOB_IDX].length()-1);
+        }
+        else{
+            observation_blob = null;
+        }
+
         confidence_num = A[CONFIDENCE_NUM_IDX].substring(1,A[CONFIDENCE_NUM_IDX].length()-1);
-        update_date = A[UPDATE_DATE_IDX].substring(1,A[UPDATE_DATE_IDX].length()-1);
-        download_date = A[DOWNLOAD_DATE_IDX].substring(1,A[DOWNLOAD_DATE_IDX].length()-1);
-        import_date = A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
-        sourcesystem_cd = A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length()-1);
-        upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
-        text_search_index = A[TEXT_SEARCH_IDX].substring(1,A[TEXT_SEARCH_IDX].length()-1);
+
+        //update_date
+        if(!A[UPDATE_DATE_IDX].equals("\"\"")) {
+            update_date = A[UPDATE_DATE_IDX].substring(1, A[UPDATE_DATE_IDX].length() - 1);
+            updateDate = dateFormat.parse(update_date);
+        }
+        else{
+            System.out.println("update_date is empty!");
+            updateDate = null;
+        }
+
+        //download_date
+        if(!A[DOWNLOAD_DATE_IDX].equals("\"\"")) {
+            download_date = A[DOWNLOAD_DATE_IDX].substring(1, A[DOWNLOAD_DATE_IDX].length() - 1);
+            downloadDate = dateFormat.parse(download_date);
+        }
+        else{
+            System.out.println("download_date is empty!");
+            downloadDate = null;
+        }
+
+        //import_date
+        if(!A[IMPORT_DATE_IDX].equals("\"\"")) {
+            import_date = A[IMPORT_DATE_IDX].substring(1, A[IMPORT_DATE_IDX].length() - 1);
+            importDate = dateFormat.parse(import_date);
+        }
+        else{
+            System.out.println("import_date is empty!");
+            importDate = null;
+        }
+
+        //source system type
+        if (!A[SOURCESYSTEM_IDX].equals("\"\"")){
+            sourcesystem_cd = SourceSystemEnumType.valueOf(A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length() - 1));
+        }
+        else{
+            System.out.println("source system cd is not available!");
+            sourcesystem_cd = null;
+        }
+
+        //upload_id
+        if(!A[UPLOAD_ID_IDX].equals("\"\"")){
+            upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
+        }
+        else{
+            upload_id = null;
+        }
+
+        //text_search_index
+        if(!A[TEXT_SEARCH_IDX].equals("\"\"")){
+            text_search_index = A[TEXT_SEARCH_IDX].substring(1,A[TEXT_SEARCH_IDX].length()-1);
+        }
+        else{
+            text_search_index= null;
+        }
 
     }
 
@@ -272,7 +403,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public String quatity_num() {
+    public String quantity_num() {
         return null;
     }
 

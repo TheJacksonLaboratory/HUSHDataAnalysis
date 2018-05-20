@@ -86,7 +86,7 @@ public interface ObservationFact {
      * Unknown data type. Change to a more specific one if necessary
      * @return
      */
-    String quatity_num();
+    String quantity_num();
 
     /**
      * Return unit

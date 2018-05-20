@@ -296,7 +296,7 @@ public class PatientDimensionImpl implements PatientDimension {
             upload_id = null;
         }
         else if(!A[UPLOAD_ID_IDX].equals("\"\"")){
-            upload_id = A[UPLOAD_ID_IDX];
+            upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
         }
         else{
             upload_id = null;
