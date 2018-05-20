@@ -45,23 +45,23 @@ public class ObservationFactImpl implements ObservationFact {
 
     private int patient_num;
     private int encounter_num;
-    private String concept_cd;
+    private Coding concept_cd;
     private Coding provider_id;
     private Date startDate;
     private String start_dat;
-    private String modifier_cd;
+    private List<String> modifier_cd;
     private int instance_num;
-    private String valtype_cd;
+    private char valtype_cd;
     private String tval_char;
-    private String nval_num;
-    private String valueflag_cd;
+    private double nval_num;
+    private char valueflag_cd;
     private String quantity_num;
     private String units_cd;
     private String end_dat;
     private Date endDate;
     private String location_cd;
     private String observation_blob;
-    private String confidence_num;
+    private int confidence_num;
     private Date updateDate;
     private String update_date;
     private String download_date;
@@ -86,7 +86,7 @@ public class ObservationFactImpl implements ObservationFact {
     public void setIndices_ObservFact(String header) {
         String fields[] = header.split(",");
         if (fields.length < 23) {
-            //logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
+            logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
         int initializedvalues = 0;
@@ -188,8 +188,8 @@ public class ObservationFactImpl implements ObservationFact {
             }
         }
         if (initializedvalues != 24) {
-            // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
-            //logger.error("The offending line was: " + fields);
+            logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
+            logger.error("The offending line was: " + fields);
             System.exit(1);
         }
     }
@@ -200,58 +200,29 @@ public class ObservationFactImpl implements ObservationFact {
             logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, record));
             System.exit(1);
         }
-        //encounter_num
-        if(!A[END_DAT_IDX].equals("\"\"")) {
+        /*encounter_num*/
+        if(!A[ENCOUNTER_NUM_IDX].equals(" ")) {
             encounter_num = Integer.parseInt(A[END_DAT_IDX]);
         }
         else{
             System.err.println("encounter_num is not available!");
+            System.exit(1);
         }
 
-        //patient_num
-        if(!A[PATIENT_NUM_IDX].equals("\"\"")) {
+        /*patient_num*/
+        if(!A[PATIENT_NUM_IDX].equals(" ")) {
             patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         }
         else{
             System.err.println("patient_num is not available!");
+            System.exit(1);
         }
 
 
-        concept_cd  = A[CONCEPT_CD_IDX];
+        //concept_cd  = A[CONCEPT_CD_IDX];
         //provider_id = A[PROVIDER_ID_IDX].substring(1,A[PROVIDER_ID_IDX].length()-1);
-        //modifier_cd = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
-        instance_num = Integer.parseInt(A[INSTANCE_NUM_IDX]);
-        valtype_cd = A[VALTYPE_CD_IDX].substring(1,A[VALTYPE_CD_IDX].length()-1);
 
-        //tval_char
-        if(!A[TVAL_CHAR_IDX].equals("\"\"")){
-            tval_char = A[TVAL_CHAR_IDX].substring(1,A[TVAL_CHAR_IDX].length()-1);
-        }
-        else{
-            tval_char = null;
-        }
-
-
-        nval_num = A[NVAL_NUM_IDX].substring(1,A[NVAL_NUM_IDX].length()-1);
-        valueflag_cd = A[VALUEFLAG_CD__IDX].substring(1,A[VALUEFLAG_CD__IDX].length()-1);
-
-        //quantity_num
-        if(!A[QUANTITY_NUM_IDX].equals("\"\"")){
-            quantity_num = A[QUANTITY_NUM_IDX].substring(1,A[QUANTITY_NUM_IDX].length()-1);
-        }
-        else{
-            quantity_num = null;
-        }
-
-        //units_cd
-        if(!A[UNITS_CD_IDX].equals("\"\"")){
-            units_cd = A[UNITS_CD_IDX].substring(1,A[UNITS_CD_IDX].length()-1);
-        }
-        else{
-            units_cd = null;
-        }
-
-        //start_date
+        /*start_date*/
         if(!A[START_DAT_IDX].equals("\"\"")) {
             start_dat = A[START_DAT_IDX].substring(1, A[START_DAT_IDX].length() - 1);
             startDate = dateFormat.parse(start_dat);
@@ -260,8 +231,81 @@ public class ObservationFactImpl implements ObservationFact {
             System.out.println("end_dat is empty!");
             endDate = null;
         }
+        /*modifier_cd*/
+        if(!A[MODIFIER_CD_IDX].equals("\"\"")){
+            String modifer = A[MODIFIER_CD_IDX].substring(1,A[MODIFIER_CD_IDX].length()-1);
+            String modifierParts [] = modifer.split(":");
+            modifier_cd.add(modifierParts[0]);
+            modifier_cd.add(modifierParts[1]);
+        }
+        else{
+            System.err.println("modifier cd is not available!");
+            modifier_cd = null;
+        }
 
-        //end_date
+        /*instance_num*/
+        if(!A[INSTANCE_NUM_IDX].equals(" ")) {
+            instance_num = Integer.parseInt(A[INSTANCE_NUM_IDX]);
+        }
+        else{
+            System.err.println("instance_num is not available!");
+            //Set instance_num to a value??
+        }
+
+        /*valtype_char*/
+        if(!A[VALTYPE_CD_IDX].equals("\"\"")) {
+            String valtype = A[VALTYPE_CD_IDX].substring(1, A[VALTYPE_CD_IDX].length() - 1);
+            valtype_cd = valtype.charAt(0);
+        }
+        else{
+            valtype_cd=' ';
+        }
+
+
+        /*tval_char*/
+        if(!A[TVAL_CHAR_IDX].equals("\"\"")){
+            tval_char = A[TVAL_CHAR_IDX].substring(1,A[TVAL_CHAR_IDX].length()-1);
+        }
+        else{
+            tval_char = " ";
+        }
+
+        /*nval_num*/
+        if(!A[NVAL_NUM_IDX].equals(" ")){
+            nval_num = Double.parseDouble(A[NVAL_NUM_IDX]);
+        }
+        else{
+            System.err.println("nval_num is not available!");
+            //Set nval_num to a value??
+        }
+        /*valueflage_cd*/
+        if(!A[VALUEFLAG_CD__IDX].equals("\"\"")) {
+            String valueflag = A[VALUEFLAG_CD__IDX].substring(1, A[VALUEFLAG_CD__IDX].length() - 1);
+            valueflag_cd = valueflag.charAt(0);//check if there is [] or not.
+        }
+        else{
+            valueflag_cd = ' ';
+        }
+
+        /*quantity_num*/
+        if(!A[QUANTITY_NUM_IDX].equals("\"\"")){
+            quantity_num = A[QUANTITY_NUM_IDX].substring(1,A[QUANTITY_NUM_IDX].length()-1);
+        }
+        else{
+            quantity_num = null;
+        }
+
+        /*units_cd*/
+        if(!A[UNITS_CD_IDX].equals("\"\"")){
+            units_cd = A[UNITS_CD_IDX].substring(1,A[UNITS_CD_IDX].length()-1);
+        }
+        else{
+            units_cd = null;
+        }
+
+
+
+        /*end_date*/
         if(!A[END_DAT_IDX].equals("\"\"")) {
             end_dat = A[END_DAT_IDX].substring(1, A[END_DAT_IDX].length() - 1);
             endDate = dateFormat.parse(end_dat);
@@ -271,16 +315,16 @@ public class ObservationFactImpl implements ObservationFact {
             endDate = null;
         }
 
-        //location_cd
-        if(!A[LOCATION_CD_IDX].equals("\"\"")){
-            location_cd = A[LOCATION_CD_IDX].substring(1,A[LOCATION_CD_IDX].length()-1);
+        /*location_cd*/
+        if(!A[LOCATION_CD_IDX].equals(" ")){
+            location_cd = A[LOCATION_CD_IDX];
         }
         else{
             location_cd = null;
         }
 
 
-        //observation_blob
+        /*observation_blob*/
         if(!A[OBSERVATION_BLOB_IDX].equals("\"\"")){
             observation_blob = A[OBSERVATION_BLOB_IDX].substring(1,A[OBSERVATION_BLOB_IDX].length()-1);
         }
@@ -288,9 +332,17 @@ public class ObservationFactImpl implements ObservationFact {
             observation_blob = null;
         }
 
-        confidence_num = A[CONFIDENCE_NUM_IDX].substring(1,A[CONFIDENCE_NUM_IDX].length()-1);
+        /*confidence_num*/
+        if(!A[CONFIDENCE_NUM_IDX].equals(" ")){
+            confidence_num = Integer.parseInt(A[CONFIDENCE_NUM_IDX]);
+        }
+        else{
+            System.out.println("confidence num cd is not available!");
+            //Set confidence num to a value??
+        }
 
-        //update_date
+
+        /*update_date*/
         if(!A[UPDATE_DATE_IDX].equals("\"\"")) {
             update_date = A[UPDATE_DATE_IDX].substring(1, A[UPDATE_DATE_IDX].length() - 1);
             updateDate = dateFormat.parse(update_date);
@@ -300,7 +352,7 @@ public class ObservationFactImpl implements ObservationFact {
             updateDate = null;
         }
 
-        //download_date
+        /*download_date*/
         if(!A[DOWNLOAD_DATE_IDX].equals("\"\"")) {
             download_date = A[DOWNLOAD_DATE_IDX].substring(1, A[DOWNLOAD_DATE_IDX].length() - 1);
             downloadDate = dateFormat.parse(download_date);
@@ -310,7 +362,7 @@ public class ObservationFactImpl implements ObservationFact {
             downloadDate = null;
         }
 
-        //import_date
+        /*import_date*/
         if(!A[IMPORT_DATE_IDX].equals("\"\"")) {
             import_date = A[IMPORT_DATE_IDX].substring(1, A[IMPORT_DATE_IDX].length() - 1);
             importDate = dateFormat.parse(import_date);
@@ -320,7 +372,7 @@ public class ObservationFactImpl implements ObservationFact {
             importDate = null;
         }
 
-        //source system type
+        /*source system type*/
         if (!A[SOURCESYSTEM_IDX].equals("\"\"")){
             sourcesystem_cd = SourceSystemEnumType.valueOf(A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length() - 1));
         }
@@ -329,20 +381,26 @@ public class ObservationFactImpl implements ObservationFact {
             sourcesystem_cd = null;
         }
 
-        //upload_id
+        /*upload_id*/
         if(!A[UPLOAD_ID_IDX].equals("\"\"")){
             upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
+        }
+        else if (!A[UPLOAD_ID_IDX].equals(" ")){
+            upload_id = A[UPLOAD_ID_IDX];
         }
         else{
             upload_id = null;
         }
 
-        //text_search_index
+        /*text_search_index*/
         if(!A[TEXT_SEARCH_IDX].equals("\"\"")){
             text_search_index = A[TEXT_SEARCH_IDX].substring(1,A[TEXT_SEARCH_IDX].length()-1);
         }
+        else if (!A[TEXT_SEARCH_IDX].equals(" ")){
+            text_search_index = A[TEXT_SEARCH_IDX];
+        }
         else{
-            text_search_index= null;
+            text_search_index = null;
         }
 
     }
@@ -359,7 +417,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public Coding concept_cd() {
-        return concept_cd();
+        return concept_cd;
     }
 
     @Override
@@ -367,7 +425,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public Date start_date() {
-        return null;
+        return startDate;
     }
 
     @Override
@@ -387,7 +445,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public String tval_char() {
-        return null;
+        return tval_char;
     }
 
     @Override
@@ -407,12 +465,12 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public String units_cd() {
-        return null;
+        return units_cd;
     }
 
     @Override
     public Date end_date() {
-        return null;
+        return endDate;
     }
 
     @Override
@@ -432,17 +490,17 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public Date update_date() {
-        return null;
+        return updateDate;
     }
 
     @Override
     public Date download_date() {
-        return null;
+        return downloadDate;
     }
 
     @Override
     public Date import_date() {
-        return null;
+        return importDate;
     }
 
     @Override
@@ -452,11 +510,11 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public String upload_id() {
-        return null;
+        return upload_id;
     }
 
     @Override
     public String text_search_index() {
-        return null;
+        return text_search_index;
     }
 }

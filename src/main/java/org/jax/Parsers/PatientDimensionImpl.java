@@ -176,7 +176,7 @@ public class PatientDimensionImpl implements PatientDimension {
         }
 
         //patient_num
-        if(!A[PATIENT_NUM_IDX].equals("\"\"")) {
+        if(!A[PATIENT_NUM_IDX].equals(" ")) {
             patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         }
         else{

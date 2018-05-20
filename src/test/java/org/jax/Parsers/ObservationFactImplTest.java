@@ -12,10 +12,14 @@ public class ObservationFactImplTest extends TestCase {
 
     private static ObservationFact obser1, obser2;
     private static SimpleDateFormat dateFormat;
+    private static String header;
 
     @Override
     public void setUp() throws Exception {
-
+        header= "\"encounter_num\",\"patient_num\",\"concept_cd\",\"provider_id\",\"start_date\",\"modifier_cd\",\"instance_num\"," +
+                "\"valtype_cd\",\"tval_char\",\"nval_num\",\"valueflag_cd\",\"quantity_num\",\"units_cd\",\"end_date\"," +
+                "\"location_cd\",\"observation_blob\",\"confidence_num\",\"update_date\",\"download_date\",\"import_date\"," +
+                "\"sourcesystem_cd\",\"upload_id\",\"text_search_index\"";
         obser1 = new ObservationFactImpl("505163653,113179285,\"LOINC:26474-7\",\"NPI:1902123060\",\"2010-08-12 00:00:00\",\"@\",1,\"N\",\"E\",1.20000,\"L\",,\"x10 9th/L\",\"\",\"\",\"\",,\"2016-03-12 00:00:00\",\"\",\"2016-03-12 00:00:00\",\"ADS\",,");
         //obser2 = new ObservationFactImpl("746113071,140952640,\"LOINC:777-3\",\"NPI:1902923253\",\"2015-11-05 00:00:00\",\"@\",1,\"N\",\"E\",66.00000,\"[L]\",,\"10*9/L\",\"\",\"\",\"\",,\"2016-11-13 00:00:00\",\"\",\"2016-11-13 00:00:00\",\"EPIC\",,");
         dateFormat = new SimpleDateFormat("YYYY-MM-DD HH:mm:ss");
