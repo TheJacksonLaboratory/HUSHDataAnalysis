@@ -2,6 +2,7 @@ package org.jax.Parsers;
 
 
 import org.hl7.fhir.dstu3.model.Address;
+import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.jax.DateModel.SourceSystemEnumType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,12 +58,14 @@ public class PatientDimensionImpl implements PatientDimension {
     private Date downloadDate;
     private String update_date;
     private Date updateDate;
-    private char sex_cd;
+    private AdministrativeGender sex_cd;
     private String age_in_years_num;
     private int language_cd;
     private int race_cd;
     private int marital_status_cd;
     private String upload_id;
+    private SourceSystemEnumType sourcesystem_cd;
+
 
 
 
@@ -162,22 +165,23 @@ public class PatientDimensionImpl implements PatientDimension {
             if (initializedvalues != 19) {
                  logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
                  logger.error("The offending line was: " + fields);
-                System.exit(1);
+                 System.exit(1);
             }
     }
 
     public void patientDimensionEntry() throws ParseException {
         String []A = patientRecord.split(",");
-        if (A.length < UPLOAD_ID_IDX ) {
+        if (A.length < UPLOAD_ID_IDX) {
             logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, patientRecord));
             System.exit(1);
         }
+
         //patient_num
         if(!A[PATIENT_NUM_IDX].equals("\"\"")) {
             patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
         }
         else{
-            System.err.println("Patient Number is not available!");
+            System.err.println("patient_num is not available!");
         }
 
         //vital_status_cd
@@ -193,7 +197,7 @@ public class PatientDimensionImpl implements PatientDimension {
             birthDate = dateFormat.parse(birth_date);
         }
         else{
-             System.out.println("Birth date is empty!");
+             System.out.println("birth_date is empty!");
              birthDate = null;
         }
 
@@ -203,7 +207,7 @@ public class PatientDimensionImpl implements PatientDimension {
             deathDate = dateFormat.parse(death_date);
         }
         else{
-            System.out.println("The patient is alive:-)!");
+            System.out.println("death_date is not available. The patient is alive:-)!");
             deathDate = null;
         }
         //import_date
@@ -212,7 +216,7 @@ public class PatientDimensionImpl implements PatientDimension {
             importDate = dateFormat.parse(import_date);
         }
         else{
-            System.out.println("Import date is not available!");
+            System.out.println("import_date is not available!");
             importDate = null;
         }
         //download_date
@@ -221,23 +225,41 @@ public class PatientDimensionImpl implements PatientDimension {
             downloadDate = dateFormat.parse(download_date);
         }
         else{
-            System.out.println("Download date is not available!");
+            System.out.println("download_date is not available!");
             downloadDate = null;
         }
 
+        //update_date
+        if(!A[UPDATE_DATE_IDX].equals("\"\"")) {
+            update_date = A[UPDATE_DATE_IDX].substring(1, A[UPDATE_DATE_IDX].length() - 1);
+            updateDate = dateFormat.parse(update_date);
+        }
+        else{
+            System.out.println("update_date is not available!");
+            updateDate = null;
+        }
+
       //sex
-        if(!A[SEX_CD_IDX].equals("\"\"")) {
+        /*if(!A[SEX_CD_IDX].equals("\"\"")) {
             sex_cd = A[SEX_CD_IDX].matches("\"F\"") ? 'F' : 'M';
         }
         else{
             sex_cd = '0';
             System.err.println("Sex is not available");
+        }*/
+
+       /* if (!A[SEX_CD_IDX].equals("\"\"")){
+            sex_cd = AdministrativeGender.valueOf(A[SEX_CD_IDX].substring(1,A[SEX_CD_IDX].length() - 1));
         }
+        else{
+            System.out.println("sex_cd is not available!");
+            sex_cd = null;
+        }*/
        //marital_status_cd
         if(!A[MARITAL_STATUS_IDX].equals("\"\"")){
             if(A[MARITAL_STATUS_IDX].equals("UNKNOWN")){
                 marital_status_cd = -1;
-                System.out.println("marital status is unknown!");
+                System.out.println("marital_status is unknown!");
             }
             else{
                 marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
@@ -259,14 +281,26 @@ public class PatientDimensionImpl implements PatientDimension {
             System.out.println("Language is not available!");
         }
 
+        //source system type
+        if (!A[SOURCESYSTEM_IDX].equals("\"\"")){
+            sourcesystem_cd = SourceSystemEnumType.valueOf(A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length() - 1));
+        }
+        else{
+            System.out.println("source system cd is not available!");
+            sourcesystem_cd = null;
+        }
+
         //upload ID
-        if(!A[UPLOAD_ID_IDX].equals("null")){
+        if(A.length == UPLOAD_ID_IDX){//It means that parsing stopped after ',', because there is no entry for upload_id
+            System.out.println("upload_id is not available");
+            upload_id = null;
+        }
+        else if(!A[UPLOAD_ID_IDX].equals("\"\"")){
             upload_id = A[UPLOAD_ID_IDX];
         }
         else{
             upload_id = null;
         }
-
     }
 
 
@@ -284,7 +318,7 @@ public class PatientDimensionImpl implements PatientDimension {
 
 
     @Override
-    public char sex_cd() {return sex_cd;}
+    public AdministrativeGender sex_cd() {return sex_cd;}
 
 
     @Override
@@ -343,10 +377,10 @@ public class PatientDimensionImpl implements PatientDimension {
     public Date import_date() {return importDate;}
 
     @Override
-    public SourceSystemEnumType sourcesystem_cd() {return null;}
+    public SourceSystemEnumType sourcesystem_cd() {return sourcesystem_cd;}
 
     @Override
     public String upload_id() {
-        return null;
+        return upload_id;
     }
 }

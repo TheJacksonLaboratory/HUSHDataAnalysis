@@ -1,6 +1,7 @@
 package org.jax.Parsers;
 
 import org.hl7.fhir.dstu3.model.Address;
+import org.hl7.fhir.dstu3.model.codesystems.AdministrativeGender;
 import org.jax.DateModel.SourceSystemEnumType;
 
 import java.util.Date;
@@ -27,7 +28,7 @@ public interface PatientDimension {
      * Return sex wrapped in AdministrativeGender
      * @return
      */
-    char sex_cd();
+    AdministrativeGender sex_cd();
 
     /**
      * No need to implement
