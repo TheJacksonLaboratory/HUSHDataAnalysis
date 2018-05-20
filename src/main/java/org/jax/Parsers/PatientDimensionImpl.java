@@ -258,7 +258,7 @@ public class PatientDimensionImpl implements PatientDimension {
        //marital_status_cd
         if(!A[MARITAL_STATUS_IDX].equals("\"\"")){
             if(A[MARITAL_STATUS_IDX].equals("UNKNOWN")){
-                marital_status_cd = -1;
+                marital_status_cd = -1;//If marital status is unknown, we set it to -1.
                 System.out.println("marital_status is unknown!");
             }
             else{
@@ -291,7 +291,7 @@ public class PatientDimensionImpl implements PatientDimension {
         }
 
         //upload ID
-        if(A.length == UPLOAD_ID_IDX){//It means that parsing stopped after ',', because there is no entry for upload_id
+        if(A.length == UPLOAD_ID_IDX){ //It means that parsing stopped after ',', because there is no entry for upload_id
             System.out.println("upload_id is not available");
             upload_id = null;
         }
