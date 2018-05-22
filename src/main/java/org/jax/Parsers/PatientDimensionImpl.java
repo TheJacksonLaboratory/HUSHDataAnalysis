@@ -60,9 +60,9 @@ public class PatientDimensionImpl implements PatientDimension {
     private Date updateDate;
     private char sex_cd;
     private String age_in_years_num;
-    private int language_cd;
-    private int race_cd;
-    private int marital_status_cd;
+    private String language_cd;
+    private String race_cd;
+    private String marital_status_cd;
     private String upload_id;
     private SourceSystemEnumType sourcesystem_cd;
 
@@ -251,16 +251,16 @@ public class PatientDimensionImpl implements PatientDimension {
        //marital_status_cd
         if(!A[MARITAL_STATUS_IDX].equals("\"\"")){
             if(A[MARITAL_STATUS_IDX].equals("UNKNOWN")){
-                marital_status_cd = -1;//If marital status is unknown, we set it to -1.
+                marital_status_cd = "UNKNOWN";//If marital status is unknown, we set it to -1.
                 System.out.println("marital_status is unknown!");
             }
             else{
-                marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
+                marital_status_cd = A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1);
             }
         }
         //race_cd
         if(!A[RACE_IDX].equals("\"\"")){
-            race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
+            race_cd = A[RACE_IDX].substring(1,A[RACE_IDX].length()-1);
         }
         else{
             System.out.println("Race is not available!");
@@ -268,7 +268,7 @@ public class PatientDimensionImpl implements PatientDimension {
 
         //language
         if (!A[LANGUAGE_IDX].equals("\"\"")){
-            language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
+            language_cd = A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1);
         }
         else{
             System.out.println("Language is not available!");
@@ -284,7 +284,7 @@ public class PatientDimensionImpl implements PatientDimension {
         }
 
         //upload ID
-        if(A.length == UPLOAD_ID_IDX){ //It means that parsing stopped after ',', because there is no entry for upload_id
+       /* if(A.length == UPLOAD_ID_IDX){ //It means that parsing stopped after ',', because there is no entry for upload_id
             System.out.println("upload_id is not available");
             upload_id = null;
         }
@@ -293,7 +293,7 @@ public class PatientDimensionImpl implements PatientDimension {
         }
         else{
             upload_id = null;
-        }
+        }*/
     }
 
 
@@ -320,13 +320,13 @@ public class PatientDimensionImpl implements PatientDimension {
 
 
     @Override
-    public String language_cd() {return Integer.toString(language_cd);}
+    public String language_cd() {return language_cd;}
 
     @Override
-    public String race() {return Integer.toString(race_cd);}
+    public String race() {return race_cd;}
 
     @Override
-    public char marital_status_cd() {return Integer.toString(marital_status_cd).charAt(0);}
+    public String marital_status_cd() {return marital_status_cd;}
 
     @Override
     public String religion_cd() {

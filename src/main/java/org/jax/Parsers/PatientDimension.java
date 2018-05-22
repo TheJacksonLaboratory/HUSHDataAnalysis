@@ -39,7 +39,7 @@ public interface PatientDimension {
 
     String race();
 
-    char marital_status_cd();
+    String marital_status_cd();
 
     String religion_cd();
 

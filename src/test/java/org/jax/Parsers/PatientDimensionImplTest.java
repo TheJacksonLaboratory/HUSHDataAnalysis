@@ -74,17 +74,17 @@ public class PatientDimensionImplTest  {
     @Test
     public void testLanguage_cd() throws Exception {
         patient.patientDimensionEntry();
-        assertEquals(114, patient.language_cd());
+        assertEquals("114", patient.language_cd());
     }
     @Test
     public void testRace() throws Exception {
         patient.patientDimensionEntry();
-        assertEquals(9, patient.race());
+        assertEquals("9", patient.race());
     }
     @Test
     public void testMarital_status_cd() throws Exception {
         patient.patientDimensionEntry();
-        assertEquals(2, patient.marital_status_cd());
+        assertEquals("2", patient.marital_status_cd());
     }
 
 
@@ -114,7 +114,8 @@ public class PatientDimensionImplTest  {
     @Test
     public void testUpload_id() throws Exception {
         patient.patientDimensionEntry();
-        assertNull(patient.upload_id());
+        //assertNull(patient.upload_id());
+        assertEquals(0, patient.upload_id());
     }
     @Test
     public void testDate() throws Exception{
