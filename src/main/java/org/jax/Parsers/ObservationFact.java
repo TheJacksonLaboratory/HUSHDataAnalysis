@@ -1,6 +1,5 @@
 package org.jax.Parsers;
 
-import org.hl7.fhir.dstu3.model.Coding;
 import org.jax.DateModel.SourceSystemEnumType;
 import java.util.Date;
 
@@ -34,13 +33,13 @@ public interface ObservationFact {
      coding.setCode("357.2");
      * @return
      */
-    Coding concept_cd();
+    String concept_cd();
 
     /**
      * Return provider_id
      * @return
      */
-    Coding provider_id();
+    String provider_id();
 
     /**
      * Return start_date

@@ -2,58 +2,75 @@ package org.jax.Parsers;
 
 import junit.framework.TestCase;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.jax.DateModel.SourceSystemEnumType;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class ObservationFactImplTest extends TestCase {
 
-    private static ObservationFact obser1, obser2;
-    private static SimpleDateFormat dateFormat;
-    private static String header;
 
-    @Override
-    public void setUp() throws Exception {
-        header= "\"encounter_num\",\"patient_num\",\"concept_cd\",\"provider_id\",\"start_date\",\"modifier_cd\",\"instance_num\"," +
+public class ObservationFactImplTest  {
+
+        private static String header= "\"encounter_num\",\"patient_num\",\"concept_cd\",\"provider_id\",\"start_date\",\"modifier_cd\"," +
+                "\"instance_num\"," +
                 "\"valtype_cd\",\"tval_char\",\"nval_num\",\"valueflag_cd\",\"quantity_num\",\"units_cd\",\"end_date\"," +
                 "\"location_cd\",\"observation_blob\",\"confidence_num\",\"update_date\",\"download_date\",\"import_date\"," +
                 "\"sourcesystem_cd\",\"upload_id\",\"text_search_index\"";
-        obser1 = new ObservationFactImpl("505163653,113179285,\"LOINC:26474-7\",\"NPI:1902123060\",\"2010-08-12 00:00:00\",\"@\",1,\"N\",\"E\",1.20000,\"L\",,\"x10 9th/L\",\"\",\"\",\"\",,\"2016-03-12 00:00:00\",\"\",\"2016-03-12 00:00:00\",\"ADS\",,");
+
+        private static String obser1= "505163653,113179285,\"LOINC:26474-7\",\"NPI:1902123060\",\"2010-08-12 00:00:00\",\"@\",1,\"N\",\"E\",1.20000," +
+                "\"L\",,\"x10 9th/L\",\"\",\"\",\"\",,\"2016-03-12 00:00:00\",\"\",\"2016-03-12 00:00:00\",\"ADS\",,";
         //obser2 = new ObservationFactImpl("746113071,140952640,\"LOINC:777-3\",\"NPI:1902923253\",\"2015-11-05 00:00:00\",\"@\",1,\"N\",\"E\",66.00000,\"[L]\",,\"10*9/L\",\"\",\"\",\"\",,\"2016-11-13 00:00:00\",\"\",\"2016-11-13 00:00:00\",\"EPIC\",,");
-        dateFormat = new SimpleDateFormat("YYYY-MM-DD HH:mm:ss");
+        private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        static ObservationFactImpl ObservFact = new ObservationFactImpl(obser1);
+
+
+    @BeforeClass
+    public  static void setupIndices_ObservFact() throws ParseException {
+        ObservationFactImpl ObFact = new ObservationFactImpl(obser1);
+        ObFact.setIndices_ObservFact(header);
     }
 
-    public void testConstructor() {
-        assertNotNull(obser1);
+
+    @Test
+    public void testConstructor()throws Exception {
+        ObservFact.observationFactEntry();
+        //assertNotNull(obser1);
         //assertNotNull(obser2);
     }
-
+    @Test
     public void testEncounter_num() throws Exception {
-        assertEquals(505163653, obser1.encounter_num());
+        ObservFact.observationFactEntry();
+        assertEquals(505163653, ObservFact.encounter_num());
     }
-
+    @Test
     public void testPatient_num() throws Exception {
-        assertEquals(113179285, obser1.patient_num());
+        ObservFact.observationFactEntry();
+        assertEquals(113179285, ObservFact.patient_num());
     }
-
+    @Test
     public void testConcept_cd() throws Exception {
-        assertNotNull(obser1.concept_cd());
-        assertEquals("LOINC", obser1.concept_cd().getSystem());
-        assertEquals("26474-7", obser1.concept_cd().getCode());
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.concept_cd());
+       // assertEquals("LOINC", ObservFact.concept_cd().getSystem());
+        //assertEquals("26474-7", ObservFact.concept_cd().getCode());
     }
-
+    @Test
     public void testProvider_id() throws Exception {
-        assertNotNull(obser1.provider_id());
-        assertEquals("NPI", obser1.provider_id().getSystem());
-        assertEquals("1902123060", obser1.provider_id().getCode());
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.provider_id());
+       // assertEquals("NPI", ObservFact.provider_id().getSystem());
+        //assertEquals("1902123060", ObservFact.provider_id().getCode());
     }
-
+    @Test
     public void testStart_date() throws Exception {
-        assertNotNull(obser1.start_date());
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.start_date());
         Date expectedDate = dateFormat.parse("2010-08-12 00:00:00");
-        assertEquals("2010-08-12 00:00:00", dateFormat.format(obser1.start_date()));
+        assertEquals("2010-08-12 00:00:00", dateFormat.format(ObservFact.start_date()));
     }
 
     /**
@@ -63,76 +80,92 @@ public class ObservationFactImplTest extends TestCase {
         assertEquals("@", obser1.modifier_cd().get(0));
     }
      **/
-
+    @Test
     public void testInstance_num() throws Exception {
-        assertEquals(1, obser1.instance_num());
+        ObservFact.observationFactEntry();
+        assertEquals(1, ObservFact.instance_num());
     }
-
+    @Test
     public void testValtype_cd() throws Exception {
-        assertEquals('N', obser1.valtype_cd());
+        ObservFact.observationFactEntry();
+        assertEquals("N", ObservFact.valtype_cd());
     }
-
+    @Test
     public void testTval_char() throws Exception {
-        assertEquals('E', obser1.tval_char());
+        ObservFact.observationFactEntry();
+        assertEquals("E", ObservFact.tval_char());
     }
-
+    @Test
     public void testNval_num() throws Exception {
-        assertEquals(1.20000, obser1.nval_num(), 0.00001);
+        ObservFact.observationFactEntry();
+        assertEquals(1.20000, ObservFact.nval_num(), 0.00001);
     }
-
+    @Test
     public void testValueflag_cd() throws Exception {
-        assertEquals('L', obser1.valueflag_cd());
+        ObservFact.observationFactEntry();
+        assertEquals('L', ObservFact.valueflag_cd());
     }
-
+    @Test
     public void testQuatity_num() throws Exception {
         //assertNull(obser1.quantity_num());
     }
-
+    @Test
     public void testUnits_cd() throws Exception {
-        assertEquals("x10 9th/L", obser1.units_cd());
+        ObservFact.observationFactEntry();
+        assertEquals("x10 9th/L", ObservFact.units_cd());
     }
-
+    @Test
     public void testEnd_date() throws Exception {
-        assertNull(obser1.end_date());
+        ObservFact.observationFactEntry();
+        assertNull(ObservFact.end_date());
     }
-
+    @Test
     public void testLocation_cd() throws Exception {
-        assertNull(obser1.location_cd());
+        ObservFact.observationFactEntry();
+        assertNull(ObservFact.location_cd());
     }
-
+    @Test
     public void testObservation_blob() throws Exception {
-        assertNull(obser1.observation_blob());
+        ObservFact.observationFactEntry();
+        assertNull(ObservFact.observation_blob());
     }
-
+    /*@Test
     public void testConfidence_num() throws Exception {
-        assertEquals(Integer.MIN_VALUE, obser1.confidence_num());
-    }
-
+        ObservFact.observationFactEntry();
+        assertEquals(Integer.MIN_VALUE, ObservFact.confidence_num());
+    }*/
+    @Test
     public void testUpdate_date() throws Exception {
-        assertNotNull(obser1.update_date());
-        assertEquals("2016-03-12 00:00:00", dateFormat.format(obser1.update_date()));
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.update_date());
+        assertEquals("2016-03-12 00:00:00", dateFormat.format(ObservFact.update_date()));
     }
-
+    @Test
     public void testDownload_date() throws Exception {
-        assertNull(obser1.download_date());
+        ObservFact.observationFactEntry();
+        assertNull(ObservFact.download_date());
     }
-
+    /*@Test
     public void testImport_date() throws Exception {
-        assertNotNull(obser1.import_date());
-        assertEquals("2016-03-12 00:00:00", obser1.import_date());
-    }
-
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.import_date());
+        assertEquals("2016-03-12 00:00:00", ObservFact.import_date());
+    }*/
+    @Test
     public void testSourcesystem_cd() throws Exception {
-        assertNotNull(obser1.sourcesystem_cd());
-        assertEquals(SourceSystemEnumType.ADS, obser1.sourcesystem_cd());
+        ObservFact.observationFactEntry();
+        assertNotNull(ObservFact.sourcesystem_cd());
+        assertEquals(SourceSystemEnumType.ADS, ObservFact.sourcesystem_cd());
     }
-
+    @Test
     public void testUpload_id() throws Exception {
-        assertNull(obser1.upload_id());
+        ObservFact.observationFactEntry();
+        assertEquals(0, ObservFact.upload_id());
     }
-
+    @Test
     public void testText_search_index() throws Exception {
-        assertNull(obser1.text_search_index());
+        ObservFact.observationFactEntry();
+        assertNull(ObservFact.text_search_index());
     }
 
 }
