@@ -30,7 +30,7 @@ public class ConceptDimensionImplTest {
     @Test
     public void concept_cd() throws Exception {
         assertEquals("MDCTN:171202", conceptDimension1.concept_cd());
-        assertEquals("MDCTN:57896074606", conceptDimension2.concept_cd());
+        assertEquals("MDCTN:57896074606|ADS", conceptDimension2.concept_cd());
     }
 
     @Test
