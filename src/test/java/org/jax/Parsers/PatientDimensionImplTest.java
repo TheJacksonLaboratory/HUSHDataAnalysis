@@ -29,40 +29,40 @@ public class PatientDimensionImplTest  {
 
     private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    static PatientDimensionImpl patient = new PatientDimensionImpl(patient1);
+    static PatientDimensionImpl patient; //= new PatientDimensionImpl(patient1);
 
     @BeforeClass
     public static void setupIndices() throws ParseException {
-        PatientDimensionImpl pat = new PatientDimensionImpl(patient1);
-        pat.setIndices(header);
+        patient = new PatientDimensionImpl(patient1);
+        //pat.setIndices(header);
     }
 
     @Test
     public void testPatient_num() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals(176974728, patient.patient_num());
     }
     @Test
     public void testVital_status_cd() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals("UD", patient.vital_status_cd());
     }
     @Test
     public void testBirth_date() throws Exception {
-        patient.patientDimensionEntry();
-        System.out.println(patient.birth_date());
+        //patient.patientDimensionEntry();
+        //System.out.println(patient.birth_date());
         assertNotNull(patient.birth_date());
         assertEquals("1979-08-07 00:00:00", dateFormat.format(patient.birth_date()));
     }
     @Test
     public void testDeath_date() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertNull(patient.death_date());
     }
     @Test
     public void testSex_cd() throws Exception {
-        patient.patientDimensionEntry();
-        System.out.println(patient.sex_cd());
+        //patient.patientDimensionEntry();
+        //System.out.println(patient.sex_cd());
         assertEquals('F', patient.sex_cd());
     }
 
@@ -73,47 +73,47 @@ public class PatientDimensionImplTest  {
     }*/
     @Test
     public void testLanguage_cd() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals("114", patient.language_cd());
     }
     @Test
     public void testRace() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals("9", patient.race());
     }
     @Test
     public void testMarital_status_cd() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals("2", patient.marital_status_cd());
     }
 
 
     @Test
     public void testUpdate_date() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertNotNull(patient.update_date());
         assertEquals("2017-03-12 00:00:00", dateFormat.format(patient.update_date()));
     }
     @Test
     public void testDownload_date() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertNull(patient.download_date());
     }
     @Test
     public void testImport_date() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertNotNull(patient.import_date());
         assertEquals("2015-03-19 00:00:00", dateFormat.format(patient.import_date()));
     }
 
     @Test
     public void testSourcesystem_cd() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         assertEquals(SourceSystemEnumType.EPIC, patient.sourcesystem_cd());
     }
     @Test
     public void testUpload_id() throws Exception {
-        patient.patientDimensionEntry();
+        //patient.patientDimensionEntry();
         //assertNull(patient.upload_id());
         assertEquals(0, patient.upload_id());
     }
