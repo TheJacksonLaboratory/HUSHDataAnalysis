@@ -73,7 +73,7 @@ public class ObservationFactImplTest  {
         assertEquals("2010-08-12 00:00:00", dateFormat.format(ObservFact.start_date()));
     }
 
-    /**
+    /**Complete modifer
     public void testModifier_cd() throws Exception {
         assertNotNull(obser1.modifier_cd());
         assertTrue(obser1.modifier_cd().size() == 1);
@@ -145,6 +145,8 @@ public class ObservationFactImplTest  {
         ObservFact.observationFactEntry();
         assertNull(ObservFact.download_date());
     }
+
+    //Error??
     /*@Test
     public void testImport_date() throws Exception {
         ObservFact.observationFactEntry();
