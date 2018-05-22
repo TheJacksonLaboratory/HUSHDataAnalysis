@@ -52,11 +52,13 @@ public class ObservationFactImplTest extends TestCase {
         assertEquals("2010-08-12 00:00:00", dateFormat.format(obser1.start_date()));
     }
 
+    /**
     public void testModifier_cd() throws Exception {
         assertNotNull(obser1.modifier_cd());
         assertTrue(obser1.modifier_cd().size() == 1);
         assertEquals("@", obser1.modifier_cd().get(0));
     }
+     **/
 
     public void testInstance_num() throws Exception {
         assertEquals(1, obser1.instance_num());

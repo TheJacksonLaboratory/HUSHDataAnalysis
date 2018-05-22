@@ -75,7 +75,7 @@ public class ObservationFactImpl implements ObservationFact {
 
     public void setIndices_ObservFact(String header) {
         String fields[] = header.split(",");
-        if (fields.length < 19) {
+        if (fields.length < 23) {
             //logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
             System.exit(1);
         }
@@ -177,6 +177,11 @@ public class ObservationFactImpl implements ObservationFact {
                     break;
             }
         }
+        if (initializedvalues != 24) {
+            // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
+            //logger.error("The offending line was: " + fields);
+            System.exit(1);
+        }
     }
 //TODO Complete parsing entries
     public void observationFactEntry() {
@@ -237,7 +242,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public List<String> modifier_cd() {
+    public String modifier_cd() {
         return null;
     }
 
@@ -247,8 +252,8 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public char valtype_cd() {
-        return 0;
+    public String valtype_cd() {
+        return null;
     }
 
     @Override
@@ -267,8 +272,8 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public String quatity_num() {
-        return null;
+    public double quatity_num() {
+        return 0.0;
     }
 
     @Override
@@ -292,7 +297,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public int confidence_num() {
+    public double confidence_num() {
         return Integer.MIN_VALUE;
     }
 
@@ -317,8 +322,8 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public String upload_id() {
-        return null;
+    public int upload_id() {
+        return 0;
     }
 
     @Override

@@ -33,7 +33,7 @@ public interface PatientDimension {
      * No need to implement
      * @return
      */
-    double age_in_years_num();
+    String age_in_years_num();
 
     String language_cd();
 

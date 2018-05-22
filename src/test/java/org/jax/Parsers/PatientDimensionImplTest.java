@@ -6,9 +6,14 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Calendar;
+import java.util.Date;
+
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
+
 import static org.junit.Assert.*;
 
 
@@ -21,7 +26,7 @@ public class PatientDimensionImplTest  {
     private static String patient1 = "176974728,\"UD\",\"1979-08-07 00:00:00\",\"\",\"F\",,\"114\",\"9\",\"2\",\"\",\"\",\"\"," +
             "\"\",\"\",\"2017-03-12 00:00:00\",\"\",\"2015-03-19 00:00:00\",\"EPIC\",";
 
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-DD HH:mm:ss");
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
 
     @BeforeClass
     public static void setupIndices()  {
@@ -45,6 +50,7 @@ public class PatientDimensionImplTest  {
     public void testBirth_date() throws Exception {
         PatientDimensionImpl patient = new PatientDimensionImpl(patient1);
         patient.patientDimensionEntry();
+        System.out.println(patient.birth_date());
         assertNotNull(patient.birth_date());
         assertEquals("1979-08-07 00:00:00", dateFormat.format(patient.birth_date()));
     }
@@ -113,6 +119,17 @@ public class PatientDimensionImplTest  {
     public void testUpload_id() throws Exception {
         PatientDimensionImpl patient = new PatientDimensionImpl(patient1);
         assertNull(patient.upload_id());
+    }
+    @Test
+    public void testDate() throws Exception{
+        String dateString = "1979-08-07 00:00:00";
+        Date date = dateFormat.parse(dateString);
+        System.out.println(dateFormat.format(date));
+
+        Calendar cal = Calendar.getInstance();
+        //cal.setTimeZone(TimeZone.getTimeZone());
+        cal.set(1979, Calendar.AUGUST, 7, 1, 58, 59);
+        System.out.println(dateFormat.format(cal.getTime()));
     }
 
 }

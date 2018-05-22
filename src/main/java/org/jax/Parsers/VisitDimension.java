@@ -7,7 +7,10 @@ package org.jax.Parsers;
  */
 public interface VisitDimension {
 
+    int encounter_num();
 
+    int patient_num();
 
+    String inOut_cd();
 
 }
