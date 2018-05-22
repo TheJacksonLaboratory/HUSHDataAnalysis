@@ -22,7 +22,7 @@ public class PatientDimensionImpl implements PatientDimension {
 
     private String patientRecord;
 
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("YYYY-MM-DD HH:mm:ss");
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 
     private static int PATIENT_NUM_IDX = 0;
@@ -37,17 +37,13 @@ public class PatientDimensionImpl implements PatientDimension {
     private static int RELIGION_IDX = 0;
     private static int ZIP_IDX = 0;
     private static int STATECITYZIP_IDX = 0;
+    private static int SOURCESYSTEM_IDX = 0;
     private static int INCOME_IDX = 0;
     private static int PATIENT_BLOB_IDX = 0;
-    private static int LOCATION_CD_IDX = 0;
-    private static int OBSERVATION_BLOB_IDX = 0;
-    private static int CONFIDENCE_NUM_IDX = 0;
-    private static int SOURCESYSTEM_IDX = 0;
     private static int UPDATE_DATE_IDX = 0;
     private static int DOWNLOAD_DATE_IDX = 0;
     private static int IMPORT_DATE_IDX = 0;
     private static int UPLOAD_ID_IDX = 0;
-    private static int TEXT_SEARCH_IDX = 0;
 
 
     private int patient_num;
@@ -67,7 +63,9 @@ public class PatientDimensionImpl implements PatientDimension {
     private int language_cd;
     private int race_cd;
     private int marital_status_cd;
-    private int upload_id;
+    private String upload_id;
+    private SourceSystemEnumType sourcesystem_cd;
+
 
 
 
@@ -165,70 +163,138 @@ public class PatientDimensionImpl implements PatientDimension {
             }
         }
             if (initializedvalues != 19) {
-                // logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
-                //logger.error("The offending line was: " + fields);
-                System.exit(1);
+                 logger.error(String.format("Error while parsing header of PatientDimension file. We expected to determine indices of 19 fields, but got %d", initializedvalues));
+                 logger.error("The offending line was: " + fields);
+                 System.exit(1);
             }
     }
 
     public void patientDimensionEntry() throws ParseException {
         String []A = patientRecord.split(",");
-        if (A.length < UPLOAD_ID_IDX ) {
-           // logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, line));
+        if (A.length < UPLOAD_ID_IDX) {
+            logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, patientRecord));
             System.exit(1);
         }
-        patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
-        vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
+
+        //patient_num
+        if(!A[PATIENT_NUM_IDX].equals(" ")) {
+            patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
+        }
+        else{
+            System.err.println("patient_num is not available!");
+        }
+
+        //vital_status_cd
+        if(!A[VITAL_STATUTS_IDX].equals("\"\"")){
+            vital_status_cd = A[VITAL_STATUTS_IDX].substring(1,A[VITAL_STATUTS_IDX].length()-1);
+        }
+        else{
+            vital_status_cd = null;
+        }
+        //birthday_date
 
         if(!A[BIRTHDATE_IDX].equals("\"\"")) {
             birth_date = A[BIRTHDATE_IDX].substring(1, A[BIRTHDATE_IDX].length() - 1);
             birthDate = dateFormat.parse(birth_date);
         }
         else{
-             System.out.println("Birth date is empty!");
+             System.out.println("birth_date is empty!");
              birthDate = null;
         }
+
+        //death_date
         if(!A[DEATHDATE_IDX].equals("\"\"")) {
             death_date = A[DEATHDATE_IDX].substring(1, A[DEATHDATE_IDX].length() - 1);
             deathDate = dateFormat.parse(death_date);
         }
         else{
-            System.out.println("The patient is alive:-)!");
+            System.out.println("death_date is not available. The patient is alive:-)!");
             deathDate = null;
         }
+        //import_date
         if(!A[IMPORT_DATE_IDX].equals("\"\"")){
             import_date= A[IMPORT_DATE_IDX].substring(1,A[IMPORT_DATE_IDX].length()-1);
             importDate = dateFormat.parse(import_date);
         }
         else{
-            System.out.println("Import date is not available!");
+            System.out.println("import_date is not available!");
             importDate = null;
-
         }
+        //download_date
         if(!A[DOWNLOAD_DATE_IDX].equals("\"\"")) {
             download_date = A[DOWNLOAD_DATE_IDX].substring(1, A[DOWNLOAD_DATE_IDX].length() - 1);
             downloadDate = dateFormat.parse(download_date);
         }
         else{
-            System.out.println("Import date is not available!");
+            System.out.println("download_date is not available!");
             downloadDate = null;
         }
 
-      /*  if(!A[UPLOAD_ID_IDX].equals("")) {
+        //update_date
+        if(!A[UPDATE_DATE_IDX].equals("\"\"")) {
             update_date = A[UPDATE_DATE_IDX].substring(1, A[UPDATE_DATE_IDX].length() - 1);
             updateDate = dateFormat.parse(update_date);
         }
         else{
-            System.out.println("Upload date is not available!");
+            System.out.println("update_date is not available!");
             updateDate = null;
-        }*/
-        sex_cd = A[SEX_CD_IDX].matches("\"F\"")? 'F' : 'M';
+        }
 
-        marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
-        race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
-        language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
-        //TODO
-       // upload_id = A[UPLOAD_ID_IDX];
+      //sex
+        if(!A[SEX_CD_IDX].equals("\"\"")) {
+            sex_cd = A[SEX_CD_IDX].matches("\"F\"") ? 'F' : 'M';//Assuming that that there are 2
+        }
+        else{
+            sex_cd = '0'; // If sex is not available
+            System.err.println("Sex is not available");
+        }
+
+       //marital_status_cd
+        if(!A[MARITAL_STATUS_IDX].equals("\"\"")){
+            if(A[MARITAL_STATUS_IDX].equals("UNKNOWN")){
+                marital_status_cd = -1;//If marital status is unknown, we set it to -1.
+                System.out.println("marital_status is unknown!");
+            }
+            else{
+                marital_status_cd = Integer.parseInt(A[MARITAL_STATUS_IDX].substring(1,A[MARITAL_STATUS_IDX].length() - 1));
+            }
+        }
+        //race_cd
+        if(!A[RACE_IDX].equals("\"\"")){
+            race_cd = Integer.parseInt(A[RACE_IDX].substring(1,A[RACE_IDX].length()-1));
+        }
+        else{
+            System.out.println("Race is not available!");
+        }
+
+        //language
+        if (!A[LANGUAGE_IDX].equals("\"\"")){
+            language_cd = Integer.parseInt(A[LANGUAGE_IDX].substring(1,A[LANGUAGE_IDX].length() - 1));
+        }
+        else{
+            System.out.println("Language is not available!");
+        }
+
+        //source system type
+        if (!A[SOURCESYSTEM_IDX].equals("\"\"")){
+            sourcesystem_cd = SourceSystemEnumType.valueOf(A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length() - 1));
+        }
+        else{
+            System.out.println("source system cd is not available!");
+            sourcesystem_cd = null;
+        }
+
+        //upload ID
+        if(A.length == UPLOAD_ID_IDX){ //It means that parsing stopped after ',', because there is no entry for upload_id
+            System.out.println("upload_id is not available");
+            upload_id = null;
+        }
+        else if(!A[UPLOAD_ID_IDX].equals("\"\"")){
+            upload_id = A[UPLOAD_ID_IDX].substring(1,A[UPLOAD_ID_IDX].length()-1);
+        }
+        else{
+            upload_id = null;
+        }
     }
 
 
@@ -306,10 +372,12 @@ public class PatientDimensionImpl implements PatientDimension {
     public Date import_date() {return importDate;}
 
     @Override
-    public SourceSystemEnumType sourcesystem_cd() {return null;}
+    public SourceSystemEnumType sourcesystem_cd() {return sourcesystem_cd;}
 
     @Override
+
     public int upload_id() {
         return 0;
+
     }
 }
