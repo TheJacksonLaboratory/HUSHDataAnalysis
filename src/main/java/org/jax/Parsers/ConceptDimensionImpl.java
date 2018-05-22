@@ -42,7 +42,7 @@ public class ConceptDimensionImpl implements ConceptDimension {
         }
         this.concept_path = StringUtils.stripEndQuotes(record_elements[0]);
         this.concept_cd = StringUtils.stripEndQuotes(record_elements[1]);
-        this.name_char = StringUtils.stripEndQuotes(record_elements[3]);
+        this.name_char = StringUtils.stripEndQuotes(record_elements[2]);
     }
 
 
