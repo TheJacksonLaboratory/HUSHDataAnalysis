@@ -73,7 +73,7 @@ public class ObservationFactImplTest  {
         assertEquals("2010-08-12 00:00:00", dateFormat.format(ObservFact.start_date()));
     }
 
-    /**Complete modifer
+    /**Complete modifier
     public void testModifier_cd() throws Exception {
         assertNotNull(obser1.modifier_cd());
         assertTrue(obser1.modifier_cd().size() == 1);
