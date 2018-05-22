@@ -3,6 +3,7 @@ package org.jax.Parsers;
 
 import org.hl7.fhir.dstu3.model.Address;
 import org.jax.DateModel.SourceSystemEnumType;
+import org.jax.Exception.HeaderNotDefinedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ public class PatientDimensionImpl implements PatientDimension {
     private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 
+    private static String HEADER = null;
     private static int PATIENT_NUM_IDX = 0;
     private static int VITAL_STATUTS_IDX = 0;
     private static int BIRTHDATE_IDX = 0;
@@ -69,12 +71,17 @@ public class PatientDimensionImpl implements PatientDimension {
 
 
 
-    public PatientDimensionImpl(String s)  {
+    public PatientDimensionImpl(String s) {
+        /**
+        if (HEADER == null) {
+            throw new HeaderNotDefinedException();
+        }
+         **/
         this.patientRecord = s;
-        //@TODO: parse record for getters
     }
 
     public void setIndices(String header) {
+        HEADER = header;
         String fields[] = header.split(",");
         if (fields.length < 19) {
             logger.error(String.format("Header of PatientDimension file with only %d fields (%s), exiting", fields.length, header));
