@@ -16,6 +16,7 @@ import java.util.Date;
  * TODO: implement methods in this class, and pass the unit test
  */
 public class PatientDimensionImpl implements PatientDimension {
+
     private static final Logger logger = LoggerFactory.getLogger(PatientDimensionImpl.class);
 
 
@@ -191,6 +192,7 @@ public class PatientDimensionImpl implements PatientDimension {
             vital_status_cd = null;
         }
         //birthday_date
+
         if(!A[BIRTHDATE_IDX].equals("\"\"")) {
             birth_date = A[BIRTHDATE_IDX].substring(1, A[BIRTHDATE_IDX].length() - 1);
             birthDate = dateFormat.parse(birth_date);
@@ -306,6 +308,7 @@ public class PatientDimensionImpl implements PatientDimension {
     public Date birth_date() {return birthDate;}
 
     @Override
+
     public Date death_date() {return deathDate;}
 
 
@@ -318,13 +321,13 @@ public class PatientDimensionImpl implements PatientDimension {
 
 
     @Override
-    public int language_cd() {return language_cd;}
+    public String language_cd() {return Integer.toString(language_cd);}
 
     @Override
-    public int race() {return race_cd;}
+    public String race() {return Integer.toString(race_cd);}
 
     @Override
-    public int marital_status_cd() {return marital_status_cd;}
+    public char marital_status_cd() {return Integer.toString(marital_status_cd).charAt(0);}
 
     @Override
     public String religion_cd() {
@@ -372,7 +375,9 @@ public class PatientDimensionImpl implements PatientDimension {
     public SourceSystemEnumType sourcesystem_cd() {return sourcesystem_cd;}
 
     @Override
-    public String upload_id() {
-        return upload_id;
+
+    public int upload_id() {
+        return 0;
+
     }
 }

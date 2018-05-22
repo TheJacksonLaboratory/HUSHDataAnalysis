@@ -429,7 +429,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public List<String> modifier_cd() {
+    public String modifier_cd() {
         return null;
     }
 
@@ -439,8 +439,8 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public char valtype_cd() {
-        return 0;
+    public String valtype_cd() {
+        return null;
     }
 
     @Override
@@ -459,8 +459,9 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public String quantity_num() {
-        return null;
+
+    public double quatity_num() {
+        return 0.0;
     }
 
     @Override
@@ -484,7 +485,7 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public int confidence_num() {
+    public double confidence_num() {
         return Integer.MIN_VALUE;
     }
 
@@ -509,8 +510,9 @@ public class ObservationFactImpl implements ObservationFact {
     }
 
     @Override
-    public String upload_id() {
-        return upload_id;
+    public int upload_id() {
+        return 0;
+
     }
 
     @Override
