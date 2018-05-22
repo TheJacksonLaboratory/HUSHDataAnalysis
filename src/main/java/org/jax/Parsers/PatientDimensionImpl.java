@@ -192,7 +192,6 @@ public class PatientDimensionImpl implements PatientDimension {
             vital_status_cd = null;
         }
         //birthday_date
-
         if(!A[BIRTHDATE_IDX].equals("\"\"")) {
             birth_date = A[BIRTHDATE_IDX].substring(1, A[BIRTHDATE_IDX].length() - 1);
             birthDate = dateFormat.parse(birth_date);
@@ -375,7 +374,6 @@ public class PatientDimensionImpl implements PatientDimension {
     public SourceSystemEnumType sourcesystem_cd() {return sourcesystem_cd;}
 
     @Override
-
     public int upload_id() {
         return 0;
 
