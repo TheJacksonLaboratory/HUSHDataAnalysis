@@ -461,7 +461,6 @@ public class ObservationFactImpl implements ObservationFact {
     @Override
     public double quatity_num() {
         return 0.0;
-
     }
 
     @Override
