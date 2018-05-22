@@ -2,6 +2,7 @@ package org.jax.Parsers;
 
 
 import org.hl7.fhir.dstu3.model.Address;
+import org.jax.Constant;
 import org.jax.DateModel.SourceSystemEnumType;
 import org.jax.Exception.HeaderNotDefinedException;
 import org.slf4j.Logger;
@@ -68,16 +69,24 @@ public class PatientDimensionImpl implements PatientDimension {
     private String upload_id;
     private SourceSystemEnumType sourcesystem_cd;
 
+    private boolean isIndicesSet = false;
 
 
 
-    public PatientDimensionImpl(String s) {
+
+    public PatientDimensionImpl(String s) throws ParseException {
         /**
         if (HEADER == null) {
             throw new HeaderNotDefinedException();
         }
          **/
         this.patientRecord = s;
+        if (!isIndicesSet){
+            setIndices(Constant.HEADER_OBSERVATION);
+            isIndicesSet = true;
+            logger.trace("indices set");
+        }
+        patientDimensionEntry();
     }
 
     public void setIndices(String header) {
