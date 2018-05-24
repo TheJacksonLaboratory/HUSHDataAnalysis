@@ -1,11 +1,15 @@
 package org.jax.Parsers;
 
+import org.jax.Constant;
 import org.jax.DateModel.SourceSystemEnumType;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+
+import org.jax.Exception.IllegalDataTypeException;
+import org.jax.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +22,8 @@ public class ObservationFactImpl implements ObservationFact {
 
 
     private String record;
+
+    private static boolean isIndicesSet = false;
     private static int PATIENT_NUM_IDX = 0;
     private static int ENCOUNTER_NUM_IDX = 0;
     private static int CONCEPT_CD_IDX = 0;
@@ -71,10 +77,15 @@ public class ObservationFactImpl implements ObservationFact {
     private String text_search_index;
     private int upload_id;
 
-    public ObservationFactImpl(String record) {
+    public ObservationFactImpl(String record) throws ParseException, IllegalDataTypeException {
         this.record = record;
         //@TODO: parse this record for getters
        // parse(this.record);
+        if (!isIndicesSet){
+            setIndices_ObservFact(Constant.HEADER_OBSERVATIONFACT);
+            isIndicesSet = true;
+        }
+        observationFactEntry();
     }
 
     private void parse(String s){
@@ -193,7 +204,7 @@ public class ObservationFactImpl implements ObservationFact {
         }
     }
 //TODO Complete parsing entries
-    public void observationFactEntry() throws ParseException {
+    public void observationFactEntry() throws ParseException, IllegalDataTypeException {
         String []A = record.split(",");
         if (A.length < 21) {
             logger.error(String.format("Malformed line of  PatientDimension file with only %d fields (%s), exiting", A.length, record));
@@ -227,7 +238,7 @@ public class ObservationFactImpl implements ObservationFact {
             startDate = dateFormat.parse(start_date);
         }
         else{
-            System.out.println("end_date is empty!");
+            //System.out.println("end_date is empty!");
             startDate = null;
         }
         /*modifier_cd*/
@@ -270,12 +281,19 @@ public class ObservationFactImpl implements ObservationFact {
 
         /*nval_num*/
         if(!A[NVAL_NUM_IDX].equals(" ")){
-            nval_num = Double.parseDouble(A[NVAL_NUM_IDX]);
+            try {
+                nval_num = Double.parseDouble(A[NVAL_NUM_IDX]);
+            } catch (Exception e) {
+                throw new IllegalDataTypeException();
+            }
+
         }
+        /**
         else{
             System.err.println("nval_num is not available!");
             //Set nval_num to a value??
         }
+         **/
         /*valueflage_cd*/
         if(!A[VALUEFLAG_CD__IDX].equals("\"\"")) {
             String valueflag = A[VALUEFLAG_CD__IDX].substring(1, A[VALUEFLAG_CD__IDX].length() - 1);
@@ -310,7 +328,7 @@ public class ObservationFactImpl implements ObservationFact {
             endDate = dateFormat.parse(end_date);
         }
         else{
-            System.out.println("end_date is empty!");
+            //System.out.println("end_date is empty!");
             endDate = null;
         }
 
@@ -336,7 +354,7 @@ public class ObservationFactImpl implements ObservationFact {
             confidence_num = Double.parseDouble(A[CONFIDENCE_NUM_IDX]);
         }
         else{
-            System.out.println("confidence num cd is not available!");
+            //System.out.println("confidence num cd is not available!");
             //Set confidence num to a value??
             confidence_num = null;
         }
@@ -348,7 +366,7 @@ public class ObservationFactImpl implements ObservationFact {
             updateDate = dateFormat.parse(update_date);
         }
         else{
-            System.out.println("update_date is empty!");
+            //System.out.println("update_date is empty!");
             updateDate = null;
         }
 
@@ -358,7 +376,7 @@ public class ObservationFactImpl implements ObservationFact {
             downloadDate = dateFormat.parse(download_date);
         }
         else{
-            System.out.println("download_date is empty!");
+            //System.out.println("download_date is empty!");
             downloadDate = null;
         }
 
@@ -368,7 +386,7 @@ public class ObservationFactImpl implements ObservationFact {
             importDate = dateFormat.parse(import_date);
         }
         else{
-            System.out.println("import_date is empty!");
+            //System.out.println("import_date is empty!");
             importDate = null;
         }
 
@@ -377,7 +395,7 @@ public class ObservationFactImpl implements ObservationFact {
             sourcesystem_cd = SourceSystemEnumType.valueOf(A[SOURCESYSTEM_IDX].substring(1,A[SOURCESYSTEM_IDX].length() - 1));
         }
         else{
-            System.out.println("source system cd is not available!");
+            //System.out.println("source system cd is not available!");
             sourcesystem_cd = null;
         }
 
@@ -417,11 +435,11 @@ public class ObservationFactImpl implements ObservationFact {
 
     @Override
     public String concept_cd() {
-        return concept_cd;
+        return StringUtils.stripEndQuotes(concept_cd);
     }
 
     @Override
-    public String provider_id() { return provider_id;}
+    public String provider_id() { return StringUtils.stripEndQuotes(provider_id);}
 
     @Override
     public Date start_date() {

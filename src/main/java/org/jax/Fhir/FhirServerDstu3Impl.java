@@ -198,4 +198,5 @@ public class FhirServerDstu3Impl implements FhirServer{
     public Bundle upload(Bundle bundle) {
         return client.transaction().withBundle(bundle).execute();
     }
+
 }

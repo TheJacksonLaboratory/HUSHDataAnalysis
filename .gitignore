@@ -1,4 +1,6 @@
-
+observation_to_hpo.txt
+observation_to_hpo_success.txt
+patientPrednisonCount.txt
 
 .idea/
 .idea/workspace.xml
