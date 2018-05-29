@@ -2,15 +2,21 @@ package org.jax.Parsers;
 
 import junit.framework.TestCase;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.sql.PreparedStatement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jax.DateModel.SourceSystemEnumType;
 import org.jax.Exception.IllegalDataTypeException;
 import org.jax.Exception.MalformedLineException;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -28,6 +34,9 @@ public class ObservationFactImplTest  {
                 "\"L\",,\"x10 9th/L\",\"\",\"\",\"\",,\"2016-03-12 00:00:00\",\"\",\"2016-03-12 00:00:00\",\"ADS\",,";
 
         private static String obser2 = "286599439,50110676,\"LOINC:728-6\",\"NPI:1811058670\",\"2015-12-08 00:00:00\",\"@\",1,\"T\",\"1+\",,\"\",,\"\",\"\",\"\",\"\",,\"2016-11-01 00:00:00\",\"\",\"2016-11-01 00:00:00\",\"EPIC\",,";
+
+        private static String obser3 = "329632380,72481410,\"MDCTN:8751\",\"NPI:1043470750\",\"2015-01-14 00:00:00\",\"MED:FREQUENCY\",1,\"T\",\"TUESDAY, WEDNESDAY, THURSDAY, SATURDAY, SUNDAY\",,\"\",,\"\",\"2015-01-15 00:00:00\",\"\",\"\",,\"2016-12-14 00:00:00\",\"\",\"2016-12-15 00:00:00\",\"EPIC\",,";
+
         //obser2 = new ObservationFactImpl("746113071,140952640,\"LOINC:777-3\",\"NPI:1902923253\",\"2015-11-05 00:00:00\",\"@\",1,\"N\",\"E\",66.00000,\"[L]\",,\"10*9/L\",\"\",\"\",\"\",,\"2016-11-13 00:00:00\",\"\",\"2016-11-13 00:00:00\",\"EPIC\",,");
         private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         static ObservationFact observFact; //= new ObservationFactImpl(obser1);
@@ -184,6 +193,78 @@ public class ObservationFactImplTest  {
         //ObservFact.observationFactEntry();
         //assertNull(observFact.text_search_index());
         assertEquals("", observFact.text_search_index());
+    }
+
+    @Test
+    public void testReg() {
+        String pattern1 = ",,";
+        //String pattern2 = ",\\d{1},";
+        System.out.println("original:\n" + obser3);
+        //System.out.println("replace\",,\":\n" + obser3.replaceAll(pattern1, ",\"\","));
+        //String s = obser3.replaceFirst(pattern2)
+        Pattern pattern2 = Pattern.compile(",(\\d+),");
+        Matcher matcher = pattern2.matcher(obser3);
+        obser3 = obser3.replaceAll(",,", ",\"\",");
+        System.out.println(obser3);
+        obser3 = obser3.replaceAll(",(\\d+),", ",\"$1\",");
+        System.out.println(obser3);
+        obser3 = obser3.replaceAll("^(\\d+),", "\"$1\",");
+        System.out.println(obser3);
+        obser3 = obser3.replaceAll(",$", ",\"\"");
+        System.out.println(obser3);
+        assertEquals(23, obser3.split("\",\"").length);
+
+        /**
+        int group = 0;
+        while (matcher.find()) {
+            group++;
+            String matched = matcher.group();
+            System.out.println("matched:" + matched);
+            System.out.println(obser3.replace(matched, String.format("\"%s\"", matched)));
+        }
+         **/
+
+    }
+
+    @Test
+    @Ignore
+    public void testEntireTable() throws Exception {
+        final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
+        BufferedReader reader = new BufferedReader(new FileReader(observationPath));
+        String line = reader.readLine();
+        int count = 0;
+        while (line != null) {
+            count++;
+            if (line.startsWith("\"encounter_num\"")) { //skip header
+                //do nothing for header
+            } else {
+                try {
+                    ObservationFact observationFact = new ObservationFactLazyImpl(line);
+                } catch (MalformedLineException e) {
+                    System.out.println("Not 23 elements: " + line);
+                } catch (IllegalDataTypeException e) {
+                    System.out.println("Illegal data type: " + line);
+                }
+
+            }
+            line = reader.readLine();
+            if (count % 1000000 == 0) {
+                System.out.println("processed line: " + count);
+                //System.out.println(line);
+            }
+        }
+    }
+
+    @Test
+    public void testSpecialCase() throws Exception {
+        String record = "624826499,80983881,\"LOINC:5799-2\",\"NPI:1851472971\",\"2016-12-10 00:00:00\",\"@\",1,\"T\",\"Large\",,\"[A]\",,\"\",\"\",\"\",\"\",,\"2016-12-15 00:00:00\",\"\",\"2016-12-15 00:00:00\",\"EPIC\",,";
+        ObservationFact observationFact = new ObservationFactLazyImpl(record);
+    }
+
+    @Test
+    public void testSpecialCase2() throws Exception {
+        String record = "503592180,96470504,\"LOINC:11475-1\",\"NPI:1275800526\",\"2013-05-11 00:00:00\",\"@\",1,\"N\",\"L\",10000.00000,\"\",,\",cfu/ml\",\"\",\"\",\"\",,\"2016-02-25 00:00:00\",\"\",\"2016-02-25 00:00:00\",\"ADS\",,";
+        ObservationFact observationFact = new ObservationFactLazyImpl(record);
     }
 
 }

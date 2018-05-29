@@ -586,7 +586,7 @@ public class App {
         } catch(FileNotFoundException e) {
             logger.error("cannot find file: " + observationPath);
         } catch (IOException e) {
-            logger.error("io error to file: " + observationPath);
+            logger.error("database error to file: " + observationPath);
         }
 
         try {

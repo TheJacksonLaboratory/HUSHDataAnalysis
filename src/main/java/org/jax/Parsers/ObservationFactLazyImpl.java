@@ -62,7 +62,16 @@ public class ObservationFactLazyImpl implements ObservationFact{
  //System.out.println("adding quote: \n" + s);
         String [] elements = s.split(",");
         if (elements.length != 23) {
-            throw new MalformedLineException();
+            //try to change the format
+            s = s.replaceAll(",,", ",\"\",");
+            s = s.replaceAll(",([\\d\\.]+),", ",\"$1\",");
+            s = s.replaceAll("^(\\d+),", "\"$1\",");
+            //s = s.replaceAll(",$", ",\"\"");
+            elements = s.split("\",\"");
+            if (elements.length != 23) {
+                System.out.println(s);
+                throw new MalformedLineException();
+            }
         }
         for (int i = 0; i < elements.length; i++) {
             elements[i] = StringUtils.stripEndQuotes(elements[i]);
@@ -80,7 +89,7 @@ public class ObservationFactLazyImpl implements ObservationFact{
             }
             this.valtype_cd = elements[7];
             this.tval_char = elements[8];
-            if (elements[10].trim().length() != 0) {
+            if (elements[9].trim().length() != 0) {
                 this.nval_num = Double.parseDouble(elements[9]);
             }
   //System.out.println(elements[10]);
@@ -116,6 +125,7 @@ public class ObservationFactLazyImpl implements ObservationFact{
             }
             this.text_search_index = elements[22];
         } catch (Exception e) {
+            e.printStackTrace();
             throw new IllegalDataTypeException();
         }
     }
