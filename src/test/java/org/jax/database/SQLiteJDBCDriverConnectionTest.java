@@ -1,5 +1,6 @@
 package org.jax.database;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -9,6 +10,7 @@ import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
+@Ignore
 public class SQLiteJDBCDriverConnectionTest {
     @Test
     public void connect() throws Exception{

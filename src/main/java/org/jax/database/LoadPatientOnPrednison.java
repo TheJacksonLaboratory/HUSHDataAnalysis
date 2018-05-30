@@ -20,7 +20,7 @@ public class LoadPatientOnPrednison extends TableImporter {
     }
 
     @Override
-    void load() throws IOException, SQLException{
+    public void load() throws IOException, SQLException{
 
         String create = "CREATE TABLE IF NOT EXISTS PatientOnPrednison ( \n"
                 + " patient_num integer PRIMARY KEY, \n"

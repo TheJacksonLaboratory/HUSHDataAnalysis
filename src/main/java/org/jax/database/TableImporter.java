@@ -22,5 +22,5 @@ public abstract class TableImporter {
         return this.filePath;
     }
 
-    abstract void load() throws IOException, SQLException;
+    public abstract void load() throws IOException, SQLException;
 }

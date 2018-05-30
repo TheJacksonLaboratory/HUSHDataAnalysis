@@ -1,19 +1,16 @@
 package org.jax;
 
 import com.google.common.collect.ImmutableMap;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-import org.apache.commons.chain.web.MapEntry;
-import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.jax.Exception.IllegalDataTypeException;
 import org.jax.Exception.MalformedLineException;
 import org.jax.Fhir.TransformToFhir;
 import org.jax.Parsers.*;
-import org.monarchinitiative.loinc2hpo.Constants;
-import org.monarchinitiative.loinc2hpo.Loinc2Hpo;
+import org.jax.database.LoadObservation;
+import org.jax.database.SQLiteJDBCDriverConnection;
+import org.jax.database.TableImporter;
 import org.monarchinitiative.loinc2hpo.codesystems.Code;
 import org.monarchinitiative.loinc2hpo.codesystems.Loinc2HPOCodedValue;
-import org.monarchinitiative.loinc2hpo.exception.InternalCodeNotFoundException;
 import org.monarchinitiative.loinc2hpo.exception.MalformedLoincCodeException;
 import org.monarchinitiative.loinc2hpo.io.LoincAnnotationSerializationFactory;
 import org.monarchinitiative.loinc2hpo.loinc.HpoTerm4TestOutcome;
@@ -30,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.Buffer;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -434,6 +432,24 @@ public class App {
     public static void main( String[] args )
     {
 
+        if (args.length < 2) {
+            System.out.println("useage: command file1 file2");
+            return;
+        }
+
+        //codes to load observation into sqlite
+        try {
+            SQLiteJDBCDriverConnection connection = new SQLiteJDBCDriverConnection(args[0]);
+            TableImporter loader = new LoadObservation(connection.connect(), args[1]);
+            loader.load();
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+/**
         //replace with your file path
         final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
 
@@ -456,6 +472,9 @@ public class App {
         //System.out.println(patientMap.size());
         //TransformToFhir.s
         //patientMap.values().forEach(TransformToFhir.getFhirServer()::upload);
+
+ String hushSqlite = "jdbc:sqlite:/Users/zhangx/Documents/HUSH+_UNC_JAX/HUSH+_UNC_JAX.sqlite";
+
 
 
         Set<String> predCodes;
@@ -512,7 +531,6 @@ public class App {
 
 
 
-/**
         //import HPO
         String hpo_obo = "/Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo";
         HpoOboParser hpoOboParser = new HpoOboParser(new File(hpo_obo));

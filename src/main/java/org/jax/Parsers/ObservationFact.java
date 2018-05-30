@@ -167,5 +167,4 @@ public interface ObservationFact {
      */
     String text_search_index();
 
-
 }

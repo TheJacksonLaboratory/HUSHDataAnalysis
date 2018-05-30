@@ -9,7 +9,7 @@ public class LoadPatient extends TableImporter {
     }
 
     @Override
-    void load() {
+    public void load() {
 
     }
 }

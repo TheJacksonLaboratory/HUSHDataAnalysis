@@ -4,7 +4,6 @@ import org.jax.DateModel.SourceSystemEnumType;
 import org.jax.Exception.IllegalDataTypeException;
 import org.jax.Exception.MalformedLineException;
 import org.jax.utils.StringUtils;
-import org.python.core.util.StringUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -32,7 +31,7 @@ public class ObservationFactLazyImpl implements ObservationFact{
     private String tval_char;
     private double nval_num = Double.MIN_VALUE;
     private char valueflag_cd = Character.MIN_VALUE;
-    private double quatity_num;
+    private double quatity_num = Double.MIN_VALUE;
     private String units_cd;
     private Date end_date;
     private String location_cd;
@@ -244,4 +243,14 @@ public class ObservationFactLazyImpl implements ObservationFact{
     public String text_search_index() {
         return this.text_search_index;
     }
+
+    /**
+    @Override
+    public String toString() {
+        String SEPERATOR = ""
+        StringBuilder builder = new StringBuilder();
+        builder.append(this.encounter_num);
+        builder.append()
+    }
+    **/
 }
