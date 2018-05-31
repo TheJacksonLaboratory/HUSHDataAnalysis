@@ -1,6 +1,7 @@
 package org.jax;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.cli.*;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.jax.Exception.IllegalDataTypeException;
 import org.jax.Exception.MalformedLineException;
@@ -95,6 +96,10 @@ public class App {
         }
     }
 
+    /**
+     * caculate frequency of different concepts in the OBSERVATION_FACT table
+     * @param path
+     */
      static void concept_freq(String path) {
         //Queue<CPT_Component> priority_queue = new PriorityQueue<>();
          //read in data, count how many time each concept occurred
@@ -226,6 +231,7 @@ public class App {
 
     }
 
+    //Caculate the counts of different concept categories
     static void cpt_category_count() {
         String cpt_counts = WORKING_DIR + File.separator + "data" + File.separator + "cpt_counts.csv";
         Map<String, Integer> cpt_category_count = new HashMap<>();
@@ -324,6 +330,14 @@ public class App {
         return patientList;
     }
 
+    /**
+     * Convert a LOINC record to HPO
+     * @param record
+     * @param writer
+     * @param annotationMap
+     * @param loincEntryMap
+     * @throws IOException
+     */
     public static void convertObservation(ObservationFact record, BufferedWriter writer, Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, Map<LoincId, LoincEntry> loincEntryMap) throws IOException {
 
         LoincId loincId = null;
@@ -393,6 +407,12 @@ public class App {
         return reader.lines().collect(Collectors.toSet());
     }
 
+    /**
+     * Check whether a record indicates a patient is prescribed with predisone; if so, increment the count for the patient by one.
+     * @param observationFact
+     * @param prednisonSet
+     * @param patientPredCounts
+     */
     public static void predisonPatient(ObservationFact observationFact, Set<String> prednisonSet, Map<Integer, Integer> patientPredCounts) {
 
         String mdctnCode = observationFact.concept_cd().trim().toLowerCase();
@@ -429,15 +449,60 @@ public class App {
          **/
     }
 
-    public static void main( String[] args )
-    {
+    public static void main( String[] args ) {
 
-        if (args.length < 2) {
-            System.out.println("useage: command file1 file2");
-            return;
+        Options options = new Options();
+        Option loadObservation = Option.builder()
+                .argName("loadObser")
+                .longOpt("loadObser")
+                .hasArg(false)
+                .desc("indicate to load the OBSERVATION_FACT table").build();
+        Option convertObservation = Option.builder()
+                .argName("convertObser")
+                .longOpt("convertObser")
+                .hasArg(false)
+                .desc("indicate to convert the LOINC records to HPO").build();
+        Option in = Option.builder()
+                .argName("i")
+                .longOpt("input")
+                .hasArg()
+                .desc("file to consume")
+                .build();
+        Option database = Option.builder()
+                .argName("database")
+                .longOpt("database")
+                .hasArg()
+                .desc("path to sqlite database")
+                .build();
+        options.addOption(loadObservation)
+                .addOption(convertObservation)
+                .addOption(in)
+                .addOption(database);
+
+        CommandLineParser parser = new DefaultParser();
+        try {
+            CommandLine commandLine = parser.parse(options, args);
+            if (commandLine.hasOption("loadObser")) {
+                System.out.println("request to load observation");
+            }
+            if (commandLine.hasOption("convertObser")) {
+                System.out.println("request to convert observation");
+            }
+            if (commandLine.hasOption("database")) {
+                System.out.println("database connection requested: " + commandLine.getOptionValue("database"));
+            }
+            if (commandLine.hasOption("i")) {
+                System.out.println("input file provided: " + commandLine.getOptionValue("i"));
+            }
+
+        } catch (org.apache.commons.cli.ParseException e) {
+            System.out.println("arguments error");
         }
 
+
+        /**
         //codes to load observation into sqlite
+        //takes about 6 hours
         try {
             SQLiteJDBCDriverConnection connection = new SQLiteJDBCDriverConnection(args[0]);
             TableImporter loader = new LoadObservation(connection.connect(), args[1]);
@@ -448,7 +513,7 @@ public class App {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+**/
 /**
         //replace with your file path
         final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";

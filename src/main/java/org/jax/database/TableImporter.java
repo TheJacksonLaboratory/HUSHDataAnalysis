@@ -23,4 +23,13 @@ public abstract class TableImporter {
     }
 
     public abstract void load() throws IOException, SQLException;
+
+    public java.sql.Date convertUtilToSql(java.util.Date uDate) {
+        if (uDate == null) {
+            return null;
+        }
+
+        java.sql.Date sDate = new java.sql.Date(uDate.getTime());
+        return sDate;
+    }
 }
