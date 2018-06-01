@@ -1,0 +1,62 @@
+---
+title: "Prednisone-association"
+author: "Aaron Zhang"
+date: "6/1/2018"
+output: html_document
+---
+
+Data:
+UNC HUSH+ data about ~15,000 patients who visited hospitals for asthma. All patients are assumed "sick" because they all visit hospitals for asthma symptoms. In another word, there are no healthy controls.
+
+Goal:
+Group patients into Severe, Non-Severe categories based on whether they are prescribed with prednison or not. Look at what HPO terms are associated with each category. 
+
+```{r}
+#load R libraries
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+
+First load the database that stores essential tables in UNC HUSH+ data
+```{r}
+db <- dbConnect(RSQLite::SQLite(), "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite")
+```
+retrieve patient list
+```{r}
+patients <- dbGetQuery(db, "SELECT patient_num, birth_date, sex_cd FROM PATIENT_DIMENTION")
+nrow(patients)
+```
+import patient prescribed with prednisone
+```{r}
+prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/patientPrednisonPrsbCount.txt", header = TRUE, sep = "\t");
+```
+import LOINC records mapped to HPO terms
+```{r}
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
+nrow(loinc2hpo)
+```
+
+combine tables together
+```{r}
+combined <- loinc2hpo %>%
+  filter(mapFailed == "false") %>%
+  select(patient_num, isNegated, hpoTerm) %>%
+  distinct() %>%# it reduced records from 6 million records to < 0.6 million
+  left_join(patients) %>%
+  left_join(prednisonPrescribTimes)
+nrow(combined)
+```
+
+
+
+
+
+
+Disconnect database
+```{r}
+dbDisconnect(db)
+```
+
+
+

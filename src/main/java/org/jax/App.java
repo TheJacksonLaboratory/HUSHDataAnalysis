@@ -30,6 +30,7 @@ import java.io.*;
 import java.nio.Buffer;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,12 +42,14 @@ public class App {
 
     private final static Logger logger = LoggerFactory.getLogger(App.class);
     final static String WORKING_DIR = System.getProperty("user.dir");
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     private static Map<LoincId, LOINC2HpoAnnotationImpl> testmap = new HashMap<>();
     private static Map<String, Term> hpoTermMap;
     private static Map<TermId, Term> hpoTermMap2;
     private static Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap;
     private static PhenoSetUnionFind unionFind;
+    private static Map<LoincId, LoincEntry> loincIdLoincEntryMap;
 
     static void max_nums(String observationPath) {
 
@@ -351,9 +354,16 @@ public class App {
             return;
         }
 
+        writer.write(record.encounter_num() + "\t" +
+                        record.patient_num() + "\t" +
+                        record.concept_cd() + "\t" +
+                        record.provider_id() + "\t" +
+                        dateFormat.format(record.start_date()) + "\t" +
+                        record.modifier_cd() + "\t");
+
         LOINC2HpoAnnotationImpl annotation = annotationMap.get(loincId);
         if (annotation == null) {
-            writer.write(record.patient_num() + "\t" + record.patient_num() + "\t" + record.concept_cd() + "\t" + "Annotation for this LOINC is not found\n");
+            writer.write("\t\t"+ true + "\t" + "LOINC NOT Annotated\n");
             return;
         }
         //String valueType = record.valtype_cd();
@@ -367,7 +377,7 @@ public class App {
                 } else if (loincEntryMap.get(loincId).getScale().toLowerCase().equals("qn")) {
                     interpretation.setCode("N");
                 } else {
-                    writer.write(record.patient_num() + "\t" + record.patient_num() + "\t" + record.concept_cd() + "\t" + "Annotation for this LOINC is incomplete\n");
+                    writer.write("\t\t"+ true + "\t" + "Annotation Incomplete\n");
                     return;
                 }
                 break;
@@ -384,22 +394,16 @@ public class App {
                     interpretation.setCode("A");
                 }
                 default:
-                    writer.write(record.patient_num() + "\t" + record.patient_num() + "\t" + record.concept_cd() + "\t" + "Annotation for this LOINC is incomplete\n");
+                    writer.write("\t\t"+ true + "\t" + "Annotation Incomplete\n");
                     return;
         }
 
-
         HpoTerm4TestOutcome outcome = annotation.loincInterpretationToHPO(interpretation);
         if (outcome == null) {
-            writer.write(record.patient_num() + "\t" + record.patient_num() + "\t" + record.concept_cd() + "\t" + "Annotation for this LOINC is incomplete\n");
+            writer.write("\t\t"+ true + "\t" + "Annotation Incomplete\n");
         } else {
-            //System.out.println(record.patient_num() + "\t" + record.encounter_num() + "\t" + record.concept_cd() + "\t" + outcome.getHpoTerm().getName());
-            writer.write(record.patient_num() + "\t" + record.encounter_num() + "\t" + record.concept_cd() + "\t" + outcome.isNegated() + "\t" + outcome.getHpoTerm().getName() + "\n");
+            writer.write(outcome.isNegated() + "\t" + outcome.getHpoTerm().getName() + "\t" + false +  "\t\n");
         }
-
-
-
-
     }
 
     public Set<String> prednisonCodeSet(String path) throws IOException {
@@ -449,63 +453,56 @@ public class App {
          **/
     }
 
-    public static void main( String[] args ) {
+    static void loinc2hpo(String observationPath, String outputPath) throws IOException {
 
-        Options options = new Options();
-        Option loadObservation = Option.builder()
-                .argName("loadObser")
-                .longOpt("loadObser")
-                .hasArg(false)
-                .desc("indicate to load the OBSERVATION_FACT table").build();
-        Option convertObservation = Option.builder()
-                .argName("convertObser")
-                .longOpt("convertObser")
-                .hasArg(false)
-                .desc("indicate to convert the LOINC records to HPO").build();
-        Option in = Option.builder()
-                .argName("i")
-                .longOpt("input")
-                .hasArg()
-                .desc("file to consume")
-                .build();
-        Option database = Option.builder()
-                .argName("database")
-                .longOpt("database")
-                .hasArg()
-                .desc("path to sqlite database")
-                .build();
-        options.addOption(loadObservation)
-                .addOption(convertObservation)
-                .addOption(in)
-                .addOption(database);
-
-        CommandLineParser parser = new DefaultParser();
-        try {
-            CommandLine commandLine = parser.parse(options, args);
-            if (commandLine.hasOption("loadObser")) {
-                System.out.println("request to load observation");
+        //open a writer to output file
+        BufferedWriter writer;
+        if (outputPath == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(outputPath));
+        }
+        writer.write("encounter_num \tpatient_num\tconcept_cd\tprovider_id\tstart_date\tmodifier_cd\tisNegated\thpoTerm\tmapFailed\terror\n");
+        //open a reader to input file
+        BufferedReader reader = new BufferedReader(new FileReader(observationPath));
+        int count = 0;
+        String recordLine;
+        while ((recordLine = reader.readLine()) != null) {
+            if (recordLine.startsWith("\"encounter_num\"")) { //skip header
+                continue;
             }
-            if (commandLine.hasOption("convertObser")) {
-                System.out.println("request to convert observation");
-            }
-            if (commandLine.hasOption("database")) {
-                System.out.println("database connection requested: " + commandLine.getOptionValue("database"));
-            }
-            if (commandLine.hasOption("i")) {
-                System.out.println("input file provided: " + commandLine.getOptionValue("i"));
+            ObservationFact observationFact = null;
+            try {
+                observationFact = new ObservationFactLazyImpl(recordLine);
+                if (!observationFact.concept_cd().toLowerCase().startsWith("loinc")) {
+                    continue;
+                }
+                convertObservation(observationFact, writer, annotationMap, loincIdLoincEntryMap);
+                count++;
+                //logger.trace("count: " + count);
+                if (count % 1000 == 0) {
+                    logger.trace("Loinc lines already tried: " + count);
+                }
+            } catch (MalformedLineException e) {
+                logger.error("Observation line is not parsed correctly: " + recordLine);
+                continue;
+            } catch (IllegalDataTypeException e) {
+                logger.error("illegal data types encountered: " + recordLine);
+                continue;
             }
 
-        } catch (org.apache.commons.cli.ParseException e) {
-            System.out.println("arguments error");
         }
 
+        writer.close();
+        reader.close();
 
-        /**
-        //codes to load observation into sqlite
-        //takes about 6 hours
+        System.out.println("Loinc lines tried to transform: " + count);
+    }
+
+    static void loadObser(String inputPath, String databasePath) {
         try {
-            SQLiteJDBCDriverConnection connection = new SQLiteJDBCDriverConnection(args[0]);
-            TableImporter loader = new LoadObservation(connection.connect(), args[1]);
+            SQLiteJDBCDriverConnection connection = new SQLiteJDBCDriverConnection("jdbc:sqlite:" + databasePath);
+            TableImporter loader = new LoadObservation(connection.connect(), inputPath);
             loader.load();
             connection.close();
         } catch (SQLException e) {
@@ -513,7 +510,237 @@ public class App {
         } catch (IOException e) {
             e.printStackTrace();
         }
-**/
+    }
+
+    static void importHPO(String path) throws IOException {
+        HpoOboParser hpoOboParser = new HpoOboParser(new File(path));
+        HpoOntology hpo = hpoOboParser.parse();
+
+        ImmutableMap.Builder<String,Term> termmap = new ImmutableMap.Builder<>();
+        ImmutableMap.Builder<TermId, Term> termMap2 = new ImmutableMap.Builder<>();
+        if (hpo !=null) {
+            List<Term> res = hpo.getTermMap().values().stream().distinct()
+                    .collect(Collectors.toList());
+            res.forEach( term -> {
+                termmap.put(term.getName(),term);
+                termMap2.put(term.getId(), term);
+            });
+        }
+        hpoTermMap = termmap.build();
+        hpoTermMap2 = termMap2.build();
+
+    }
+
+    static void importLoinc(String loincCoreTablePath) {
+        loincIdLoincEntryMap = LoincEntry.getLoincEntryList(loincCoreTablePath);
+    }
+
+    static void importAnnotation(String loinc2hpoAnnotationPath) throws Exception {
+        annotationMap = LoincAnnotationSerializationFactory.parseFromFile(loinc2hpoAnnotationPath, hpoTermMap2, LoincAnnotationSerializationFactory.SerializationFormat.TSVSingleFile);
+    }
+
+    public static Set<String> importPrednisoneCodes() throws FileNotFoundException {
+        Set<String> predCodes;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(App.class.getClassLoader().getResourceAsStream("prednison.txt")));
+        predCodes = reader.lines().collect(Collectors.toSet());
+        return predCodes;
+    }
+
+    static void prednisoneCounts(String obserPath, String outputPath) throws IOException {
+        Writer writer;
+        if (outputPath == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(outputPath));
+        }
+        writer.write("patient_num\tprscbCount\n");
+
+        Map<Integer, Integer> patientPredCounts = new HashMap<>();
+        Set<String> predCodes = importPrednisoneCodes();
+        BufferedReader reader = new BufferedReader(new FileReader(obserPath));
+        String line = reader.readLine(); //skip header
+        int count = 0;
+        while ((line = reader.readLine()) != null) {
+            count++;
+            ObservationFact observationFact = null;
+            try {
+                observationFact = new ObservationFactLazyImpl(line);
+            } catch (IllegalDataTypeException e) {
+                logger.error("Illegal data type encounted: " + line);
+                continue;
+            } catch (MalformedLineException e) {
+                logger.info("Malformed line: " + line);
+                continue;
+            }
+            if (!observationFact.concept_cd().startsWith("M")) {
+                continue;
+            }
+            predisonPatient(observationFact, predCodes, patientPredCounts);
+            if (count % 10000 == 0) {
+                System.out.println("# lines processed: " + count);
+            }
+        }
+
+        patientPredCounts.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue((a, b) -> b - a)) //reverse order by prescribe times
+                .forEachOrdered(e -> {
+                    try {
+                        writer.write(e.getKey() + "\t" + e.getValue() + "\n");
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                });
+
+        writer.close();
+        reader.close();
+    }
+
+    public static void main( String[] args ) {
+
+        Options options = new Options();
+        Option loadObservation = Option.builder("l")
+                .longOpt("loadObser")
+                .hasArg(false)
+                .desc("to load the OBSERVATION_FACT table").build();
+        Option convertObservation = Option.builder("l2h")
+                .longOpt("loinc2hpo")
+                .argName("File")
+                .hasArg(false)
+                .desc("to convert LOINC records to HPO").build();
+        Option prednisone = Option.builder("p")
+                .longOpt("prednisone")
+                .hasArg(false)
+                .desc("to get prednisone prescribe times per patient")
+                .build();
+        Option in = Option.builder("i")
+                .longOpt("input")
+                .hasArg()
+                .argName("File")
+                .desc("file to consume")
+                .build();
+        Option database = Option.builder("d")
+                .longOpt("database")
+                .hasArg()
+                .argName("File")
+                .desc("path to sqlite database")
+                .build();
+        Option output = Option.builder("o")
+                .longOpt("output")
+                .optionalArg(true)
+                .hasArg()
+                .argName("File")
+                .desc("output path")
+                .build();
+        Option help = Option.builder("help")
+                .hasArg(false)
+                .desc("usage information")
+                .build();
+        Option annotation = Option.builder("a")
+                .hasArg()
+                .argName("File")
+                .longOpt("annotation")
+                .desc("LOINC annotation file path")
+                .build();
+        Option hpo = Option.builder("hpo")
+                .hasArg()
+                .argName("File")
+                .desc("hpo.obo file path")
+                .build();
+        Option loinc = Option.builder("loinc")
+                .hasArg()
+                .argName("File")
+                .desc("LOINC core table path")
+                .build();
+        options.addOption(loadObservation)
+                .addOption(convertObservation)
+                .addOption(prednisone)
+                .addOption(in)
+                .addOption(database)
+                .addOption(output)
+                .addOption(help)
+                .addOption(annotation)
+                .addOption(hpo)
+                .addOption(loinc);
+
+        HelpFormatter formatter = new HelpFormatter();
+
+        CommandLineParser parser = new DefaultParser();
+        try {
+            CommandLine commandLine = parser.parse(options, args);
+
+            Arrays.stream(commandLine.getOptions()).map(option -> option.getOpt() + "\t" + option.getValue() + "\n").forEach(System.out::print);
+
+            //load OBSERVATION_FACT to database
+            if (commandLine.hasOption("loadObser")) {
+                System.out.println("request to load observation");
+                if (!commandLine.hasOption("i") || commandLine.hasOption("d")){
+                    formatter.printHelp("Hush2Fhir", options);
+                }
+                loadObser(commandLine.getOptionValue("i"), commandLine.getOptionValue("d"));
+            }
+
+            //convert LOINC records to HPO terms
+            if (commandLine.hasOption("l2h")) {
+                System.out.println("request to convert observation");
+                //require input (OBSERVATION_FACT), output, annotation file, hpo and LOINC
+                if (!commandLine.hasOption("i") || !commandLine.hasOption("a") || !commandLine.hasOption("hpo")) {
+                    formatter.printHelp("HushToFhir", options);
+                    return;
+                }
+
+                try {
+                    importHPO(commandLine.getOptionValue("hpo"));
+                } catch (IOException e) {
+                    System.out.println("cannot import hpo");
+                }
+
+                try {
+                    importLoinc(commandLine.getOptionValue("loinc"));
+                } catch (Exception e) {
+                    System.out.println("cannot import LOINC core table");
+                }
+
+                try{
+                    importAnnotation(commandLine.getOptionValue("a"));
+                } catch (Exception e) {
+                    System.out.println("cannot import annotation file");
+                }
+
+                try {
+                    loinc2hpo(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (commandLine.hasOption("p")) {
+                if (!commandLine.hasOption("i")) {
+                    System.out.println("OBSERVATION_FACT table is required");
+                }
+                try {
+                    prednisoneCounts(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"));
+                } catch (IOException e) {
+                    System.out.println("cannot import OBSERVATION_FACT table");
+                }
+            }
+
+            //print out help message
+            if (commandLine.hasOption("help")) {
+                formatter.printHelp("HushToFhir", options);
+            }
+
+            if (!commandLine.getArgList().isEmpty()) {
+                System.out.println("Unrecognized arguments:");
+                commandLine.getArgList().forEach(System.out::println);
+            }
+
+        } catch (org.apache.commons.cli.ParseException e) {
+            System.out.println("arguments error");
+            formatter.printHelp("HushToFhir", options);
+        }
+
+
 /**
         //replace with your file path
         final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
@@ -545,8 +772,6 @@ public class App {
         Set<String> predCodes;
         try (BufferedReader reader = new BufferedReader(new FileReader(App.class.getClassLoader().getResource("prednison.txt").getPath()))){
             predCodes = reader.lines().collect(Collectors.toSet());
-            predCodes.stream().forEach(System.out::println);
- System.out.println("prednison set size: " + predCodes.size());
         } catch (FileNotFoundException e){
             return;
         } catch (IOException e){
