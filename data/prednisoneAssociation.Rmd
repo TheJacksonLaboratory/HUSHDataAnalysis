@@ -16,6 +16,7 @@ Group patients into Severe, Non-Severe categories based on whether they are pres
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(RSQLite)
 ```
 
 First load the database that stores essential tables in UNC HUSH+ data
@@ -48,6 +49,12 @@ combined <- loinc2hpo %>%
 nrow(combined)
 ```
 
+```{r}
+combined %>% filter(hpoTerm == "Monocytosis") %>% filter(is.na(prscbCount)) %>% select(patient_num) %>% distinct() %>% count()
+combined %>% filter(hpoTerm == "Monocytosis") %>% filter(!is.na(prscbCount)) %>% select(patient_num) %>% distinct() %>% count()
+combined %>% filter(is.na(prscbCount)) %>% filter(hpoTerm != "Monocytosis") %>% select(patient_num) %>% distinct() %>% count()
+combined %>% filter(!is.na(prscbCount)) %>% filter(hpoTerm != "Monocytosis") %>% select(patient_num) %>% distinct() %>% count()
+```
 
 
 
