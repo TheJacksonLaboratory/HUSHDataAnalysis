@@ -49,15 +49,78 @@ combined <- loinc2hpo %>%
 nrow(combined)
 ```
 
+define a helper function that convert boolean to strings
 ```{r}
-combined %>% filter(hpoTerm == "Monocytosis") %>% filter(is.na(prscbCount)) %>% select(patient_num) %>% distinct() %>% count()
-combined %>% filter(hpoTerm == "Monocytosis") %>% filter(!is.na(prscbCount)) %>% select(patient_num) %>% distinct() %>% count()
-combined %>% filter(is.na(prscbCount)) %>% filter(hpoTerm != "Monocytosis") %>% select(patient_num) %>% distinct() %>% count()
-combined %>% filter(!is.na(prscbCount)) %>% filter(hpoTerm != "Monocytosis") %>% select(patient_num) %>% distinct() %>% count()
+boolString <- function(x) {
+  newvec <- c()
+  for (i in 1:length(x)) {
+    if (x[i] == "true") {
+      newvec <- c(newvec, "NOT")
+    } else {
+      newvec <- c(newvec, "")
+    }
+  }
+  return (newvec)
+}
 ```
 
 
+For each HPO term, calculate how many patients on prednison have the term
+```{r}
+patientOnPrednisonCount <- combined %>%
+  filter(!is.na(prscbCount)) %>% 
+  group_by(isNegated, hpoTerm) %>% 
+  select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
+  distinct(patient_num) %>% 
+  summarise(count = n()) %>% 
+  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = " ")) %>% 
+  select(groupName, count)
+```
+For each HPO term, calculate how many patients not on prednison have the term
+```{r}
+patientNotOnPrednisonCount <- combined %>%
+  filter(is.na(prscbCount)) %>% 
+  group_by(isNegated, hpoTerm) %>% 
+  select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
+  distinct(patient_num) %>% 
+  summarise(count = n()) %>% 
+  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = " ")) %>% 
+  select(groupName, count)
+```
+create a table of patient counts per hpo term, with two columns w/t prednisone and w/ prednison
+```{r}
+patientCombinedCounts1 <- 
+  data.frame(hpo = patientNotOnPrednisonCount$groupName, noPrednison = patientNotOnPrednisonCount$count)
+patientCombinedCounts2 <- 
+  data.frame(hpo = patientOnPrednisonCount$groupName, onPrednison = patientOnPrednisonCount$count)
+patientCombinedCounts <- patientCombinedCounts1 %>% full_join(patientCombinedCounts2) %>%
+  mutate(noPrednison = ifelse(is.na(noPrednison), 0, noPrednison), onPrednison = ifelse(is.na(onPrednison), 0, onPrednison))
 
+populationCount <- c("ALLPATIENTS", nrow(patients) - nrow(prednisonPrescribTimes), nrow(prednisonPrescribTimes))
+
+```
+
+define a function to compute the p-value using chisq test whether patient counts with certain HPO term is associated with severity
+```{r}
+# x is patient counts with a certain hpo term, divided into noPrednison or onPrednisone
+# Y is patient counts among all patients, divided into noPrednison or onPrednisone
+pValueChisq <- function(x, Y) {
+  M <- as.matrix(rbind(as.integer(x[c(2,3)]), as.integer(Y[c(2,3)])))
+  M
+  return (chisq.test(M)[[3]])
+}
+```
+
+calculate the chisq test p value for all hpo terms and order by p
+
+```{r}
+pValVec = rep(-1, nrow(patientCombinedCounts))
+for (i in 1:nrow(patientCombinedCounts)) {
+  pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount)
+}
+#patientCombinedCounts$pVal <- pValVec
+patientCombinedCounts <- patientCombinedCounts %>%  mutate(pVal = pValVec) %>% arrange(pVal)
+```
 
 
 Disconnect database
