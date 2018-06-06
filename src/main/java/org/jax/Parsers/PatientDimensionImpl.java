@@ -4,7 +4,7 @@ package org.jax.Parsers;
 import org.hl7.fhir.dstu3.model.Address;
 import org.jax.Constant;
 import org.jax.DateModel.SourceSystemEnumType;
-import org.jax.Exception.HeaderNotDefinedException;
+import org.jax.Exception.IllegalDataTypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +82,7 @@ public class PatientDimensionImpl implements PatientDimension {
          **/
         this.patientRecord = s;
         if (!isIndicesSet){
-            setIndices(Constant.HEADER_OBSERVATION);
+            setIndices(Constant.HEADER_PATIENT);
             isIndicesSet = true;
             logger.trace("indices set");
         }
@@ -194,7 +194,13 @@ public class PatientDimensionImpl implements PatientDimension {
 
         //patient_num
         if(!A[PATIENT_NUM_IDX].equals(" ")) {
-            patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
+            try {
+                patient_num = Integer.parseInt(A[PATIENT_NUM_IDX]);
+            } catch (Exception e) {
+                logger.error(A[PATIENT_NUM_IDX]);
+                throw new ParseException("patient_num not a num", 0);
+            }
+
         }
         else{
             System.err.println("patient_num is not available!");
