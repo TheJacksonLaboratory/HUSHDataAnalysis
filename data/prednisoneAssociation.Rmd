@@ -17,6 +17,7 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 library(RSQLite)
+library(Rmpfr)
 ```
 
 First load the database that stores essential tables in UNC HUSH+ data
@@ -32,12 +33,33 @@ import patient prescribed with prednisone
 ```{r}
 prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/patientPrednisonPrsbCount.txt", header = TRUE, sep = "\t");
 # replace na with 0
-prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
+prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 ```
 import LOINC records mapped to HPO terms
 ```{r}
 loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
 nrow(loinc2hpo)
+```
+
+determine how many LOINC code are mapped to each HPO term from the annotation file
+```{r}
+loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
+```
+
+
+determine how many LOINC codes are aggregated for each HPO term
+```{r}
+loincAggregated <- loinc2hpo %>%
+  filter(mapFailed == "false") %>%
+  select(concept_cd, hpoTerm) %>%
+  distinct() %>%
+  group_by(hpoTerm) %>%
+  mutate(loincAggrgtdFrom = n()) %>%
+  ungroup() %>%
+  mutate(hpo = as.character(hpoTerm)) %>%
+  select(hpo, loincAggrgtdFrom) %>%
+  distinct()
 ```
 
 combine tables together
@@ -58,7 +80,7 @@ boolString <- function(x) {
   newvec <- c()
   for (i in 1:length(x)) {
     if (x[i] == "true") {
-      newvec <- c(newvec, "NOT")
+      newvec <- c(newvec, "NOT ")
     } else {
       newvec <- c(newvec, "")
     }
@@ -77,7 +99,8 @@ patientOnPrednisonCount <- combined %>%
   select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
   distinct(patient_num) %>% 
   summarise(count = n()) %>% 
-  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = " ")) %>% 
+  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
+  #ungroup() %>%
   select(groupName, count)
 ```
 For each HPO term, calculate how many patients not on prednison have the term
@@ -88,7 +111,8 @@ patientNotOnPrednisonCount <- combined %>%
   select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
   distinct(patient_num) %>% 
   summarise(count = n()) %>% 
-  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = " ")) %>% 
+  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
+  #ungroup() %>%
   select(groupName, count)
 ```
 create a table of patient counts per hpo term, with two columns w/t prednisone and w/ prednison
@@ -137,9 +161,22 @@ for (i in 1:nrow(patientCombinedCounts)) {
   pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount)
 }
 #patientCombinedCounts$pVal <- pValVec
-patientCombinedCounts <- patientCombinedCounts %>%  mutate(pVal = pValVec) %>% arrange(pVal)
+patientCombinedCounts <- patientCombinedCounts %>%  
+  mutate(pVal = pValVec)  %>% 
+  mutate(`notSeverePatientNo(%)` = paste(notSeverePatientNo, "[", round(100 * notSeverePatientNo/populationCount[[2]], 1), "]", sep = "")) %>%
+  mutate(`severePatientNo(%)` = paste(severePatientNo, "[", round(100 * severePatientNo/populationCount[[3]], 1), "]", sep = "")) %>%
+  filter(!startsWith(hpo, "NOT")) %>% 
+  left_join(loincAggregated) %>%
+  left_join(loincAnnotationStat) %>%
+  select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, `severePatientNo(%)`, pVal) %>% 
+  arrange(pVal)
 write.csv(patientCombinedCounts, "patientCombinedCounts.csv")
 ```
+
+```{r}
+visitCount <- dbGetQuery(db, "SELECT patient_num, count(encounter_num) as visit_count FROM VISIT_DIMENSION GROUP BY patient_num ORDER BY visit_count")
+```
+
 
 
 Disconnect database

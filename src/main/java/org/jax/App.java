@@ -20,6 +20,7 @@ import org.monarchinitiative.loinc2hpo.loinc.LoincEntry;
 import org.monarchinitiative.loinc2hpo.loinc.LoincId;
 import org.monarchinitiative.loinc2hpo.testresult.PhenoSetUnionFind;
 import org.monarchinitiative.phenol.formats.hpo.HpoOntology;
+import org.monarchinitiative.phenol.formats.hpo.HpoTerm;
 import org.monarchinitiative.phenol.io.obo.hpo.HpoOboParser;
 import org.monarchinitiative.phenol.ontology.data.Term;
 import org.monarchinitiative.phenol.ontology.data.TermId;
@@ -596,6 +597,74 @@ public class App {
         reader.close();
     }
 
+    static void annotationStats(Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, String outputPath) throws IOException {
+
+        BufferedWriter writer;
+        if (outputPath == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(outputPath));
+        }
+
+        Map<Term, ArrayList<LoincId>> termLOINCcounts = new HashMap<>();
+        annotationMap.values().forEach(loinc2HpoAnnotation -> {
+            loinc2HpoAnnotation
+                    .getCandidateHpoTerms()
+                    .values()
+                    .stream()
+                    .distinct()
+                    .map(HpoTerm4TestOutcome::getHpoTerm)
+                    .distinct()
+                    .forEach(hpo -> {
+                        if (! termLOINCcounts.containsKey(hpo)) {
+                            termLOINCcounts.put(hpo, new ArrayList<>());
+                        }
+                        termLOINCcounts.get(hpo).add(loinc2HpoAnnotation.getLoincId());
+                    });
+        });
+
+        writer.write("hpo\tloincCounts\n");
+
+        termLOINCcounts.entrySet()
+                .stream()
+                .collect(Collectors.toMap(e -> e.getKey(), e-> e.getValue().size()))
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.<Term, Integer>comparingByValue().reversed())
+                .forEachOrdered(s -> {
+                    try {
+                        writer.write(s.getKey().getName() + "\t" + s.getValue() + "\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+
+        /**
+        //write out LOINC lists mapped to one HPO term
+        termLOINCcounts.entrySet()
+                .stream()
+                .forEach(e -> {
+                    try{
+                        writer.write(e.getKey().getName());
+                        writer.write("\t");
+                        e.getValue().forEach(p -> {
+                            try {
+                              writer.write(p.toString() + "|");
+                            } catch (Exception excep) {
+                                System.out.println("output error");
+                            }
+                        });
+                        writer.write("\n");
+                    } catch (Exception excep) {
+                        System.out.println("output error");
+                    }
+
+                });
+**/
+        writer.close();
+    }
+
     public static void main( String[] args ) {
 
         Options options = new Options();
@@ -642,6 +711,10 @@ public class App {
                 .longOpt("annotation")
                 .desc("LOINC annotation file path")
                 .build();
+        Option annotationStat = Option.builder("stat")
+                .hasArg(false)
+                .desc("stats of annotation file")
+                .build();
         Option hpo = Option.builder("hpo")
                 .hasArg()
                 .argName("File")
@@ -660,6 +733,7 @@ public class App {
                 .addOption(output)
                 .addOption(help)
                 .addOption(annotation)
+                .addOption(annotationStat)
                 .addOption(hpo)
                 .addOption(loinc);
 
@@ -722,6 +796,33 @@ public class App {
                     prednisoneCounts(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"));
                 } catch (IOException e) {
                     System.out.println("cannot import OBSERVATION_FACT table");
+                }
+            }
+
+            if (commandLine.hasOption("stat")) {
+                if (!commandLine.hasOption("a")) {
+                    System.out.println("annotation file is required");
+                }
+                if (!commandLine.hasOption("hpo")) {
+                    System.out.println("hpo.obo file is required");
+                }
+                try {
+                    importHPO(commandLine.getOptionValue("hpo"));
+                } catch (IOException e) {
+                    System.out.println("cannot import hpo");
+                    return;
+                }
+                try{
+                    importAnnotation(commandLine.getOptionValue("a"));
+                } catch (Exception e) {
+                    System.out.println("cannot import annotation file");
+                    return;
+                }
+                try {
+                    annotationStats(annotationMap, commandLine.getOptionValue("o"));
+                } catch (IOException e) {
+                    System.out.println("failed to output stats, try again");
+                    return;
                 }
             }
 
