@@ -11,68 +11,6 @@ UNC HUSH+ data about ~15,000 patients who visited hospitals for asthma. All pati
 Goal:
 Group patients into Severe, Non-Severe categories based on whether they are prescribed with prednison or not. Look at what HPO terms are associated with each category. 
 
-```{r}
-#load R libraries
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(RSQLite)
-library(Rmpfr)
-```
-
-First load the database that stores essential tables in UNC HUSH+ data
-```{r}
-db <- dbConnect(RSQLite::SQLite(), "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite")
-```
-retrieve patient list
-```{r}
-patients <- dbGetQuery(db, "SELECT patient_num, birth_date, sex_cd FROM PATIENT_DIMENTION")
-nrow(patients)
-```
-import patient prescribed with prednisone
-```{r}
-prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/patientPrednisonPrsbCount.txt", header = TRUE, sep = "\t");
-# replace na with 0
-prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
-```
-import LOINC records mapped to HPO terms
-```{r}
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
-nrow(loinc2hpo)
-```
-
-determine how many LOINC code are mapped to each HPO term from the annotation file
-```{r}
-loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats.tsv", header = TRUE, sep = "\t")
-loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
-```
-
-
-determine how many LOINC codes are aggregated for each HPO term
-```{r}
-loincAggregated <- loinc2hpo %>%
-  filter(mapFailed == "false") %>%
-  select(concept_cd, hpoTerm) %>%
-  distinct() %>%
-  group_by(hpoTerm) %>%
-  mutate(loincAggrgtdFrom = n()) %>%
-  ungroup() %>%
-  mutate(hpo = as.character(hpoTerm)) %>%
-  select(hpo, loincAggrgtdFrom) %>%
-  distinct()
-```
-
-combine tables together
-```{r}
-combined <- loinc2hpo %>%
-  filter(mapFailed == "false") %>%
-  select(patient_num, isNegated, hpoTerm) %>%
-  distinct() %>%# it reduced records from 6 million records to < 0.6 million
-  left_join(patients) %>%
-  left_join(prednisonPrescribTimes) %>%
-  mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
-nrow(combined)
-```
 
 define a helper function that convert boolean to strings
 ```{r}
@@ -90,45 +28,149 @@ boolString <- function(x) {
 ```
 
 
-For each HPO term, calculate how many patients on prednison have the term
+
 ```{r}
-SEVERITY_THRESHOLD <- 3
-patientOnPrednisonCount <- combined %>%
-  filter(prscbCount > SEVERITY_THRESHOLD) %>% 
-  group_by(isNegated, hpoTerm) %>% 
-  select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
-  distinct(patient_num) %>% 
-  summarise(count = n()) %>% 
-  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
-  #ungroup() %>%
-  select(groupName, count)
+#load R libraries
+library(tidyverse)
+library(scales)
+library(RSQLite)
+library(Rmpfr)
+```
+
+First load the database that stores essential tables in UNC HUSH+ data
+```{r}
+db <- dbConnect(RSQLite::SQLite(), "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite")
+```
+
+retrieve patient list
+import patient prescribed with prednisone
+import patient no. hospital visits
+  How do we count no. hospital visits for patients?
+  For any day, if a patient has an encounter, we count the patient visit hospital once. 
+import loinc2hpo transformation
+```{r}
+patients <- dbGetQuery(db, "SELECT patient_num, birth_date, sex_cd FROM PATIENT_DIMENTION")
+prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/patientPrednisonPrsbCount.txt", header = TRUE, sep = "\t");
+# replace na with 0
+prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
+visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
+```
+
+calculating statistics:
+
+1. determine how many LOINC code are mapped to each HPO term from the annotation file
+```{r}
+loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
+```
+
+
+2. determine how many LOINC codes are aggregated for each HPO term
+```{r}
+loincAggregated <- loinc2hpo %>%
+  filter(mapFailed == "false") %>%
+  select(concept_cd, hpoTerm) %>%
+  distinct() %>%
+  group_by(hpoTerm) %>%
+  mutate(loincAggrgtdFrom = n()) %>%
+  ungroup() %>%
+  mutate(hpo = as.character(hpoTerm)) %>%
+  select(hpo, loincAggrgtdFrom) %>%
+  distinct()
+```
+
+combine tables together
+```{r}
+loinc2hpoAggregated <- loinc2hpo %>% 
+  filter(mapFailed == "false") %>%
+  select(patient_num, isNegated, hpoTerm) %>% #6,359,143 lines of records
+  #count()
+  group_by(patient_num, isNegated, hpoTerm) %>% # for each patient and each term, count how many times the term is diagnosed with a test
+  summarise(hpoTermFreq = n()) %>%
+  ungroup() #572,497 lines of records ---->>> a patient is frequenctly mapped to the same HPO term!
+  #count()
+
+combined <- loinc2hpoAggregated %>%
+  left_join(patients) %>%
+  left_join(prednisonPrescribTimes) %>%
+  left_join(visitCount) %>%
+  mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
+nrow(combined)
+
+#spread it to a matrix for machine learning
+#combined %>% filter(isNegated == "false") %>% spread(key = hpoTerm, value = hpoTermFreq, fill = 0) %>% View()  
+```
+
+For each HPO term, calculate how many patients on prednison have the term
+We define a threshold for the number of times a patient visits hospitals. If the visits count is less than the threshold, ignore those patients.
+```{r}
+VISITTIMES_THRESHOLD = 10  
+SEVERITY_THRESHOLD = 3
+TERMFREQ_THRESHOLD = 1
+
+patientCombinedCounts <- combined %>% 
+  filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
+  filter(hpoTermFreq >= TERMFREQ_THRESHOLD) %>%
+  mutate(severity = ifelse(prscbCount > SEVERITY_THRESHOLD, "severe", "nonSevere")) %>%
+  group_by(isNegated, hpoTerm, severity) %>%
+  summarise(count = n()) %>%
+  spread(key = severity, value = count, fill = 0) %>%
+  ungroup() %>%
+  mutate(hpo = paste(boolString(isNegated), hpoTerm, sep = "")) %>%
+  select(hpo, nonSevere, severe) %>%
+  View()
+  
+  
+  
+# patientOnPrednisonCount <- combined %>%
+#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
+#   filter(prscbCount > SEVERITY_THRESHOLD) %>% #select severe patients
+#   group_by(isNegated, hpoTerm) %>% 
+#   #select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
+#   #distinct(patient_num) %>% 
+#   summarise(count = n()) %>% 
+#   mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
+#   ungroup() %>%
+#   select(groupName, count)
 ```
 For each HPO term, calculate how many patients not on prednison have the term
 ```{r}
-patientNotOnPrednisonCount <- combined %>%
-  filter(prscbCount <= SEVERITY_THRESHOLD) %>% 
-  group_by(isNegated, hpoTerm) %>% 
-  select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
-  distinct(patient_num) %>% 
-  summarise(count = n()) %>% 
-  mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
-  #ungroup() %>%
-  select(groupName, count)
+# patientNotOnPrednisonCount <- combined %>%
+#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
+#   filter(prscbCount <= SEVERITY_THRESHOLD) %>% 
+#   group_by(isNegated, hpoTerm) %>% 
+#   #select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
+#   #distinct(patient_num) %>% 
+#   summarise(count = n()) %>% 
+#   mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
+#   ungroup() %>%
+#   select(groupName, count)
 ```
 create a table of patient counts per hpo term, with two columns w/t prednisone and w/ prednison
 ```{r}
-patientCombinedCounts1 <- 
-  data.frame(hpo = patientNotOnPrednisonCount$groupName, notSeverePatientNo = patientNotOnPrednisonCount$count)
-patientCombinedCounts2 <- 
-  data.frame(hpo = patientOnPrednisonCount$groupName, severePatientNo = patientOnPrednisonCount$count)
-patientCombinedCounts <- patientCombinedCounts1 %>% full_join(patientCombinedCounts2) %>%  mutate(notSeverePatientNo = ifelse(is.na(notSeverePatientNo), 0, notSeverePatientNo), severePatientNo = ifelse(is.na(severePatientNo), 0, severePatientNo))
+#patientCombinedCounts1 <- 
+#  data.frame(hpo = patientNotOnPrednisonCount$groupName, notSeverePatientNo = patientNotOnPrednisonCount$count)
+#patientCombinedCounts2 <- 
+#  data.frame(hpo = patientOnPrednisonCount$groupName, severePatientNo = patientOnPrednisonCount$count)
+#patientCombinedCounts <- patientCombinedCounts1 %>% full_join(patientCombinedCounts2) %>%  mutate(notSeverePatientNo = ifelse(is.na(notSeverePatientNo), 0, notSeverePatientNo), severePatientNo = ifelse(is.na(severePatientNo), 0, severePatientNo))
 
+# patientCombinedCounts <- patientOnPrednisonCount %>% rename(severePatientNo = count) %>% 
+  # full_join(patientNotOnPrednisonCount) %>% rename(notSeverePatientNo = count) %>%
+  # mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+  # select(groupName, notSeverePatientNo, severePatientNo)
 ```
 
 Calculate population distribution
 ```{r}
-severePatientCount <- prednisonPrescribTimes %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
-totalPatient <- nrow(patients)
+prednisonPrescribTimes <- prednisonPrescribTimes %>%
+  left_join(visitCount)
+severePatientCount <- prednisonPrescribTimes %>%filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
+#totalPatient <- nrow(patients)
+totalPatient <- patients %>% 
+  left_join(visitCount) %>%
+  filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
+  count()
 populationCount <- c("ALLPATIENTS", totalPatient - severePatientCount, severePatientCount)
 ```
 
@@ -160,9 +202,9 @@ pValVec = rep(-1, nrow(patientCombinedCounts))
 for (i in 1:nrow(patientCombinedCounts)) {
   pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount)
 }
-#patientCombinedCounts$pVal <- pValVec
-patientCombinedCounts <- patientCombinedCounts %>%  
-  mutate(pVal = pValVec)  %>% 
+patientCombinedCounts$pVal <- pValVec
+patientCombinedCounts <- patientCombinedCounts %>% 
+  rename(hpo = groupName) %>%
   mutate(`notSeverePatientNo(%)` = paste(notSeverePatientNo, "[", round(100 * notSeverePatientNo/populationCount[[2]], 1), "]", sep = "")) %>%
   mutate(`severePatientNo(%)` = paste(severePatientNo, "[", round(100 * severePatientNo/populationCount[[3]], 1), "]", sep = "")) %>%
   filter(!startsWith(hpo, "NOT")) %>% 
@@ -173,10 +215,12 @@ patientCombinedCounts <- patientCombinedCounts %>%
 write.csv(patientCombinedCounts, "patientCombinedCounts.csv")
 ```
 
-```{r}
-visitCount <- dbGetQuery(db, "SELECT patient_num, count(encounter_num) as visit_count FROM VISIT_DIMENSION GROUP BY patient_num ORDER BY visit_count")
-```
 
+
+```{r}
+visitCountByUniqueStartDays <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/patient_visit_counts_with_no_start_days.csv", header = TRUE)
+ggplot(visitCountByUniqueStartDays) + geom_histogram(aes(x = encounter_no_days), fill = "white", color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
+```
 
 
 Disconnect database
