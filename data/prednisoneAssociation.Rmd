@@ -67,6 +67,7 @@ loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), l
 
 
 2. determine how many LOINC codes are aggregated for each HPO term
+   then determine how many times a patient is mapped to the same hpo term
 ```{r}
 loincAggregated <- loinc2hpo %>%
   filter(mapFailed == "false") %>%
@@ -78,11 +79,8 @@ loincAggregated <- loinc2hpo %>%
   mutate(hpo = as.character(hpoTerm)) %>%
   select(hpo, loincAggrgtdFrom) %>%
   distinct()
-```
 
-combine tables together
-```{r}
-loinc2hpoAggregated <- loinc2hpo %>% 
+patientTermMapFreq <- loinc2hpo %>% 
   filter(mapFailed == "false") %>%
   select(patient_num, isNegated, hpoTerm) %>% #6,359,143 lines of records
   #count()
@@ -90,16 +88,21 @@ loinc2hpoAggregated <- loinc2hpo %>%
   summarise(hpoTermFreq = n()) %>%
   ungroup() #572,497 lines of records ---->>> a patient is frequenctly mapped to the same HPO term!
   #count()
+```
 
-combined <- loinc2hpoAggregated %>%
-  left_join(patients) %>%
-  left_join(prednisonPrescribTimes) %>%
+3. combine tables together
+skip patients without any HPO terms
+also skip HPO terms for unknown patients
+```{r}
+combined <- patients %>%
+  inner_join(patientTermMapFreq, by = "patient_num") %>%
   left_join(visitCount) %>%
+  left_join(prednisonPrescribTimes) %>%
   mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 nrow(combined)
 
 #spread it to a matrix for machine learning
-#combined %>% filter(isNegated == "false") %>% spread(key = hpoTerm, value = hpoTermFreq, fill = 0) %>% View()  
+df4ML <- combined %>% filter(isNegated == "false") %>% spread(key = hpoTerm, value = hpoTermFreq, fill = 0) %>% mutate (isSevere = ifelse(prscbCount >= 3, 1, 0)) %>% select(-c(isNegated, prscbCount)) 
 ```
 
 For each HPO term, calculate how many patients on prednison have the term
@@ -107,10 +110,10 @@ We define a threshold for the number of times a patient visits hospitals. If the
 ```{r}
 VISITTIMES_THRESHOLD = 10  
 SEVERITY_THRESHOLD = 3
-TERMFREQ_THRESHOLD = 1
+TERMFREQ_THRESHOLD = 3
 
 patientCombinedCounts <- combined %>% 
-  filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
+  filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
   filter(hpoTermFreq >= TERMFREQ_THRESHOLD) %>%
   mutate(severity = ifelse(prscbCount > SEVERITY_THRESHOLD, "severe", "nonSevere")) %>%
   group_by(isNegated, hpoTerm, severity) %>%
@@ -118,8 +121,7 @@ patientCombinedCounts <- combined %>%
   spread(key = severity, value = count, fill = 0) %>%
   ungroup() %>%
   mutate(hpo = paste(boolString(isNegated), hpoTerm, sep = "")) %>%
-  select(hpo, nonSevere, severe) %>%
-  View()
+  select(hpo, nonSevere, severe)
   
   
   
@@ -163,15 +165,17 @@ create a table of patient counts per hpo term, with two columns w/t prednisone a
 
 Calculate population distribution
 ```{r}
-prednisonPrescribTimes <- prednisonPrescribTimes %>%
-  left_join(visitCount)
-severePatientCount <- prednisonPrescribTimes %>%filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
-#totalPatient <- nrow(patients)
-totalPatient <- patients %>% 
-  left_join(visitCount) %>%
-  filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
-  count()
-populationCount <- c("ALLPATIENTS", totalPatient - severePatientCount, severePatientCount)
+populationCount <- combined %>% select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n())
+
+# prednisonPrescribTimes <- prednisonPrescribTimes %>%
+#   left_join(visitCount)
+# severePatientCount <- prednisonPrescribTimes %>%filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
+# #totalPatient <- nrow(patients)
+# totalPatient <- patients %>% 
+#   left_join(visitCount) %>%
+#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
+#   count()
+# populationCount <- c("ALLPATIENTS", totalPatient - severePatientCount, severePatientCount)
 ```
 
 define a function to compute the p-value using chisq test whether patient counts with certain HPO term is associated with severity
@@ -179,7 +183,7 @@ define a function to compute the p-value using chisq test whether patient counts
 # x is patient counts with a certain hpo term, divided into noPrednison or onPrednisone
 # Y is patient counts among all patients, divided into non-severe and severe groups. The function will use those value to calculate patient counts not belonging to x
 pValueChisq <- function(x, Y) {
-  M <- as.matrix(rbind(as.integer(x[c(2,3)]), as.integer(Y[c(2,3)])))
+  M <- as.matrix(rbind(as.integer(x[c(2,3)]), Y))
   M[2,] <- M[2,] - M[1,]
   return (chisq.test(M)[[3]])
 }
@@ -188,8 +192,7 @@ pValueChisq <- function(x, Y) {
 This function calculate whether sample x fits population Y
 ```{r}
 pValueChisqFitness <- function(x, Y) {
-  Y <- unlist(Y)
-  p <- as.integer(Y[c(2, 3)])/sum(as.integer(Y[c(2,3)]))
+  p <- Y/sum(Y)
   return (chisq.test(as.integer(x[c(2,3)]), y = NULL, p)[[3]])
 }
 ```
@@ -200,26 +203,43 @@ calculate the chisq test p value for all hpo terms and order by p
 ```{r}
 pValVec = rep(-1, nrow(patientCombinedCounts))
 for (i in 1:nrow(patientCombinedCounts)) {
-  pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount)
+  pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount$count)
 }
 patientCombinedCounts$pVal <- pValVec
-patientCombinedCounts <- patientCombinedCounts %>% 
-  rename(hpo = groupName) %>%
-  mutate(`notSeverePatientNo(%)` = paste(notSeverePatientNo, "[", round(100 * notSeverePatientNo/populationCount[[2]], 1), "]", sep = "")) %>%
-  mutate(`severePatientNo(%)` = paste(severePatientNo, "[", round(100 * severePatientNo/populationCount[[3]], 1), "]", sep = "")) %>%
+outcome <- patientCombinedCounts %>% 
+  #rename(hpo = groupName) %>%
+  mutate(`notSeverePatientNo(%)` = paste(nonSevere, "[", round(100 * nonSevere/populationCount$count[1], 1), "]", sep = "")) %>%
+  mutate(`severePatientNo(%)` = paste(severe, "[", round(100 * severe/populationCount$count[2], 1), "]", sep = "")) %>%
   filter(!startsWith(hpo, "NOT")) %>% 
   left_join(loincAggregated) %>%
   left_join(loincAnnotationStat) %>%
   select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, `severePatientNo(%)`, pVal) %>% 
   arrange(pVal)
-write.csv(patientCombinedCounts, "patientCombinedCounts.csv")
+View(outcome)
 ```
 
 
+```{r}
+write.csv(df4ML, "Hush+_data_matrix.csv")
+write.csv(outcome, "patientCombinedCounts.csv")
+```
+
 
 ```{r}
-visitCountByUniqueStartDays <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/patient_visit_counts_with_no_start_days.csv", header = TRUE)
-ggplot(visitCountByUniqueStartDays) + geom_histogram(aes(x = encounter_no_days), fill = "white", color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
+visitAndSeverity <- visitCount %>% left_join(prednisonPrescribTimes) %>% 
+  mutate (prscbCount = ifelse(is.na(prscbCount), 0, prscbCount)) %>% 
+  mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severe", "nonSevere"))
+
+ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days, group = severity, fill = severity), position = "stack" ,color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
+
+
+
++
+  geom_bar(aes(x = encounter_no_days, y = 400), stat = "identity")
+
+```
+```{r}
+ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days) ,color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
 ```
 
 
