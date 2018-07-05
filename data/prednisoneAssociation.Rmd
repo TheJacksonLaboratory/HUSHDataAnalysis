@@ -35,6 +35,7 @@ library(tidyverse)
 library(scales)
 library(RSQLite)
 library(Rmpfr)
+library(lubridate)
 ```
 
 First load the database that stores essential tables in UNC HUSH+ data
@@ -102,7 +103,14 @@ combined <- patients %>%
 nrow(combined)
 
 #spread it to a matrix for machine learning
-df4ML <- combined %>% filter(isNegated == "false") %>% spread(key = hpoTerm, value = hpoTermFreq, fill = 0) %>% mutate (isSevere = ifelse(prscbCount >= 3, 1, 0)) %>% select(-c(isNegated, prscbCount)) 
+df4ML <- combined %>% filter(isNegated == "false") %>% 
+  mutate(hpoTermPresent = ifelse(hpoTermFreq >= 3, 1, 0)) %>% 
+  select(-hpoTermFreq) %>%
+  spread(key = hpoTerm, value = hpoTermPresent, fill = 0) %>% 
+  mutate (isSevere = ifelse(prscbCount >= 3, 1, 0)) %>%
+  mutate(age = round(as.duration(interval(birth_date, now()))/dyears(1), 1)) %>%
+  select(-c(birth_date, isNegated, prscbCount)) %>%
+  select(patient_num, sex_cd, age, everything())
 ```
 
 For each HPO term, calculate how many patients on prednison have the term
@@ -215,11 +223,14 @@ outcome <- patientCombinedCounts %>%
   left_join(loincAnnotationStat) %>%
   select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, `severePatientNo(%)`, pVal) %>% 
   arrange(pVal)
+
+View(df4ML)
 View(outcome)
 ```
 
 
 ```{r}
+
 write.csv(df4ML, "Hush+_data_matrix.csv")
 write.csv(outcome, "patientCombinedCounts.csv")
 ```
