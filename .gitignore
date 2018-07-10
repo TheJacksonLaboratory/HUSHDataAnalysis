@@ -1,6 +1,8 @@
 observation_to_hpo.txt
 observation_to_hpo_success.txt
 patientPrednisonCount.txt
+data/HPO-AsthmaSeverity.xls
+data/Hush+_data_matrix.csv
 
 data/.DS_Store
 .idea/
@@ -12,6 +14,7 @@ logs/*
 
 
 *.iml
+.DS_Store
 
 logs/*
 
