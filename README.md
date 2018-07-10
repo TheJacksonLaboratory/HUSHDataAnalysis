@@ -1,4 +1,4 @@
-# HushToFhir
+# HushDataAnalysis
 
 **May Hackathon pitch**
 Mapping of UNC Hush+ data to Human Phenotype Ontology terms for explorative clustering
