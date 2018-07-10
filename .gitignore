@@ -3,6 +3,7 @@ observation_to_hpo_success.txt
 patientPrednisonCount.txt
 data/HPO-AsthmaSeverity.xls
 data/Hush+_data_matrix.csv
+data/patientOnPrednison.txt
 
 data/.DS_Store
 .idea/
