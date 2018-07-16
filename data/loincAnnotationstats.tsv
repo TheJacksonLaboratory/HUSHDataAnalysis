@@ -1,184 +1,212 @@
 hpo	loincCounts
-Hyperglycemia	201
 Hypoglycemia	201
+Hyperglycemia	201
 Abnormality of blood glucose concentration	200
 Ketonuria	32
+Decreased circulating ACTH level	28
+Abnormality of circulating adrenocorticotropin level	27
+Abnormality of circulating cortisol level	17
+Decreased circulating cortisol level	17
+Abnormal LDL cholesterol concentration	12
 Increased LDL cholesterol concentration	12
 Decreased LDL cholesterol conncentration	12
-Abnormal LDL cholesterol concentration	12
+Abnormal serum iron	10
+Increased circulating ACTH level	10
+Increased serum iron	10
+Decreased serum iron	10
 Anti-ganglioside GM1 IgM antibody positivity	9
 Decreased VLDL cholesterol concentration	7
 Increased VLDL cholesterol concentration	7
-Hypoglycorrhachia	6
 Abnormal CSF glucose level	6
 Hyperglycorrhachia	6
+Hypoglycorrhachia	6
 Increased troponin T level in blood	6
 Ketonemia	6
-Abnormal VLDL cholesterol concentration	5
 Increased CSF protein	5
-Positive urine methadone test	5
-Increased troponin I level in blood	5
-Decreased CSF protein	5
 Nitrituria	5
+Abnormal VLDL cholesterol concentration	5
+Decreased CSF protein	5
+Positive urine methadone test	5
 Abnormal CSF protein level	5
+Increased troponin I level in blood	5
+Abnormal basophil count	4
+Decreased basophil count	4
+Increased basophil count	4
 Bilirubinuria	4
-Monocytosis	3
-Abnormal monocyte count	3
-Increased glomerular filtration rate	3
+Neutropenia	3
 Abnormal glomerular filtration rate	3
+Proteinuria	3
+Decreased glomerular filtration rate	3
+Monocytosis	3
+Monocytopenia	3
+Increased glomerular filtration rate	3
 Abnormal neutrophil count	3
+Hypotension	3
+Abnormal systemic blood pressure	3
+Decreased circulating aldosterone level	3
+Abnormal monocyte count	3
+Increased serum ferritin	3
 Decreased serum ferritin	3
 Abnormal serum ferritin	3
-Decreased glomerular filtration rate	3
 Neutrophilia	3
-Monocytopenia	3
-Increased serum ferritin	3
-Neutropenia	3
-Proteinuria	3
-Abnormality lipoprotein cholesterol concentration	2
-Hypernatremia	2
-Abnormal lymphocyte count	2
-Decreased basophil count	2
+Red urine	2
 Abnormality of potassium homeostasis	2
-Abnormality of sodium homeostasis	2
-Abnormal blood gas level	2
-Hypocapnia	2
-Lymphocytosis	2
-Hyperkalemia	2
-Abnormal leukocyte count	2
-Abnormal erythrocyte volume	2
-Abnormality of circulating protein level	2
 Decreased mean corpuscular volume	2
-Increased mean corpuscular volume	2
-Abnormality of complement system	2
-Abnormal concentration of calcium in blood	2
-Hypoxemia	2
-Lymphopenia	2
 Hypercalcemia	2
+Abnormal eosinophil morphology	2
+Abnormality of circulating protein level	2
+Increased circulating cortisol level	2
+Abnormal C-peptide level	2
+Abnormality lipoprotein cholesterol concentration	2
 Leukopenia	2
-Eosinophilia	2
+Leukocytosis	2
+Lymphopenia	2
+Abnormal erythrocyte volume	2
+Hypernatremia	2
+Hypokalemia	2
+Increased mean corpuscular volume	2
+Abnormal concentration of calcium in blood	2
+Hyponatremia	2
+Hypocapnia	2
+Abnormal lymphocyte count	2
+Abnormal leukocyte count	2
 Urinary glycosaminoglycan excretion	2
 Abnormality of urine homeostasis	2
-Hypercapnia	2
-Hyponatremia	2
-Leukocytosis	2
-Hypocalcemia	2
-Abnormal basophil count	2
-Hypokalemia	2
+Blue urine	2
+Increased C-peptide level	2
+Abnormality of sodium homeostasis	2
 Hyperoxemia	2
-Increased basophil count	2
-Abnormal eosinophil morphology	2
-Decreased uridine diphosphate glucose-4-epimerase activity in plasma	1
-Abnormal vitamin B12 level	1
-Abnormal levels of creatine kinase in blood	1
-Conjugated hyperbilirubinemia	1
-Abnormality of chloride homeostasis	1
-Vitamin B12 deficiency	1
-Hypermagnesemia	1
-Decreased glucose-6-phosphate dehydrogenase level in leukocytes	1
-Acanthocytosis	1
-Hypercholesterolemia	1
-Hypochloremia	1
-Abnormal circulating thyroglobulin level	1
-Microalbuminuria	1
-Abnormal circulating creatinine level	1
-Abnormal urine magnesium concentration	1
-Elevated serum creatine phosphokinase	1
-Hypophosphatemia	1
-Hyperammonemia	1
-Increased IgM level	1
-Abnormal urinary color	1
-Abnormality of urine calcium concentration	1
-Thrombocytosis	1
-Impaired urinary acidification	1
-Abnormal platelet count	1
-Decreased serum insulin-like growth factor 1	1
-Abnormal immunoglobulin level	1
-Hypocalciuria	1
-IgM deficiency	1
-Abnormality of phosphate homeostasis	1
-Hypoalbuminemia	1
-Abnormality of urine glucose concentration	1
-Hypomagnesiuria	1
-Decreased uridine diphosphate glucose-4-epimerase activity in red blood cells	1
-Abnormality of reticulocytes	1
-Increased circulating thyroglobulin level	1
-Elevated serum creatinine	1
-Increased C-peptide level	1
-Hyperphosphatemia	1
-Increased blood urea nitrogen	1
-Abnormal glucose-6-phosphate dehydrogenase level in blood	1
-Hyperproteinemia	1
-Abnormal albumin level	1
-Abnormal glucose-6-phosphate dehydrogenase level in leukocytes	1
-Reticulocytosis	1
-Low alkaline phosphatase	1
-Decreased erythrocyte sedimentation rate	1
-Abnormal C-peptide level	1
-Reticulocytopenia	1
-Abnormality of alkaline phosphatase activity	1
-Hyperchloremia	1
-Hypoproteinemia	1
-Abnormal erythrocyte sedimentation rate	1
-Increased glucose-6-phosphate dehydrogenase level in red blood cells	1
-Hypercalciuria	1
-Abnormal lactate dehydrogenase activity	1
-Abnormal enzyme/coenzyme activity	1
-Increased lactate dehydrogenase activity	1
-Increased circulating thyroxine level	1
-Abnormal hemoglobin	1
-Abnormal urine sodium concentration	1
-Elevated alkaline phosphatase	1
-Abnormal glucose-6-phosphate dehydrogenase level in red blood cells	1
-Decreased circulating thyroxine level	1
-Abnormal glucose homeostasis	1
-Abnormal glucose-6-phosphate dehydrogenase level in dried blood spot	1
-Increased glucose-6-phosphate dehydrogenase level in leukocytes	1
-Elevated C-reactive protein level	1
-Decreased serum creatinine	1
-Prolonged prothrombin time	1
-Abnormality of lipid metabolism	1
-Increased hematocrit	1
-Abnormal serum insulin-like growth factor 1 level	1
-Hypoammonemia	1
-Increased uridine diphosphate glucose-4-epimerase activity in red blood cells	1
-Increased mean platelet volume	1
-Abnormal serum estradiol	1
+Abnormal blood gas level	2
+Reduced C-peptide level	2
+Hypercapnia	2
+Purple urine	2
+Eosinophilia	2
+Lymphocytosis	2
+Abnormality of complement system	2
+Hypocalcemia	2
+Red-brown urine	2
+Hypoxemia	2
+Elevated circulating 17-hydroxyprogesterone	2
+Hyperkalemia	2
 Hypernatriuria	1
-Anisocytosis	1
-Decreased serum complement C3	1
-Reduced C-peptide level	1
-Increased serum estradiol	1
-Abnormal uridine diphosphate glucose-4-epimerase activity in red blood cells	1
-Macrocytic anemia	1
-Abnormal uridine diphosphate glucose-4-epimerase activity in plasma	1
-Increased total bilirubin	1
-Abnormal circulating thyroxine level	1
-Decreased serum complement C4	1
-Azotemia	1
-Hyperalbuminemia	1
-Hypomagnesemia	1
+Hyponatriuria	1
+Abnormal levels of creatine kinase in blood	1
+Impaired urinary acidification	1
+Hyperchloremia	1
+Hypoammonemia	1
+Hyperchloriduria	1
+Decreased uridine diphosphate glucose-4-epimerase activity in red blood cells	1
+Abnormal urine sodium concentration	1
+Abnormality of lipid metabolism	1
+Abnormal glucose-6-phosphate dehydrogenase level in dried blood spot	1
+Cryoglobulinemia	1
+Abnormal glucose homeostasis	1
+Abnormal urine magnesium concentration	1
+Increased circulating thyroxine level	1
+Decreased mean platelet volume	1
+Increased mean platelet volume	1
+Increased glucose-6-phosphate dehydrogenase level in dried blood spot	1
+Abnormal serum estradiol	1
+Hypertension	1
+Increased hematocrit	1
+Thrombocytosis	1
+Bacteriuria	1
+Abnormality of phosphate homeostasis	1
+Abnormal circulating thyroglobulin level	1
 Increased glucose-6-phosphate dehydrogenase level in tissue	1
-Microcytic anemia	1
-Hypocholesterolemia	1
+Abnormal glucose-6-phosphate dehydrogenase level in blood	1
+Hypochloriduria	1
+Conjugated hyperbilirubinemia	1
+Macrocytic anemia	1
+Hyperammonemia	1
+Hypercholesterolemia	1
+Increased IgM level	1
+Abnormality of reticulocytes	1
+Increased glucose-6-phosphate dehydrogenase level in blood	1
+Azotemia	1
+Increased glucose-6-phosphate dehydrogenase level in red blood cells	1
+Elevated serum creatinine	1
+Decreased uridine diphosphate glucose-4-epimerase activity in plasma	1
+IgM deficiency	1
+Decreased erythrocyte sedimentation rate	1
+Acanthocytosis	1
+Abnormal serum insulin-like growth factor 1 level	1
+Hypermagnesemia	1
+Elevated C-reactive protein level	1
 Abnormality of cholesterol metabolism	1
 Glycosuria	1
-Hypermagnesiuria	1
-Hypotriglyceridemia	1
-Abnormal glucose-6-phosphate dehydrogenase level in tissue	1
-Increased glucose-6-phosphate dehydrogenase level in blood	1
-Bacteremia	1
-Decreased mean platelet volume	1
-Decreased serum estradiol	1
-Hypertriglyceridemia	1
-Elevated gamma-glutamyltransferase activity	1
-Thrombocytopenia	1
-Increased serum insulin-like growth factor 1	1
-Hyponatriuria	1
-Abnormality of magnesium homeostasis	1
-Abnormal platelet volume	1
+Elevated alkaline phosphatase	1
+Abnormal urine chloride concentration	1
 Increased uridine diphosphate glucose-4-epimerase activity in plasma	1
-Elevated erythrocyte sedimentation rate	1
-Decreased lipoprotein lipase activity	1
+Abnormal urinary color	1
+Increased glucose-6-phosphate dehydrogenase level in leukocytes	1
+Decreased serum complement C3	1
+Reticulocytosis	1
+Decreased glucose-6-phosphate dehydrogenase level in leukocytes	1
+Abnormal lactate dehydrogenase activity	1
+Hypotriglyceridemia	1
+Increased serum insulin-like growth factor 1	1
+Abnormality of circulating hormone level	1
+Decreased circulating thyroxine level	1
+Thrombocytopenia	1
+Hyperalbuminemia	1
+Hypoproteinemia	1
+Abnormal immunoglobulin level	1
+Anisocytosis	1
+Elevated serum creatine phosphokinase	1
+Abnormal platelet volume	1
+Abnormal uridine diphosphate glucose-4-epimerase activity in plasma	1
+Hyperphosphatemia	1
+Decreased serum insulin-like growth factor 1	1
+Hypomagnesiuria	1
+Abnormal vitamin B12 level	1
+Hypermagnesiuria	1
+Bacteremia	1
+Prolonged prothrombin time	1
+Increased uridine diphosphate glucose-4-epimerase activity in red blood cells	1
+Abnormal circulating creatinine level	1
+Abnormal uridine diphosphate glucose-4-epimerase activity in red blood cells	1
+Increased total bilirubin	1
+Elevated gamma-glutamyltransferase activity	1
+Increased circulating thyroglobulin level	1
+Abnormal hemoglobin	1
+Hypercalciuria	1
+Hypomagnesemia	1
+Microcytic anemia	1
+Abnormal circulating aldosterone	1
+Increased lactate dehydrogenase activity	1
+Vitamin B12 deficiency	1
+Elevated systolic blood pressure	1
+Hypoalbuminemia	1
 Increased hemoglobin	1
-Increased glucose-6-phosphate dehydrogenase level in dried blood spot	1
+Decreased lipoprotein lipase activity	1
+Hypophosphatemia	1
+Increased blood urea nitrogen	1
+Abnormality of alkaline phosphatase activity	1
+Decreased serum creatinine	1
+Elevated diastolic blood pressure	1
+Abnormality of chloride homeostasis	1
+Abnormal circulating thyroxine level	1
+Abnormality of urine glucose concentration	1
+Microalbuminuria	1
+Reticulocytopenia	1
+Hyperproteinemia	1
+Decreased serum estradiol	1
+Abnormal glucose-6-phosphate dehydrogenase level in tissue	1
+Decreased serum complement C4	1
+Hypocholesterolemia	1
+Abnormal enzyme/coenzyme activity	1
+Abnormal albumin level	1
+Hypocalciuria	1
+Increased serum estradiol	1
+Hypertriglyceridemia	1
+Low alkaline phosphatase	1
+Abnormal erythrocyte sedimentation rate	1
+Elevated erythrocyte sedimentation rate	1
+Abnormal glucose-6-phosphate dehydrogenase level in red blood cells	1
+Abnormal glucose-6-phosphate dehydrogenase level in leukocytes	1
+Abnormal platelet count	1
+Abnormality of magnesium homeostasis	1
+Abnormality of urine calcium concentration	1
+Hypochloremia	1
+Increased level of propylene glycol in blood	1

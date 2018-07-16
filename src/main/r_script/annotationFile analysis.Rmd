@@ -1,0 +1,46 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+
+```
+
+Statistics of the loinc2hpo annotation file
+
+```{r}
+library(tidyverse)
+```
+
+load the annotation file
+```{r}
+annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t")
+```
+
+
+distribution of annotatio LOINC types
+
+```{r}
+loincTypes <- annotationFile %>% select(loincId, loincScale) %>% distinct()
+ggplot(loincTypes) + 
+  geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..)), fill = "black") +
+  xlab("LOINC type") + ylab("percentage") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10)) + 
+  scale_y_continuous(labels = scales::percent)
+ggsave("annotatedLoincDistribution.png", width = 2.4, height = 2)
+loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
+```
+
+count the total number of HPO terms
+```{r}
+annotationFile %>% select(hpoTermId) %>% distinct() %>% count()
+noOfLOINCsMappedToEachHPO <- annotationFile %>% select(loincId, hpoTermId) %>% distinct() %>% group_by(hpoTermId) %>% mutate(noLoinc = n()) %>% ungroup() %>% select(hpoTermId, noLoinc) %>% distinct() 
+
+ggplot(noOfLOINCsMappedToEachHPO) + geom_bar(aes(noLoinc, ..count.. / sum (..count..)), fill = "black") + 
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
+  xlab("no. of LOINC codes mapped to the each HPO term") + ylab("frequency") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10))
+ggsave("distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
+```
+
