@@ -665,6 +665,69 @@ public class App {
         writer.close();
     }
 
+    public static void ICDcounts(String observationPath, String outputPath) throws Exception{
+        //final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
+
+        BufferedReader reader = new BufferedReader(new FileReader(observationPath));
+        String line;
+        ObservationFact observationFact;
+        String icdcode;
+        String concept;
+        Map<String, Integer> icd_9 = new HashMap<>();
+        Map<String, Integer> icd_10 = new HashMap<>();
+        line = reader.readLine();//skip header
+        while((line = reader.readLine()) != null) {
+            observationFact = new ObservationFactLazyImpl(line);
+            concept = observationFact.concept_cd();
+            if (concept.startsWith("ICD9:")) {
+                icdcode = concept.split(":")[1].split("\\.")[0];
+                icd_9.putIfAbsent(icdcode, 0);
+                icd_9.put(icdcode, icd_9.get(icdcode) + 1);
+            } else if (concept.startsWith("ICD10:")) {
+                icdcode = concept.split(":")[1].split("\\.")[0];
+                icd_10.putIfAbsent(icdcode, 0);
+                icd_10.put(icdcode, icd_10.get(icdcode) + 1);
+            } else {
+                //ignore
+            }
+        }
+
+        BufferedWriter writer;
+        if (outputPath == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(outputPath));
+        }
+
+        icd_9.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+                .forEachOrdered(e -> {
+                    try {
+                        writer.write("ICD9" + "\t" + e.getKey() + "\t" + e.getValue());
+                        writer.write("\n");
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                });
+
+        icd_10.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+                .forEachOrdered(e -> {
+                    try {
+                        writer.write("ICD10" + "\t" + e.getKey() + "\t" + e.getValue());
+                        writer.write("\n");
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                });
+
+//        icd_9.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+//                .limit(50)
+//                .forEachOrdered(e -> System.out.println(e.getKey() + "\t" + e.getValue()));
+//
+//        icd_10.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+//                .limit(50)
+//                .forEachOrdered(e -> System.out.println(e.getKey() + "\t" + e.getValue()));
+    }
+
     public static void main( String[] args ) {
 
         Options options = new Options();
@@ -725,6 +788,10 @@ public class App {
                 .argName("File")
                 .desc("LOINC core table path")
                 .build();
+        Option icd = Option.builder("icd")
+                .hasArg(false)
+                .desc("icd statistics")
+                .build();
         options.addOption(loadObservation)
                 .addOption(convertObservation)
                 .addOption(prednisone)
@@ -735,7 +802,8 @@ public class App {
                 .addOption(annotation)
                 .addOption(annotationStat)
                 .addOption(hpo)
-                .addOption(loinc);
+                .addOption(loinc)
+                .addOption(icd);
 
         HelpFormatter formatter = new HelpFormatter();
 
@@ -823,6 +891,14 @@ public class App {
                 } catch (IOException e) {
                     System.out.println("failed to output stats, try again");
                     return;
+                }
+            }
+
+            if (commandLine.hasOption("icd")) {
+                try {
+                    ICDcounts(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"));
+                } catch (Exception e) {
+                    System.err.println("cannot produce ICD statistics");
                 }
             }
 
