@@ -1,87 +1,83 @@
-"","hpo","mappedTo","aggrgtdFrom","notSeverePatientNo(%)","severePatientNo(%)","pVal"
-"1","Hypoalbuminemia",1,1,"454[3.5]","333[23.6]",7.53434529918998e-221
-"2","Lymphopenia",2,2,"2838[21.6]","809[57.3]",7.35039792704346e-190
-"3","Hyperphosphatemia",1,1,"1348[10.3]","511[36.2]",6.11724631750928e-169
-"4","Elevated erythrocyte sedimentation rate",1,1,"287[2.2]","204[14.4]",3.60492739226287e-129
-"5","Neutrophilia",3,3,"2713[20.6]","689[48.8]",1.97389548583985e-124
-"6","Elevated C-reactive protein level",1,1,"407[3.1]","236[16.7]",4.1643862201293e-123
-"7","Decreased mean platelet volume",1,1,"2117[16.1]","590[41.8]",1.92408225246148e-122
-"8","Elevated gamma-glutamyltransferase activity",1,1,"542[4.1]","271[19.2]",8.23525157727098e-121
-"9","Leukocytosis",2,2,"2900[22.1]","705[49.9]",2.88156143065188e-117
-"10","Decreased glomerular filtration rate",3,3,"2591[19.7]","617[43.7]",1.49840518210388e-94
-"11","Hypomagnesemia",1,1,"1383[10.5]","416[29.5]",1.82991686558892e-93
-"12","Hyperkalemia",2,2,"1406[10.7]","414[29.3]",1.5160663760556e-89
-"13","Hypermagnesemia",1,1,"1171[8.9]","360[25.5]",1.1293293478777e-82
-"14","Hyperchloremia",1,1,"2546[19.4]","584[41.4]",3.73200854373461e-81
-"15","Leukopenia",2,2,"1535[11.7]","420[29.7]",1.67234668957332e-79
-"16","Hypocapnia",2,2,"1867[14.2]","461[32.6]",6.70153978635985e-72
-"17","Hypoproteinemia",1,1,"2068[15.7]","489[34.6]",4.33864259492018e-70
-"18","Prolonged prothrombin time",1,1,"1800[13.7]","437[30.9]",3.70672779182411e-65
-"19","Increased lactate dehydrogenase activity",1,1,"430[3.3]","173[12.3]",8.81789940414619e-58
-"20","Decreased serum complement C3",1,1,"19[0.1]","44[3.1]",2.7984924005163e-57
-"21","Monocytopenia",3,3,"555[4.2]","197[14]",4.3148145130596e-55
-"22","Hypophosphatemia",1,1,"645[4.9]","215[15.2]",1.16294896618767e-54
-"23","Hypokalemia",2,2,"2081[15.8]","452[32]",3.39108391662462e-52
-"24","Neutropenia",3,3,"1031[7.8]","283[20]",7.32602291706303e-52
-"25","Hypercapnia",2,2,"1912[14.5]","424[30]",5.09023597030601e-51
-"26","Increased mean platelet volume",1,1,"1087[8.3]","291[20.6]",6.96629383045081e-51
-"27","Hypocalcemia",2,2,"3639[27.7]","659[46.7]",8.97728426389762e-50
-"28","Elevated serum creatinine",1,1,"3246[24.7]","605[42.8]",1.09872303850744e-48
-"29","Hypochloremia",1,1,"2216[16.9]","454[32.2]",5.35171594588478e-45
-"30","Decreased serum complement C4",1,1,"22[0.2]","38[2.7]",1.31080109948556e-43
-"31","Hypercholesterolemia",1,1,"1252[9.5]","301[21.3]",4.29025770526199e-42
-"32","Elevated serum creatine phosphokinase",1,1,"556[4.2]","172[12.2]",2.0050016825578e-38
-"33","Hypoglycemia",201,3,"512[3.9]","162[11.5]",1.43135114851416e-37
-"34","Decreased mean corpuscular volume",2,1,"1022[7.8]","249[17.6]",1.98041967266192e-35
-"35","Elevated alkaline phosphatase",1,1,"1503[11.4]","319[22.6]",3.6266823273543e-33
-"36","Increased blood urea nitrogen",1,1,"3763[28.6]","617[43.7]",1.24126063415686e-31
-"37","Thrombocytosis",1,1,"1006[7.7]","237[16.8]",3.34872324975827e-31
-"38","Hypernatremia",2,2,"705[5.4]","186[13.2]",5.52963161375499e-31
-"39","Hyponatremia",2,2,"2395[18.2]","429[30.4]",6.82123591163033e-28
-"40","Hypoxemia",2,2,"454[3.5]","130[9.2]",2.55907194168611e-25
-"41","Hypertriglyceridemia",1,1,"1114[8.5]","239[16.9]",4.38435750225597e-25
-"42","Thrombocytopenia",1,1,"2369[18]","415[29.4]",8.09782379359876e-25
-"43","Increased serum ferritin",3,1,"189[1.4]","75[5.3]",1.05625294331077e-24
-"44","Increased circulating thyroxine level",1,1,"214[1.6]","76[5.4]",2.22134387658783e-21
-"45","Decreased lipoprotein lipase activity",1,1,"179[1.4]","68[4.8]",3.67160670241947e-21
-"46","Hypercalcemia",2,2,"434[3.3]","118[8.4]",6.7544795968867e-21
-"47","Hyperproteinemia",1,1,"480[3.7]","124[8.8]",7.81501612128461e-20
-"48","Monocytosis",3,3,"1360[10.3]","258[18.3]",3.26150101824013e-19
-"49","Hyperoxemia",2,2,"713[5.4]","161[11.4]",4.38504547764803e-19
-"50","Eosinophilia",2,2,"588[4.5]","138[9.8]",6.1418606725491e-18
-"51","Increased total bilirubin",1,1,"855[6.5]","180[12.7]",6.66353789650738e-18
-"52","Decreased serum creatinine",1,1,"2011[15.3]","336[23.8]",2.15841220009383e-16
-"53","Increased mean corpuscular volume",2,2,"1460[11.1]","260[18.4]",9.02943816839163e-16
-"54","Conjugated hyperbilirubinemia",1,1,"376[2.9]","92[6.5]",2.48486112976592e-13
-"55","Low alkaline phosphatase",1,1,"273[2.1]","63[4.5]",2.43406458518557e-08
-"56","Reticulocytopenia",1,1,"9[0.1]","9[0.6]",7.35293309102655e-08
-"57","Increased hemoglobin",1,1,"174[1.3]","45[3.2]",8.76440653351506e-08
-"58","Increased basophil count",2,2,"59[0.4]","20[1.4]",6.41541560089427e-06
-"59","Lymphocytosis",2,2,"154[1.2]","37[2.6]",9.71636478299328e-06
-"60","Hyperalbuminemia",1,1,"9[0.1]","7[0.5]",2.88937473470922e-05
-"61","Decreased circulating thyroxine level",1,1,"55[0.4]","15[1.1]",0.00180060437628468
-"62","Increased troponin I level in blood",5,1,"709[5.4]","103[7.3]",0.00377163069770662
-"63","Increased CSF protein",5,1,"42[0.3]","11[0.8]",0.0127082224439782
-"64","Microalbuminuria",1,1,"21[0.2]","7[0.5]",0.0155787447217502
-"65","Hypocholesterolemia",1,1,"58[0.4]","13[0.9]",0.0240466775867634
-"66","Decreased serum ferritin",3,1,"52[0.4]","12[0.8]",0.0250831128397937
-"67","Increased hematocrit",1,1,"256[1.9]","39[2.8]",0.0494410053640877
-"68","Reticulocytosis",1,1,"53[0.4]","10[0.7]",0.148209762461404
-"69","Hyperglycemia",201,6,"4571[34.8]","516[36.5]",0.194848043019349
-"70","Hypermagnesiuria",1,1,"56[0.4]","10[0.7]",0.196536055973074
-"71","Vitamin B12 deficiency",1,1,"4[0]","2[0.1]",0.205301496951154
-"72","Increased VLDL cholesterol concentration",7,1,"20[0.2]","0[0]",0.276286158810467
-"73","Increased LDL cholesterol concentration",12,2,"401[3.1]","36[2.5]",0.333874629755748
-"74","Hypoglycorrhachia",6,1,"12[0.1]","3[0.2]",0.361673259511995
-"75","Reduced C-peptide level",1,1,"1[0]","1[0.1]",0.464677590153227
-"76","Increased IgM level",1,1,"9[0.1]","2[0.1]",0.658982591525603
-"77","Decreased serum insulin-like growth factor 1",1,1,"2[0]","1[0.1]",0.683441299220396
-"78","Decreased LDL cholesterol conncentration",12,2,"26[0.2]","4[0.3]",0.715572354786758
-"79","IgM deficiency",1,1,"80[0.6]","10[0.7]",0.78319028779953
-"80","Hyperglycorrhachia",6,1,"21[0.2]","3[0.2]",0.905464224300168
-"81","Hypotriglyceridemia",1,1,"1[0]","0[0]",0.999999999999745
-"82","Increased glomerular filtration rate",3,2,"1[0]","0[0]",0.999999999999745
-"83","Increased serum insulin-like growth factor 1",1,1,"1[0]","0[0]",0.999999999999745
-"84","Decreased CSF protein",5,1,"2[0]","0[0]",0.999999999999995
-"85","Decreased VLDL cholesterol concentration",7,1,"2[0]","0[0]",0.999999999999995
-"86","Hypomagnesiuria",1,1,"2[0]","0[0]",0.999999999999995
+,hpo,mappedTo,aggrgtdFrom,notSeverePatientNo(%),severePatientNo(%),pVal
+1,Lymphopenia,2,2,747[15.8],332[48.1],2.48542609105327e-87
+2,Hyperphosphatemia,1,1,391[8.3],223[32.3],7.41438397766366e-77
+3,Leukocytosis,2,2,885[18.7],339[49.1],7.02242691243204e-71
+4,Hypoalbuminemia,1,1,124[2.6],120[17.4],1.1885920476327e-67
+5,Neutrophilia,3,3,829[17.5],315[45.7],8.90138718683648e-64
+6,Decreased mean platelet volume,1,1,662[14],276[40],2.03822828491055e-63
+7,Elevated gamma-glutamyltransferase activity,1,1,157[3.3],125[18.1],2.0553524903317e-59
+8,Elevated erythrocyte sedimentation rate,1,1,96[2],87[12.6],4.00995805874207e-46
+9,Decreased glomerular filtration rate,3,3,739[15.6],258[37.4],6.63671077780996e-43
+10,Hyperchloremia,1,1,706[14.9],249[36.1],5.81062755643256e-42
+11,Hyperkalemia,2,2,378[8],167[24.2],1.54226510956286e-39
+12,Hypermagnesemia,1,1,319[6.7],146[21.2],3.70851270874922e-36
+13,Hypercapnia,2,2,579[12.2],208[30.1],2.31368839085949e-35
+14,Prolonged prothrombin time,1,1,447[9.5],177[25.7],2.97069977310557e-35
+15,Hypomagnesemia,1,1,391[8.3],161[23.3],5.41813861136477e-34
+16,Elevated C-reactive protein level,1,1,145[3.1],89[12.9],5.60004636086271e-32
+17,Hypoproteinemia,1,1,555[11.7],193[28],1.47382079521995e-30
+18,Leukopenia,2,2,381[8.1],152[22],2.49689019295871e-30
+19,Hypocapnia,2,2,497[10.5],179[25.9],4.23882568754455e-30
+20,Hypocalcemia,2,2,979[20.7],271[39.3],4.73739223439317e-27
+21,Hypercholesterolemia,1,1,450[9.5],161[23.3],1.64085713862857e-26
+22,Hypokalemia,2,2,633[13.4],201[29.1],1.73858787729789e-26
+23,Hypochloremia,1,1,627[13.3],198[28.7],9.87081358456499e-26
+24,Elevated serum creatine phosphokinase,1,1,170[3.6],88[12.8],1.33791859618314e-25
+25,Hypophosphatemia,1,1,154[3.3],82[11.9],9.29733919456964e-25
+26,Elevated serum creatinine,1,1,915[19.3],252[36.5],1.94534891234005e-24
+27,Thrombocytosis,1,1,312[6.6],120[17.4],2.91599188683691e-22
+28,Increased blood urea nitrogen,1,1,969[20.5],251[36.4],1.62402216208638e-20
+29,Hypoglycemia,201,3,139[2.9],70[10.1],1.12214864203022e-19
+30,Monocytopenia,3,3,118[2.5],63[9.1],3.61644412539581e-19
+31,Hypernatremia,2,2,203[4.3],86[12.5],1.0194598443964e-18
+32,Increased mean platelet volume,1,1,292[6.2],108[15.7],1.17959241314269e-18
+33,Increased lactate dehydrogenase activity,1,1,112[2.4],60[8.7],2.3236960231912e-18
+34,Decreased serum complement C3,1,1,4[0.1],16[2.3],3.16844778980502e-18
+35,Neutropenia,3,3,254[5.4],97[14.1],9.65008301472948e-18
+36,Elevated alkaline phosphatase,1,1,424[9],129[18.7],5.28958785315868e-15
+37,Decreased mean corpuscular volume,2,1,346[7.3],110[15.9],4.32423996416854e-14
+38,Eosinophilia,2,2,195[4.1],75[10.9],5.71480504414601e-14
+39,Hypertriglyceridemia,1,1,376[8],115[16.7],1.58645339513241e-13
+40,Monocytosis,3,3,372[7.9],114[16.5],1.81199066755373e-13
+41,Increased circulating thyroxine level,1,1,61[1.3],36[5.2],1.11862447766051e-12
+42,Hypoxemia,2,2,148[3.1],60[8.7],2.50254204638606e-12
+43,Hyponatremia,2,2,633[13.4],161[23.3],7.63277247385562e-12
+44,Decreased serum creatinine,1,1,562[11.9],147[21.3],1.08759831086265e-11
+45,Thrombocytopenia,1,1,553[11.7],144[20.9],2.65128648759666e-11
+46,Decreased serum complement C4,1,1,8[0.2],13[1.9],1.15593786333176e-10
+47,Hyperoxemia,2,2,188[4],64[9.3],1.20661283667312e-09
+48,Decreased lipoprotein lipase activity,1,1,63[1.3],32[4.6],1.6888380825841e-09
+49,Increased total bilirubin,1,1,185[3.9],61[8.8],1.11817204681881e-08
+50,Increased mean corpuscular volume,2,2,366[7.7],96[13.9],8.71232657913099e-08
+51,Hyperproteinemia,1,1,138[2.9],47[6.8],2.61665168673051e-07
+52,Hypercalcemia,2,2,137[2.9],46[6.7],5.49772562782599e-07
+53,Conjugated hyperbilirubinemia,1,1,89[1.9],33[4.8],3.15184872288555e-06
+54,Increased serum ferritin,3,1,58[1.2],25[3.6],3.78218290175896e-06
+55,Hyperglycemia,201,6,1384[29.3],244[35.4],0.00128842466611024
+56,Increased troponin I level in blood,5,1,159[3.4],40[5.8],0.00215202063516041
+57,Low alkaline phosphatase,1,1,98[2.1],27[3.9],0.0040635835176871
+58,Lymphocytosis,2,2,59[1.2],18[2.6],0.00805364306643267
+59,Increased hemoglobin,1,1,69[1.5],19[2.8],0.0186698737151604
+60,Reticulocytopenia,1,1,3[0.1],3[0.4],0.0333946680344203
+61,Increased CSF protein,5,1,11[0.2],5[0.7],0.0643528383075574
+62,Microalbuminuria,1,1,8[0.2],4[0.6],0.087323443135482
+63,Decreased circulating thyroxine level,1,1,21[0.4],7[1],0.0952902950614569
+64,Hypocholesterolemia,1,1,15[0.3],5[0.7],0.189258990007971
+65,Increased basophil count,4,2,25[0.5],7[1],0.197026716193654
+66,Hyperalbuminemia,1,1,3[0.1],2[0.3],0.246532939052568
+67,Decreased serum insulin-like growth factor 1,1,1,0[0],1[0.1],0.263530792031582
+68,Decreased serum ferritin,3,1,13[0.3],4[0.6],0.330481649751403
+69,Increased VLDL cholesterol concentration,7,1,10[0.2],0[0],0.462782196616725
+70,Increased hematocrit,1,1,93[2],17[2.5],0.471133947780443
+71,Hyperglycorrhachia,6,1,5[0.1],2[0.3],0.489804578987624
+72,Hypermagnesiuria,1,1,23[0.5],5[0.7],0.595194634877526
+73,Hypoglycorrhachia,6,1,1[0],1[0.1],0.602695447722025
+74,Vitamin B12 deficiency,1,1,1[0],1[0.1],0.602695447722025
+75,Reticulocytosis,1,1,25[0.5],5[0.7],0.708749809288719
+76,Decreased LDL cholesterol conncentration,12,2,7[0.1],2[0.3],0.723101145963644
+77,IgM deficiency,1,1,22[0.5],4[0.6],0.911050210979378
+78,Increased LDL cholesterol concentration,12,2,150[3.2],21[3],0.9491836811119
+79,Decreased CSF protein,5,1,1[0],0[0],0.999999999999931
+80,Hypomagnesiuria,1,1,1[0],0[0],0.999999999999931
+81,Increased glomerular filtration rate,3,2,1[0],0[0],0.999999999999931
+82,Increased IgM level,1,1,3[0.1],1[0.1],0.999999999999999

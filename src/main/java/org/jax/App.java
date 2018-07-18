@@ -665,6 +665,12 @@ public class App {
         writer.close();
     }
 
+    /**
+     * Count the number of ICD codes
+     * @param observationPath
+     * @param outputPath
+     * @throws Exception
+     */
     public static void ICDcounts(String observationPath, String outputPath) throws Exception{
         //final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
 
@@ -673,20 +679,34 @@ public class App {
         ObservationFact observationFact;
         String icdcode;
         String concept;
-        Map<String, Integer> icd_9 = new HashMap<>();
-        Map<String, Integer> icd_10 = new HashMap<>();
+
+        //for each ICD concept, count how many times they were used in the entire dataset
+        //i.e. if a patient is diagnosed multiple times in different hospital visits, the count will be incremented each time.
+        Map<String, Integer> icd_9_total = new HashMap<>();
+        Map<String, Integer> icd_10_total = new HashMap<>();
+
+        //for each ICD concept, get all the patients diagnosed with them
+        Map<String, Set<Integer>> icd_9_patients = new HashMap<>();
+        Map<String, Set<Integer>> icd_10_patients = new HashMap<>();
+
         line = reader.readLine();//skip header
         while((line = reader.readLine()) != null) {
             observationFact = new ObservationFactLazyImpl(line);
             concept = observationFact.concept_cd();
             if (concept.startsWith("ICD9:")) {
                 icdcode = concept.split(":")[1].split("\\.")[0];
-                icd_9.putIfAbsent(icdcode, 0);
-                icd_9.put(icdcode, icd_9.get(icdcode) + 1);
+                icd_9_total.putIfAbsent(icdcode, 0);
+                icd_9_total.put(icdcode, icd_9_total.get(icdcode) + 1);
+
+                icd_9_patients.putIfAbsent(icdcode, new HashSet<>());
+                icd_9_patients.get(icdcode).add(observationFact.patient_num());
             } else if (concept.startsWith("ICD10:")) {
                 icdcode = concept.split(":")[1].split("\\.")[0];
-                icd_10.putIfAbsent(icdcode, 0);
-                icd_10.put(icdcode, icd_10.get(icdcode) + 1);
+                icd_10_total.putIfAbsent(icdcode, 0);
+                icd_10_total.put(icdcode, icd_10_total.get(icdcode) + 1);
+
+                icd_10_patients.putIfAbsent(icdcode, new HashSet<>());
+                icd_10_patients.get(icdcode).add(observationFact.patient_num());
             } else {
                 //ignore
             }
@@ -699,33 +719,42 @@ public class App {
             writer = new BufferedWriter(new FileWriter(outputPath));
         }
 
-        icd_9.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+        writer.write("ICD\tcode\toccurrence\tno.patients\n");
+        icd_9_total.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
                 .forEachOrdered(e -> {
                     try {
-                        writer.write("ICD9" + "\t" + e.getKey() + "\t" + e.getValue());
+                        writer.write("ICD9" + "\t" + e.getKey() + "\t" + e.getValue() + "\t" + icd_9_patients.get(e.getKey()).size());
                         writer.write("\n");
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
                 });
 
-        icd_10.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+        icd_10_total.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
                 .forEachOrdered(e -> {
                     try {
-                        writer.write("ICD10" + "\t" + e.getKey() + "\t" + e.getValue());
+                        writer.write("ICD10" + "\t" + e.getKey() + "\t" + e.getValue() + "\t" + icd_10_patients.get(e.getKey()).size());
                         writer.write("\n");
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
                 });
 
-//        icd_9.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+//        icd_9_total.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
 //                .limit(50)
 //                .forEachOrdered(e -> System.out.println(e.getKey() + "\t" + e.getValue()));
 //
-//        icd_10.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
+//        icd_10_total.entrySet().stream().sorted(Map.Entry.comparingByValue((a, b) -> b - a))
 //                .limit(50)
 //                .forEachOrdered(e -> System.out.println(e.getKey() + "\t" + e.getValue()));
+//
+//        icd_9_patients.entrySet().stream().sorted(Map.Entry.comparingByValue((a,b) -> b.size() - a.size()))
+//                .limit(50)
+//                .forEachOrdered(e-> System.out.println(e.getKey() + "\t" + e.getValue().size()));
+//
+//        icd_10_patients.entrySet().stream().sorted(Map.Entry.comparingByValue((a,b) -> b.size() - a.size()))
+//                .limit(50)
+//                .forEachOrdered(e-> System.out.println(e.getKey() + "\t" + e.getValue().size()));
     }
 
     public static void main( String[] args ) {
@@ -792,6 +821,7 @@ public class App {
                 .hasArg(false)
                 .desc("icd statistics")
                 .build();
+
         options.addOption(loadObservation)
                 .addOption(convertObservation)
                 .addOption(prednisone)
