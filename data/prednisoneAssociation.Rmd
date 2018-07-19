@@ -27,8 +27,6 @@ boolString <- function(x) {
 }
 ```
 
-
-
 ```{r}
 #load R libraries
 library(tidyverse)
@@ -59,7 +57,29 @@ loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
+allICDCodesForPatientWithAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
+icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
+icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 ```
+
+look at what other diagnosis codes do asthma patients have
+```{r}
+icd_3_digit_code_annotation <- 
+  icd9_3_digit_codes %>% 
+      mutate(icd = paste("ICD9", icd9code, sep = ":")) %>% 
+      rename(descr = icd9descr) %>% 
+      select(icd, descr) %>%
+    bind_rows(
+    icd10_3_digit_codes %>% 
+      mutate(icd = paste("ICD10", icd10code, sep = ":")) %>% 
+      rename(descr = icd10descr) %>% 
+      select(icd, descr) 
+    )
+
+allDiagnosisCodesForAsthmaPatients <- allICDCodesForPatientWithAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+write.table(allDiagnosisCodesForAsthmaPatients, "/Users/zhangx/git/HushToFhir/data/allDiagnosisCodesForAsthmaPatients.tsv", sep = "\t", quote = FALSE)
+```
+
 
 calculating statistics:
 
@@ -294,6 +314,7 @@ ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days, group = sev
 ```{r}
 ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days) ,color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
 ```
+
 
 
 

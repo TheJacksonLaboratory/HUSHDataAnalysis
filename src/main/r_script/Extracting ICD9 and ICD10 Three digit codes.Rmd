@@ -1,0 +1,65 @@
+---
+title: "Extracting ICD9 and ICD10 Three Digit codes"
+output: html_notebook
+---
+
+Raw file:
+ICD9: downloaded from https://github.com/sirrice/icd9
+ICD10: downloaded from CDC 2019 release in XML file 
+
+The goal is to parse the JSON file of ICD9 and XML file of ICD10 and extract the 3 digit codes along with the description
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+
+icd9 <- read_json("/Users/zhangx/git/HushToFhir/src/main/resources/icd9.json")
+icd9code <- vector(mode = "character")
+icd9descr <- vector(mode = "character")
+count = 1
+tempcode = ""
+for (i in 1:length(icd9)) {
+  for (j in 1:length(icd9[[i]])) {
+    if(icd9[[i]][[j]]$depth == 3) {
+      if (icd9[[i]][[j]]$code != tempcode) {
+        #print(icd9[[i]][[j]]$code)
+        #print(icd9[[i]][[j]]$descr)
+        icd9code[count] = icd9[[i]][[j]]$code
+        icd9descr[count] = icd9[[i]][[j]]$descr
+        tempcode = icd9[[i]][[j]]$code
+        count = count + 1
+      }
+      #sprintf("%s\t%s", icd9[[i]][[j]]$code, icd9[[i]][[j]]$descr)
+    }
+  }
+}
+icd9ThreeDigitCodes <- tibble(icd9code, icd9descr)
+
+
+icd10 <- read_xml("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_tabular_2019.xml")
+icd10code <- vector(mode = "character")
+icd10descr <- vector(mode = "character")
+count = 1
+for (i in xml_find_all(icd10, "//ICD10CM.tabular//chapter//section//diag")) {
+  name = xml_text(xml_find_first(i, ".//name"))
+  if (nchar(name) == 3) {
+    desc = xml_text(xml_find_first(i, ".//desc"))
+    print(name)
+    print(desc)
+    icd10code[count] = name
+    icd10descr[count] = desc
+    count = count + 1
+  }
+}
+icd10ThreeDigitCodes <- tibble(icd10code, icd10descr)
+
+```
+
+output 
+```{r}
+write.table(icd9ThreeDigitCodes, "/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", quote = FALSE, row.names = FALSE, sep = "\t")
+
+write.table(icd10ThreeDigitCodes, "/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", quote = FALSE, row.names = FALSE, sep = "\t")
+
+```
+
