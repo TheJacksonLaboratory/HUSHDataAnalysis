@@ -77,6 +77,9 @@ icd_3_digit_code_annotation <-
     )
 
 allDiagnosisCodesForAsthmaPatients <- allICDCodesForPatientWithAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+
+```
+```{r}
 write.table(allDiagnosisCodesForAsthmaPatients, "/Users/zhangx/git/HushToFhir/data/allDiagnosisCodesForAsthmaPatients.tsv", sep = "\t", quote = FALSE)
 ```
 
@@ -151,14 +154,19 @@ also skip HPO terms for unknown patients
 patient_withAsthmaICD <- patient_withAsthmaICD %>% mutate(withAsthmaICDCode = "Y")
 patient_lastVisit <- loinc2hpo %>% select(patient_num, start_date) %>% group_by(patient_num) %>% summarise(lastVisit = max(as.Date(start_date)))
 
+patient_withDiabetes <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:250%' OR icd LIKE 'ICD10:E11%'")
+patient_withDiabetes <- patient_withDiabetes %>% mutate(withDiabeteICDCode = "Y")
+
 combined <- patients %>%
   inner_join(patientTermMapFreq, by = "patient_num") %>%
   left_join(visitCount) %>%
   left_join(prednisonPrescribTimes) %>%
   left_join(patient_withAsthmaICD) %>%
+  left_join(patient_withDiabetes) %>% #filter out patients with diabetes
   left_join(patient_lastVisit) %>%
   mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount)) %>%
-  mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y"))
+  mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y")) %>%
+  mutate(withDiabeteICDCode = ifelse(is.na(withDiabeteICDCode), "N", "Y"))
 nrow(combined)
 
 #spread it to a matrix for machine learning
@@ -182,6 +190,7 @@ TERMFREQ_THRESHOLD = 3
 patientCombinedCounts <- combined %>% 
   filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
   filter(withAsthmaICDCode == "Y") %>% #ignore patients that is not diagnosed with asthma
+  filter(withDiabeteICDCode == "N") %>% #ignore patients that have been diagnosed with diabetes
   filter(hpoTermFreq >= TERMFREQ_THRESHOLD) %>%
   mutate(severity = ifelse(prscbCount > SEVERITY_THRESHOLD, "severe", "nonSevere")) %>%
   group_by(isNegated, hpoTerm, severity) %>%
@@ -235,6 +244,7 @@ Calculate population distribution
 ```{r}
 populationCount <- combined %>%
   filter(withAsthmaICDCode == "Y") %>%
+  filter(withDiabeteICDCode == "N") %>%
   select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n())
 
 # prednisonPrescribTimes <- prednisonPrescribTimes %>%
