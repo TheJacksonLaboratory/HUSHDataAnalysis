@@ -12,6 +12,7 @@ The goal is to parse the JSON file of ICD9 and XML file of ICD10 and extract the
 ```{r}
 library(tidyverse)
 library(jsonlite)
+library(xml2)
 
 icd9 <- read_json("/Users/zhangx/git/HushToFhir/src/main/resources/icd9.json")
 icd9code <- vector(mode = "character")
@@ -44,8 +45,8 @@ for (i in xml_find_all(icd10, "//ICD10CM.tabular//chapter//section//diag")) {
   name = xml_text(xml_find_first(i, ".//name"))
   if (nchar(name) == 3) {
     desc = xml_text(xml_find_first(i, ".//desc"))
-    print(name)
-    print(desc)
+    #print(name)
+    #print(desc)
     icd10code[count] = name
     icd10descr[count] = desc
     count = count + 1

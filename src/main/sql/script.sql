@@ -10,3 +10,5 @@ SELECT COUNT(DISTINCT(patient_num)) FROM ICD WHERE icd LIKE 'ICD10:J45%' OR icd 
 
 //also include codes for breezing difficulties 14949
 SELECT COUNT(DISTINCT(patient_num)) FROM ICD WHERE icd LIKE 'ICD10:J45%' OR icd LIKE 'ICD9:493%' OR icd LIKE 'ICD9:786%' OR icd LIKE 'ICD10:R06';
+
+SELECT * FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'ICD10:J45' OR icd = 'ICD9:493')  AND patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'ICD10:N18' OR icd = 'ICD9:585');
