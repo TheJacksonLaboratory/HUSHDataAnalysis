@@ -189,17 +189,46 @@ VISITTIMES_THRESHOLD = 10
 SEVERITY_THRESHOLD = 3
 TERMFREQ_THRESHOLD = 3
   
-patientConditionalCounts <- function(data = combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE) {
+patientConditionalCounts <- function(data = combined, hasAsthma, hasDiabetes, hasChronicLiverDamages) {
   
-  ASTHMA_CONDITION = ifelse(hasAsthma, "Y", "N")
-  DIABETES_CONDITION = ifelse(hasDiabetes, "Y", "N")
-  CHRONIC_LIVER_DAMAGES_CONDITION = ifelse(hasChronicLiverDamages, "Y", "N")
+  #ASTHMA_CONDITION = ifelse(hasAsthma, "Y", "N")
+  #DIABETES_CONDITION = ifelse(hasDiabetes, "Y", "N")
+  #CHRONIC_LIVER_DAMAGES_CONDITION = ifelse(hasChronicLiverDamages, "Y", "N")
+  #ASTHMA_CONDITION = c("Y", "N")
+  #DIABETES_CONDITION = c("Y", "N")
+  #CHRONIC_LIVER_DAMAGES_CONDITION = c("Y", "N")
+  if (missing(hasAsthma)) {
+    ASTHMA_CONDITION <- c("Y", "N")
+  } else if (hasAsthma) {
+    ASTHMA_CONDITION <- c("Y")
+  } else {
+    ASTHMA_CONDITION <- c("N")
+  }
   
-  return (data %>% 
+  if (missing(hasDiabetes)) {
+    DIABETES_CONDITION <- c("Y", "N")
+  } else if (hasDiabetes) {
+    DIABETES_CONDITION <- c("Y")
+  } else {
+    DIABETES_CONDITION <- c("N")
+  }
+  
+  if (missing(hasChronicLiverDamages)) {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("Y", "N")
+  } else if (hasChronicLiverDamages) {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("Y")
+  } else {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("N")
+  }
+  #filters <- list(ASTHMA_CONDITION = vector(), 
+  #                DIABETES_CONDITION = vector(), 
+  #                CHRONIC_LIVER_DAMAGES_CONDITION = vector())
+  
+  patientsCounts <- data %>% 
   filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
-  filter(withAsthmaICDCode == ASTHMA_CONDITION) %>% #ignore patients that is not diagnosed with asthma
-  filter(withDiabeteICDCode == DIABETES_CONDITION) %>% #ignore patients that have been diagnosed with diabetes
-  filter(withChronicLiverDamageICDCode == CHRONIC_LIVER_DAMAGES_CONDITION) %>% # ignore patients that have been diagnosed with chronic liver damage
+  filter(is.element(withAsthmaICDCode, ASTHMA_CONDITION)) %>% #ignore patients that is not diagnosed with asthma
+  filter(is.element(withDiabeteICDCode, DIABETES_CONDITION)) %>% #ignore patients that have been diagnosed with diabetes
+  filter(is.element(withChronicLiverDamageICDCode, CHRONIC_LIVER_DAMAGES_CONDITION)) %>% # ignore patients that have been diagnosed with chronic liver damage
   filter(hpoTermFreq >= TERMFREQ_THRESHOLD) %>%
   mutate(severity = ifelse(prscbCount > SEVERITY_THRESHOLD, "severe", "nonSevere")) %>%
   group_by(isNegated, hpoTerm, severity) %>%
@@ -207,43 +236,25 @@ patientConditionalCounts <- function(data = combined, hasAsthma = FALSE, hasDiab
   spread(key = severity, value = count, fill = 0) %>%
   ungroup() %>%
   mutate(hpo = paste(boolString(isNegated), hpoTerm, sep = "")) %>%
-  select(hpo, nonSevere, severe))
+  select(hpo, nonSevere, severe)
   
+  # Calculate population distribution
+  populationCounts <- combined %>%
+  filter(is.element(withAsthmaICDCode, ASTHMA_CONDITION)) %>%
+  filter(is.element(withDiabeteICDCode, DIABETES_CONDITION)) %>%
+  filter(is.element(withChronicLiverDamageICDCode, CHRONIC_LIVER_DAMAGES_CONDITION)) %>%
+  select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n())
+  
+  return(list(patientsCounts, populationCounts))
 }
   
-patientCombinedCounts_1 <- patientConditionalCounts(combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
-patientCombinedCounts_2 <- patientConditionalCounts(combined, hasAsthma = TRUE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
+noAsthmaNoDiabetesNoCLD <- patientConditionalCounts(combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
+hasAsthmaNoDiabetesNoCLD <- patientConditionalCounts(combined, hasAsthma = TRUE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
 
+noAsthma <- patientConditionalCounts(combined, hasAsthma = FALSE)
+hasAsthma <- patientConditionalCounts(combined, hasAsthma = TRUE)
 ```
 
-
-Calculate population distribution
-```{r}
-populationCount <- function(data = combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE) {
-  ASTHMA_CONDITION = ifelse(hasAsthma, "Y", "N")
-  DIABETES_CONDITION = ifelse(hasDiabetes, "Y", "N")
-  CHRONIC_LIVER_DAMAGES_CONDITION = ifelse(hasChronicLiverDamages, "Y", "N")
-  
-  return (combined %>%
-  filter(withAsthmaICDCode == ASTHMA_CONDITION) %>%
-  filter(withDiabeteICDCode == DIABETES_CONDITION) %>%
-  filter(withChronicLiverDamageICDCode == CHRONIC_LIVER_DAMAGES_CONDITION) %>%
-  select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n()))
-}
-
-populationCount_1 <- populationCount(combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE) 
-populationCount_2 <- populationCount(combined, hasAsthma = TRUE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE) 
-
-# prednisonPrescribTimes <- prednisonPrescribTimes %>%
-#   left_join(visitCount)
-# severePatientCount <- prednisonPrescribTimes %>%filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
-# #totalPatient <- nrow(patients)
-# totalPatient <- patients %>% 
-#   left_join(visitCount) %>%
-#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
-#   count()
-# populationCount <- c("ALLPATIENTS", totalPatient - severePatientCount, severePatientCount)
-```
 
 define a function to compute the p-value using chisq test whether patient counts with certain HPO term is associated with severity
 ```{r}
@@ -288,19 +299,21 @@ outcome <- function(patientCombinedCounts, populationCount) {
     arrange(pVal))
 }
 
-outcome_1 <- outcome(patientCombinedCounts_1, populationCount_1)
+outcome_1 <- outcome(noAsthmaNoDiabetesNoCLD[[1]], noAsthmaNoDiabetesNoCLD[[2]])
 outcome_1_display <- outcome_1 %>% select(-nonSeverePercent, -severePercent)
-outcome_2 <- outcome(patientCombinedCounts_2, populationCount_2)
+outcome_2 <- outcome(hasAsthmaNoDiabetesNoCLD[[1]], hasAsthmaNoDiabetesNoCLD[[2]])
 outcome_2_display <- outcome_2 %>% select(-nonSeverePercent, -severePercent)
 
-View(df4ML)
-View(outcome_1_display)
+#outcome_1 <- outcome(noAsthma[[1]], noAsthma[[2]])
+#outcome_2 <- outcome(hasAsthma[[1]], hasAsthma[[2]])
+#View(df4ML)
+#View(outcome_1_display)
 ```
 
 
 ```{r}
 write.csv(df4ML, "Hush+_data_matrix.csv", quote = FALSE)
-write.csv(outcome, "patientCombinedCounts.csv", quote = FALSE)
+write.csv(rbind(outcome_1_display, outcome_2_display, deparse.level = 2), "patientCombinedCounts.csv", quote = FALSE, row.names = FALSE)
 ```
 
 ```{r}
