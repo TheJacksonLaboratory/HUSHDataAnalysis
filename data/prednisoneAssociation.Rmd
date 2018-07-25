@@ -27,8 +27,6 @@ boolString <- function(x) {
 }
 ```
 
-
-
 ```{r}
 #load R libraries
 library(tidyverse)
@@ -56,7 +54,35 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
 loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
+
+#select patient subset with ICD codes for asthma
+patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
+allICDCodesForPatientWithAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
+icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
+icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 ```
+
+look at what other diagnosis codes do asthma patients have
+```{r}
+icd_3_digit_code_annotation <- 
+  icd9_3_digit_codes %>% 
+      mutate(icd = paste("ICD9", icd9code, sep = ":")) %>% 
+      rename(descr = icd9descr) %>% 
+      select(icd, descr) %>%
+    bind_rows(
+    icd10_3_digit_codes %>% 
+      mutate(icd = paste("ICD10", icd10code, sep = ":")) %>% 
+      rename(descr = icd10descr) %>% 
+      select(icd, descr) 
+    )
+
+allDiagnosisCodesForAsthmaPatients <- allICDCodesForPatientWithAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+
+```
+```{r}
+write.table(allDiagnosisCodesForAsthmaPatients, "/Users/zhangx/git/HushToFhir/data/allDiagnosisCodesForAsthmaPatients.tsv", sep = "\t", quote = FALSE)
+```
+
 
 calculating statistics:
 
@@ -66,6 +92,36 @@ loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotati
 loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
 ```
 
+  count the percentage of LOINC tests that can be successfully mapped to an HPO
+```{r}
+loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",  width = 1) + coord_polar(theta = "y") +
+  scale_fill_manual(name = "lab test to HPO\nconversion", breaks = c("false", "true"), labels = c("success", "fail"), values = c("green", "red")) + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = c(0.1, 0.8), legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_text(size = 10)) 
+
+ggsave("~/Desktop/Hush lab test to HPO conversion.png", width = 2.5, height = 2.5)
+```
+
+  count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
+  
+```{r}
+loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+  filter(mapFailed == "false") %>% 
+  group_by(patient_num) %>% summarise(counts = n()) %>%
+  ggplot() + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms per patient") + ylab("patient Counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8))
+ggsave("~/HPO term counts for each patient.png", width = 2.5, height = 2)
+
+loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+  filter(mapFailed == "false") %>%
+  distinct() %>%
+  group_by(patient_num) %>% 
+  summarise(counts = n()) %>%
+  ggplot() + geom_histogram(aes(counts), binwidth = 10) + xlab("no. of unique HPO terms per patient") + ylab("patient Counts") +
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8))
+ggsave("~/unique HPO term counts for each patient.png", width = 3, height = 2)
+```
 
 2. determine how many LOINC codes are aggregated for each HPO term
    then determine how many times a patient is mapped to the same hpo term
@@ -95,11 +151,24 @@ patientTermMapFreq <- loinc2hpo %>%
 skip patients without any HPO terms
 also skip HPO terms for unknown patients
 ```{r}
+patient_withAsthmaICD <- patient_withAsthmaICD %>% mutate(withAsthmaICDCode = "Y")
+patient_lastVisit <- loinc2hpo %>% select(patient_num, start_date) %>% group_by(patient_num) %>% summarise(lastVisit = max(as.Date(start_date)))
+
+patient_withDiabetes <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:250%' OR icd LIKE 'ICD10:E11%'") %>%  mutate(withDiabeteICDCode = "Y")
+patient_withChronicLiverDamage <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'ICD10:N18' OR icd = 'ICD9:585'") %>% mutate(withChronicLiverDamageICDCode = "Y")
+
 combined <- patients %>%
   inner_join(patientTermMapFreq, by = "patient_num") %>%
   left_join(visitCount) %>%
   left_join(prednisonPrescribTimes) %>%
-  mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
+  left_join(patient_withAsthmaICD) %>%
+  left_join(patient_withDiabetes) %>% # add diabete label
+  left_join(patient_withChronicLiverDamage) %>% # add chronic liver damage label
+  left_join(patient_lastVisit) %>%
+  mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount)) %>%
+  mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y")) %>%
+  mutate(withDiabeteICDCode = ifelse(is.na(withDiabeteICDCode), "N", "Y")) %>%
+  mutate(withChronicLiverDamageICDCode = ifelse(is.na(withChronicLiverDamageICDCode), "N", "Y"))
 nrow(combined)
 
 #spread it to a matrix for machine learning
@@ -108,8 +177,8 @@ df4ML <- combined %>% filter(isNegated == "false") %>%
   select(-hpoTermFreq) %>%
   spread(key = hpoTerm, value = hpoTermPresent, fill = 0) %>% 
   mutate (isSevere = ifelse(prscbCount >= 3, 1, 0)) %>%
-  mutate(age = round(as.duration(interval(birth_date, now()))/dyears(1), 1)) %>%
-  select(-c(birth_date, isNegated, prscbCount)) %>%
+  mutate(age = round(as.duration(interval(birth_date, lastVisit))/dyears(1), 1)) %>%
+  select(-c(birth_date, lastVisit, isNegated, prscbCount)) %>%
   select(patient_num, sex_cd, age, everything())
 ```
 
@@ -119,9 +188,47 @@ We define a threshold for the number of times a patient visits hospitals. If the
 VISITTIMES_THRESHOLD = 10  
 SEVERITY_THRESHOLD = 3
 TERMFREQ_THRESHOLD = 3
-
-patientCombinedCounts <- combined %>% 
+  
+patientConditionalCounts <- function(data = combined, hasAsthma, hasDiabetes, hasChronicLiverDamages) {
+  
+  #ASTHMA_CONDITION = ifelse(hasAsthma, "Y", "N")
+  #DIABETES_CONDITION = ifelse(hasDiabetes, "Y", "N")
+  #CHRONIC_LIVER_DAMAGES_CONDITION = ifelse(hasChronicLiverDamages, "Y", "N")
+  #ASTHMA_CONDITION = c("Y", "N")
+  #DIABETES_CONDITION = c("Y", "N")
+  #CHRONIC_LIVER_DAMAGES_CONDITION = c("Y", "N")
+  if (missing(hasAsthma)) {
+    ASTHMA_CONDITION <- c("Y", "N")
+  } else if (hasAsthma) {
+    ASTHMA_CONDITION <- c("Y")
+  } else {
+    ASTHMA_CONDITION <- c("N")
+  }
+  
+  if (missing(hasDiabetes)) {
+    DIABETES_CONDITION <- c("Y", "N")
+  } else if (hasDiabetes) {
+    DIABETES_CONDITION <- c("Y")
+  } else {
+    DIABETES_CONDITION <- c("N")
+  }
+  
+  if (missing(hasChronicLiverDamages)) {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("Y", "N")
+  } else if (hasChronicLiverDamages) {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("Y")
+  } else {
+    CHRONIC_LIVER_DAMAGES_CONDITION <- c("N")
+  }
+  #filters <- list(ASTHMA_CONDITION = vector(), 
+  #                DIABETES_CONDITION = vector(), 
+  #                CHRONIC_LIVER_DAMAGES_CONDITION = vector())
+  
+  patientsCounts <- data %>% 
   filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
+  filter(is.element(withAsthmaICDCode, ASTHMA_CONDITION)) %>% #ignore patients that is not diagnosed with asthma
+  filter(is.element(withDiabeteICDCode, DIABETES_CONDITION)) %>% #ignore patients that have been diagnosed with diabetes
+  filter(is.element(withChronicLiverDamageICDCode, CHRONIC_LIVER_DAMAGES_CONDITION)) %>% # ignore patients that have been diagnosed with chronic liver damage
   filter(hpoTermFreq >= TERMFREQ_THRESHOLD) %>%
   mutate(severity = ifelse(prscbCount > SEVERITY_THRESHOLD, "severe", "nonSevere")) %>%
   group_by(isNegated, hpoTerm, severity) %>%
@@ -131,60 +238,23 @@ patientCombinedCounts <- combined %>%
   mutate(hpo = paste(boolString(isNegated), hpoTerm, sep = "")) %>%
   select(hpo, nonSevere, severe)
   
+  # Calculate population distribution
+  populationCounts <- combined %>%
+  filter(is.element(withAsthmaICDCode, ASTHMA_CONDITION)) %>%
+  filter(is.element(withDiabeteICDCode, DIABETES_CONDITION)) %>%
+  filter(is.element(withChronicLiverDamageICDCode, CHRONIC_LIVER_DAMAGES_CONDITION)) %>%
+  select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n())
   
+  return(list(patientsCounts, populationCounts))
+}
   
-# patientOnPrednisonCount <- combined %>%
-#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% #ignore patients that only occationally visited hospitals
-#   filter(prscbCount > SEVERITY_THRESHOLD) %>% #select severe patients
-#   group_by(isNegated, hpoTerm) %>% 
-#   #select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
-#   #distinct(patient_num) %>% 
-#   summarise(count = n()) %>% 
-#   mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
-#   ungroup() %>%
-#   select(groupName, count)
-```
-For each HPO term, calculate how many patients not on prednison have the term
-```{r}
-# patientNotOnPrednisonCount <- combined %>%
-#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
-#   filter(prscbCount <= SEVERITY_THRESHOLD) %>% 
-#   group_by(isNegated, hpoTerm) %>% 
-#   #select(patient_num, isNegated, hpoTerm, sex_cd) %>% 
-#   #distinct(patient_num) %>% 
-#   summarise(count = n()) %>% 
-#   mutate(groupName = paste(boolString(isNegated), hpoTerm, sep = "")) %>% 
-#   ungroup() %>%
-#   select(groupName, count)
-```
-create a table of patient counts per hpo term, with two columns w/t prednisone and w/ prednison
-```{r}
-#patientCombinedCounts1 <- 
-#  data.frame(hpo = patientNotOnPrednisonCount$groupName, notSeverePatientNo = patientNotOnPrednisonCount$count)
-#patientCombinedCounts2 <- 
-#  data.frame(hpo = patientOnPrednisonCount$groupName, severePatientNo = patientOnPrednisonCount$count)
-#patientCombinedCounts <- patientCombinedCounts1 %>% full_join(patientCombinedCounts2) %>%  mutate(notSeverePatientNo = ifelse(is.na(notSeverePatientNo), 0, notSeverePatientNo), severePatientNo = ifelse(is.na(severePatientNo), 0, severePatientNo))
+noAsthmaNoDiabetesNoCLD <- patientConditionalCounts(combined, hasAsthma = FALSE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
+hasAsthmaNoDiabetesNoCLD <- patientConditionalCounts(combined, hasAsthma = TRUE, hasDiabetes = FALSE, hasChronicLiverDamages = FALSE)
 
-# patientCombinedCounts <- patientOnPrednisonCount %>% rename(severePatientNo = count) %>% 
-  # full_join(patientNotOnPrednisonCount) %>% rename(notSeverePatientNo = count) %>%
-  # mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
-  # select(groupName, notSeverePatientNo, severePatientNo)
+noAsthma <- patientConditionalCounts(combined, hasAsthma = FALSE)
+hasAsthma <- patientConditionalCounts(combined, hasAsthma = TRUE)
 ```
 
-Calculate population distribution
-```{r}
-populationCount <- combined %>% select(patient_num, prscbCount) %>% distinct() %>% mutate(severity = ifelse(prscbCount >= SEVERITY_THRESHOLD, "severity", "nonSevere")) %>% select(-prscbCount) %>% group_by(severity) %>% summarise(count = n())
-
-# prednisonPrescribTimes <- prednisonPrescribTimes %>%
-#   left_join(visitCount)
-# severePatientCount <- prednisonPrescribTimes %>%filter(encounter_no_days > VISITTIMES_THRESHOLD) %>% filter(prscbCount > SEVERITY_THRESHOLD) %>% count()
-# #totalPatient <- nrow(patients)
-# totalPatient <- patients %>% 
-#   left_join(visitCount) %>%
-#   filter(encounter_no_days > VISITTIMES_THRESHOLD) %>%
-#   count()
-# populationCount <- c("ALLPATIENTS", totalPatient - severePatientCount, severePatientCount)
-```
 
 define a function to compute the p-value using chisq test whether patient counts with certain HPO term is associated with severity
 ```{r}
@@ -209,32 +279,65 @@ pValueChisqFitness <- function(x, Y) {
 calculate the chisq test p value for all hpo terms and order by p
 
 ```{r}
-pValVec = rep(-1, nrow(patientCombinedCounts))
-for (i in 1:nrow(patientCombinedCounts)) {
-  pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount$count)
-}
-patientCombinedCounts$pVal <- pValVec
-outcome <- patientCombinedCounts %>% 
-  #rename(hpo = groupName) %>%
-  mutate(`notSeverePatientNo(%)` = paste(nonSevere, "[", round(100 * nonSevere/populationCount$count[1], 1), "]", sep = "")) %>%
-  mutate(`severePatientNo(%)` = paste(severe, "[", round(100 * severe/populationCount$count[2], 1), "]", sep = "")) %>%
-  filter(!startsWith(hpo, "NOT")) %>% 
-  left_join(loincAggregated) %>%
-  left_join(loincAnnotationStat) %>%
-  select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, `severePatientNo(%)`, pVal) %>% 
-  arrange(pVal)
 
-View(df4ML)
-View(outcome)
+outcome <- function(patientCombinedCounts, populationCount) {
+  pValVec = rep(-1, nrow(patientCombinedCounts))
+  for (i in 1:nrow(patientCombinedCounts)) {
+    pValVec[i] <- pValueChisq(unlist(patientCombinedCounts[i,]), populationCount$count)
+  }
+  patientCombinedCounts$pVal <- pValVec
+  return( patientCombinedCounts %>% 
+    #rename(hpo = groupName) %>%
+    mutate(`notSeverePatientNo(%)` = paste(nonSevere, "[", round(100 * nonSevere/populationCount$count[1], 1), "]", sep = "")) %>%
+    mutate(nonSeverePercent = nonSevere/populationCount$count[1]) %>%
+    mutate(`severePatientNo(%)` = paste(severe, "[", round(100 * severe/populationCount$count[2], 1), "]", sep = "")) %>%
+    mutate(severePercent = severe/populationCount$count[2]) %>%
+    filter(!startsWith(hpo, "NOT")) %>% 
+    left_join(loincAggregated) %>%
+    left_join(loincAnnotationStat) %>%
+    select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, nonSeverePercent, `severePatientNo(%)`, severePercent, pVal) %>% 
+    arrange(pVal))
+}
+
+outcome_1 <- outcome(noAsthmaNoDiabetesNoCLD[[1]], noAsthmaNoDiabetesNoCLD[[2]])
+outcome_1_display <- outcome_1 %>% select(-nonSeverePercent, -severePercent)
+outcome_2 <- outcome(hasAsthmaNoDiabetesNoCLD[[1]], hasAsthmaNoDiabetesNoCLD[[2]])
+outcome_2_display <- outcome_2 %>% select(-nonSeverePercent, -severePercent)
+
+#outcome_1 <- outcome(noAsthma[[1]], noAsthma[[2]])
+#outcome_2 <- outcome(hasAsthma[[1]], hasAsthma[[2]])
+#View(df4ML)
+#View(outcome_1_display)
 ```
 
 
 ```{r}
-
-write.csv(df4ML, "Hush+_data_matrix.csv")
-write.csv(outcome, "patientCombinedCounts.csv")
+write.csv(df4ML, "Hush+_data_matrix.csv", quote = FALSE)
+write.csv(rbind(outcome_1_display, outcome_2_display, deparse.level = 2), "patientCombinedCounts.csv", quote = FALSE, row.names = FALSE)
 ```
 
+```{r}
+asthmaNoDiabetesNoLiverDamage <- outcome_2
+noasthmaNoDiabetesNoLiverDamage <- outcome_1
+joined_data <- asthmaNoDiabetesNoLiverDamage %>% mutate(foldchange_asthma = severePercent/nonSeverePercent, significe_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_asthma, significe_asthma) %>% full_join(
+  noasthmaNoDiabetesNoLiverDamage  %>% mutate(foldchange_no_asthma = severePercent/nonSeverePercent, significance_no_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_no_asthma, significance_no_asthma))
+
+significance_group <- c("asthma group", "non-asthma group", "both group", "neither group")
+significance_level <- c("asthma group", "non-asthma group", "both group", "neither group")
+
+joined_data %>% na.omit() %>%  
+  mutate(significance = ifelse(significe_asthma == "Y" & significance_no_asthma == "N", significance_group[1], ifelse(significe_asthma == "N" & significance_no_asthma == "Y", significance_group[2], ifelse(significe_asthma == "Y" & significance_no_asthma == "Y", significance_group[3], significance_group[4])))) %>% 
+  mutate(tolabel = ifelse(significance == significance_group[1], hpo, ifelse(foldchange_asthma/foldchange_no_asthma  < 0.25 & significance != significance_group[4], hpo, "")))%>%
+  ggplot() + geom_point(aes(x = foldchange_no_asthma, y = foldchange_asthma, shape = factor(significance, levels = significance_level), color = factor(significance, levels = significance_level), size = factor(significance, levels = significance_level))) + geom_text(aes(x = foldchange_no_asthma, y = foldchange_asthma, label = ""), size = 3, vjust = -1, hjust = -0.05) + coord_fixed(ratio = 1) + 
+  scale_shape_manual(name = "", values = c(3, 4, 18, 16)) + scale_color_manual(name = "", values=c("red",  "blue", "orange", "black")) + scale_size_manual(name = "", values=c(3, 3, 2, 1)) +  xlab("HPO-dependent odds raio of being severe -asthma") + ylab("HPO-dependent odds raio of being severe +asthma") + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", legend.background = element_blank()) + geom_abline(intercept = 0, slope = 1, size = 0.5, color = "gray") + scale_y_continuous(limits = c(0, 50)) + scale_x_continuous(limits = c(0, 50))
+
+joined_data %>% na.omit() %>%  
+  mutate(significance = ifelse(significe_asthma == "Y" & significance_no_asthma == "N", significance_group[1], ifelse(significe_asthma == "N" & significance_no_asthma == "Y", significance_group[2], ifelse(significe_asthma == "Y" & significance_no_asthma == "Y", significance_group[3], significance_group[4])))) %>% 
+  mutate(tolabel = ifelse(significance == significance_group[1], hpo, ifelse(foldchange_asthma/foldchange_no_asthma  < 0.25 & significance != significance_group[4], hpo, "")))%>%
+  ggplot() + geom_point(aes(x = foldchange_no_asthma, y = foldchange_asthma, shape = factor(significance, levels = significance_level), color = factor(significance, levels = significance_level), size = factor(significance, levels = significance_level))) + geom_text(aes(x = foldchange_no_asthma, y = foldchange_asthma, label = tolabel), size = 3, vjust = -1, hjust = -0.05) + coord_fixed(ratio = 1) + 
+  scale_shape_manual(name = "significance", values = c(3, 4, 18, 16)) + scale_color_manual(name = "significance", values=c("red",  "blue", "orange", "black")) + scale_size_manual(name = "significance", values=c(3, 3, 2, 1)) +  xlab("HPO-dependent odds raio of being severe -asthma") + ylab("HPO-dependent odds raio of being severe +asthma") + theme_bw() + theme(panel.grid = element_blank(), legend.position = c(0.2, 0.8), legend.background = element_blank()) + geom_abline(intercept = 0, slope = 1, size = 0.5, color = "gray") + scale_y_continuous(limits = c(0, 10)) + scale_x_continuous(limits = c(0, 10))
+
+```
 
 ```{r}
 visitAndSeverity <- visitCount %>% left_join(prednisonPrescribTimes) %>% 
@@ -252,6 +355,10 @@ ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days, group = sev
 ```{r}
 ggplot(visitAndSeverity) + geom_histogram(aes(x = encounter_no_days) ,color = "black", binwidth = 20) + scale_x_continuous(limits = c(0, 500))
 ```
+
+
+
+
 
 
 Disconnect database

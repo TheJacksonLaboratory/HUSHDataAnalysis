@@ -4,6 +4,7 @@ patientPrednisonCount.txt
 data/HPO-AsthmaSeverity.xls
 data/Hush+_data_matrix.csv
 data/patientOnPrednison.txt
+data/ICD_stats summarize.xlsx
 
 data/.DS_Store
 .idea/
