@@ -5,6 +5,8 @@ data/HPO-AsthmaSeverity.xls
 data/Hush+_data_matrix.csv
 data/patientOnPrednison.txt
 data/ICD_stats summarize.xlsx
+rc/main/r_script/*.html
+src/main/r_script/*.pdf
 
 data/.DS_Store
 .idea/

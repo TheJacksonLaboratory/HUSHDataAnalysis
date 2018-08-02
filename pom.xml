@@ -78,7 +78,7 @@
     <dependency>
       <groupId>org.monarchinitiative.phenol</groupId>
       <artifactId>phenol-io</artifactId>
-      <version>0.1.8</version>
+      <version>1.2.1</version>
     </dependency>
     <dependency>
       <groupId>org.monarchinitiative</groupId>
