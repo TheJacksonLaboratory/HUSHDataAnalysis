@@ -4,6 +4,11 @@ setwd("~/Documents/VIMSS/ontology/NCATS/HUSH+/patient_feature/")
 
 data <- read.csv("./Hush+_data_matrix.csv",sep=",",header=T,row.names=1)
 dim <- dim(data)
+
+#Aaron's path
+setwd("~/git/HushToFhir")
+data <- read.csv("./data/Hush+_data_matrix.csv",sep=",",header=T, row.names = c("patient_num"))
+data$X = NULL
 dim
 
 male <- mat.or.vec(dim[1],1)
@@ -15,7 +20,8 @@ female[which(data[,1] == "F")] <- 1
 data_all <- data
 
 #remove sex column
-data <- data[,-2]
+#data <- data[,-1]
+data$sex_cd = NULL
 
 datanew <- cbind(female, male, data)
 dim(datanew)
@@ -47,9 +53,19 @@ training$isSevere <- as.factor(training$isSevere)
 test$isSevere <- as.character(test$isSevere)
 test$isSevere <- as.factor(test$isSevere)
 
+#rm na
+training <- na.omit(training)
+testing <- na.omit(testing)
+
 rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=1,proximity=TRUE)
 rf_classifier
 #OOB estimate of  error rate: 9.31%
+#Rerun by Aaron with slightly different raw data: error rate is similar, but confusion matrix report far worse problem. 
+#All cases are reported as negative
+#Confusion matrix: 
+#0 1 class.error
+#0 1362 2 0.001466276
+#1  156 3 0.981132075
 varImpPlot(rf_classifier)
 
 index_of_outcome <- 95 
