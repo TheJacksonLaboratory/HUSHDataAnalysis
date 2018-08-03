@@ -1,3 +1,4 @@
+## don't track files with patient information
 observation_to_hpo.txt
 observation_to_hpo_success.txt
 patientPrednisonCount.txt
@@ -5,6 +6,12 @@ data/HPO-AsthmaSeverity.xls
 data/Hush+_data_matrix.csv
 data/patientOnPrednison.txt
 data/ICD_stats summarize.xlsx
+data/allDiagnosisCodesForAsthmaPatients.tsv
+data/loincAnnotationstats8-2-2018.tsv
+src/main/r_script/*.html
+src/main/r_script/*.pdf
+src/main/r_script/Hush+_data_matrix.csv
+
 
 data/.DS_Store
 .idea/

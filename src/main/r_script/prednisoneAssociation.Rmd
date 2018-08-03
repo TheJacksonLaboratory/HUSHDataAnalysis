@@ -53,7 +53,7 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 # replace na with 0
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation.txt", header = TRUE, sep = "\t")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt", header = TRUE, sep = "\t")
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
@@ -88,39 +88,68 @@ calculating statistics:
 
 1. determine how many LOINC code are mapped to each HPO term from the annotation file
 ```{r}
-loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats.tsv", header = TRUE, sep = "\t")
+loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
+loinc2hpoAnnotationFile %>% select(loincId, loincScale) %>% distinct() %>% 
+  group_by(loincScale) %>%
+  summarise(counts = n()) %>% 
+  arrange(desc(counts)) %>%
+  View()
+
+
+#loincAnnotationStat <- loinc2hpoAnnotationFile %>% select(loincId, hpoTermId) %>% distinct() %>% group_by(hpoTermId) %>%
+#  summarise(counts = n()) %>% arrange(desc(counts))
+#mean(loincAnnotationStat$counts)
+#quantile(loincAnnotationStat$counts)
+#sum(loincAnnotationStat$counts >=2) / length(loincAnnotationStat$counts)
+
+loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats8-2-2018.tsv", header = TRUE, sep = "\t")
 loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = as.character(hpo), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
+
+mean(loincAnnotationStat$loincMappedTo)
+quantile(loincAnnotationStat$loincMappedTo)
+sum(loincAnnotationStat$loincMappedTo >=2) / length(loincAnnotationStat$loincMappedTo)
 ```
 
   count the percentage of LOINC tests that can be successfully mapped to an HPO
 ```{r}
+
+successRate <- sum(loinc2hpo$mapFailed == "false")/nrow(loinc2hpo)
+print(paste("loinc2hpo conversion rate: ", round(successRate, 3) * 100, "%", sep = ""))
+
 loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",  width = 1) + coord_polar(theta = "y") +
   scale_fill_manual(name = "lab test to HPO\nconversion", breaks = c("false", "true"), labels = c("success", "fail"), values = c("green", "red")) + 
-  xlab("") + ylab("") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = c(0.1, 0.8), legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_text(size = 10)) 
+  xlab("") + ylab("lab test to hpo conversion") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = c(0.0, 0.92), legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(0.25, "line"), axis.title = element_text(size = 8)) 
 
-ggsave("~/Desktop/Hush lab test to HPO conversion.png", width = 2.5, height = 2.5)
+ggsave("~/Desktop/Hush lab test to HPO conversion.png", width = 0.8, height = 0.8)
 ```
 
   count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
   
 ```{r}
-loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+hpoTermCountsWithDuplicationPerPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
   filter(mapFailed == "false") %>% 
-  group_by(patient_num) %>% summarise(counts = n()) %>%
-  ggplot() + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms per patient") + ylab("patient Counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
-  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8))
-ggsave("~/HPO term counts for each patient.png", width = 2.5, height = 2)
+  group_by(patient_num) %>% summarise(counts = n())  %>% ungroup()
 
-loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+no.HPOperPatient = sum(hpoTermCountsWithDuplicationPerPatient$counts) / nrow(patients)
+print(paste("average no. of HPO terms per patient: ", round(no.HPOperPatient, 1), sep = ""))
+
+  ggplot(hpoTermCountsWithDuplicationPerPatient) + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms\nper patient") + ylab("patient Counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
+ggsave("~/Desktop/HPO term counts for each patient.png", width = 0.8, height = 0.8 )
+
+uniqueHPOperPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
   filter(mapFailed == "false") %>%
   distinct() %>%
   group_by(patient_num) %>% 
-  summarise(counts = n()) %>%
-  ggplot() + geom_histogram(aes(counts), binwidth = 10) + xlab("no. of unique HPO terms per patient") + ylab("patient Counts") +
-  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8))
-ggsave("~/unique HPO term counts for each patient.png", width = 3, height = 2)
+  summarise(counts = n()) %>%ungroup()
+no.uniqueHPOperPatient = sum(uniqueHPOperPatient$counts) / nrow(patients)
+print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOperPatient, 1), sep = ""))
+
+  ggplot(uniqueHPOperPatient) + geom_histogram(aes(counts), binwidth = 10) + xlab("no. of unique HPO\nterms per patient") + ylab("patient Counts") +
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
+ggsave("~/Desktop/unique HPO term counts for each patient.png", width = 0.8, height = 0.8)
 ```
 
 2. determine how many LOINC codes are aggregated for each HPO term
@@ -172,13 +201,13 @@ combined <- patients %>%
 nrow(combined)
 
 #spread it to a matrix for machine learning
-df4ML <- combined %>% filter(isNegated == "false") %>% 
+df4ML <- combined %>% filter(isNegated == "false", withDiabeteICDCode == "N", withChronicLiverDamageICDCode == "N", withAsthmaICDCode == "Y") %>% 
   mutate(hpoTermPresent = ifelse(hpoTermFreq >= 3, 1, 0)) %>% 
   select(-hpoTermFreq) %>%
   spread(key = hpoTerm, value = hpoTermPresent, fill = 0) %>% 
   mutate (isSevere = ifelse(prscbCount >= 3, 1, 0)) %>%
   mutate(age = round(as.duration(interval(birth_date, lastVisit))/dyears(1), 1)) %>%
-  select(-c(birth_date, lastVisit, isNegated, prscbCount)) %>%
+  select(-c(birth_date, lastVisit, isNegated, prscbCount, encounter_no_days, withDiabeteICDCode, withChronicLiverDamageICDCode, withAsthmaICDCode)) %>%
   select(patient_num, sex_cd, age, everything())
 ```
 
@@ -186,8 +215,8 @@ For each HPO term, calculate how many patients on prednison have the term
 We define a threshold for the number of times a patient visits hospitals. If the visits count is less than the threshold, ignore those patients.
 ```{r}
 VISITTIMES_THRESHOLD = 10  
-SEVERITY_THRESHOLD = 3
-TERMFREQ_THRESHOLD = 3
+SEVERITY_THRESHOLD = 4
+TERMFREQ_THRESHOLD = 5
   
 patientConditionalCounts <- function(data = combined, hasAsthma, hasDiabetes, hasChronicLiverDamages) {
   
@@ -334,9 +363,12 @@ joined_data %>% na.omit() %>%
 joined_data %>% na.omit() %>%  
   mutate(significance = ifelse(significe_asthma == "Y" & significance_no_asthma == "N", significance_group[1], ifelse(significe_asthma == "N" & significance_no_asthma == "Y", significance_group[2], ifelse(significe_asthma == "Y" & significance_no_asthma == "Y", significance_group[3], significance_group[4])))) %>% 
   mutate(tolabel = ifelse(significance == significance_group[1], hpo, ifelse(foldchange_asthma/foldchange_no_asthma  < 0.25 & significance != significance_group[4], hpo, "")))%>%
-  ggplot() + geom_point(aes(x = foldchange_no_asthma, y = foldchange_asthma, shape = factor(significance, levels = significance_level), color = factor(significance, levels = significance_level), size = factor(significance, levels = significance_level))) + geom_text(aes(x = foldchange_no_asthma, y = foldchange_asthma, label = tolabel), size = 3, vjust = -1, hjust = -0.05) + coord_fixed(ratio = 1) + 
-  scale_shape_manual(name = "significance", values = c(3, 4, 18, 16)) + scale_color_manual(name = "significance", values=c("red",  "blue", "orange", "black")) + scale_size_manual(name = "significance", values=c(3, 3, 2, 1)) +  xlab("HPO-dependent odds raio of being severe -asthma") + ylab("HPO-dependent odds raio of being severe +asthma") + theme_bw() + theme(panel.grid = element_blank(), legend.position = c(0.2, 0.8), legend.background = element_blank()) + geom_abline(intercept = 0, slope = 1, size = 0.5, color = "gray") + scale_y_continuous(limits = c(0, 10)) + scale_x_continuous(limits = c(0, 10))
+  ggplot() + geom_point(aes(x = foldchange_no_asthma, y = foldchange_asthma, shape = factor(significance, levels = significance_level), color = factor(significance, levels = significance_level), size = factor(significance, levels = significance_level))) + 
+  geom_text(aes(x = foldchange_no_asthma, y = foldchange_asthma, label = tolabel), size = 4, vjust = -1, hjust = -0.05) + coord_fixed(ratio = 1) + 
+  scale_shape_manual(name = "significance", values = c(3, 4, 18, 16)) + scale_color_manual(name = "significance", values=c("red",  "blue", "orange", "black")) + scale_size_manual(name = "significance", values=c(3, 3, 2, 1)) +  xlab("HPO-dependent odds raio of being severe -asthma") + ylab("HPO-dependent odds raio of being severe +asthma") + theme_bw() + 
+  theme(panel.grid = element_blank(), legend.position = c(0.2, 0.85), legend.background = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10), panel.border = element_rect(size = 1), legend.text = element_text(size = 10), legend.title = element_text(size = 10)) + geom_abline(intercept = 0, slope = 1, size = 0.5, color = "gray") + scale_y_continuous(limits = c(0, 10)) + scale_x_continuous(limits = c(0, 10))
 
+ggsave("~/Desktop/likehood ratio.png", width = 4.5, height = 4.5)
 ```
 
 ```{r}

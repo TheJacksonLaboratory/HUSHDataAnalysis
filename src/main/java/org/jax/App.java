@@ -19,9 +19,9 @@ import org.monarchinitiative.loinc2hpo.loinc.LOINC2HpoAnnotationImpl;
 import org.monarchinitiative.loinc2hpo.loinc.LoincEntry;
 import org.monarchinitiative.loinc2hpo.loinc.LoincId;
 import org.monarchinitiative.loinc2hpo.testresult.PhenoSetUnionFind;
+import org.monarchinitiative.phenol.base.PhenolException;
 import org.monarchinitiative.phenol.formats.hpo.HpoOntology;
-import org.monarchinitiative.phenol.formats.hpo.HpoTerm;
-import org.monarchinitiative.phenol.io.obo.hpo.HpoOboParser;
+import org.monarchinitiative.phenol.io.obo.hpo.HpOboParser;
 import org.monarchinitiative.phenol.ontology.data.Term;
 import org.monarchinitiative.phenol.ontology.data.TermId;
 import org.slf4j.Logger;
@@ -513,8 +513,8 @@ public class App {
         }
     }
 
-    static void importHPO(String path) throws IOException {
-        HpoOboParser hpoOboParser = new HpoOboParser(new File(path));
+    static void importHPO(String path) throws IOException, PhenolException {
+        HpOboParser hpoOboParser = new HpOboParser(new File(path));
         HpoOntology hpo = hpoOboParser.parse();
 
         ImmutableMap.Builder<String,Term> termmap = new ImmutableMap.Builder<>();
@@ -865,6 +865,8 @@ public class App {
                     importHPO(commandLine.getOptionValue("hpo"));
                 } catch (IOException e) {
                     System.out.println("cannot import hpo");
+                } catch (PhenolException e) {
+                    e.printStackTrace();
                 }
 
                 try {
@@ -909,6 +911,8 @@ public class App {
                 } catch (IOException e) {
                     System.out.println("cannot import hpo");
                     return;
+                } catch (PhenolException e) {
+                    e.printStackTrace();
                 }
                 try{
                     importAnnotation(commandLine.getOptionValue("a"));
