@@ -3,12 +3,13 @@ require(randomForest)
 setwd("~/Documents/VIMSS/ontology/NCATS/HUSH+/patient_feature/")
 
 data <- read.csv("./Hush+_data_matrix.csv",sep=",",header=T,row.names=1)
-dim <- dim(data)
 
 #Aaron's path
 setwd("~/git/HushToFhir")
 data <- read.csv("./data/Hush+_data_matrix.csv",sep=",",header=T, row.names = c("patient_num"))
 data$X = NULL
+
+dim <- dim(data)
 dim
 
 male <- mat.or.vec(dim[1],1)
@@ -55,7 +56,26 @@ test$isSevere <- as.factor(test$isSevere)
 
 #rm na
 training <- na.omit(training)
-testing <- na.omit(testing)
+testing <- na.omit(test)
+
+#Aaron
+n_pos = sum(training$isSevere == 1) #156
+n_neg = sum(training$isSevere == 0) #1353
+training_positive <- training[training$isSevere==1,]
+#try to add more positive examples
+#did not work
+indexes_resample_pos <- sample(1:n_pos, n_neg-n_pos, replace = TRUE)
+resampled_pos <- training_positive[indexes_resample_pos,]
+training_balaned <- rbind(training, resampled_pos)
+
+
+#Aaron
+#try to remove negative examples
+#not working either
+training_negative <- training[training$isSevere==0,]
+indexes_resample_neg <- sample(1:n_neg, n_pos)
+resampled_neg <- training_negative[indexes_resample_neg,]
+training_balaned <- rbind(training_positive, resampled_neg)
 
 rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=1,proximity=TRUE)
 rf_classifier
