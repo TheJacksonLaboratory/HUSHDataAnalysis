@@ -77,7 +77,20 @@ indexes_resample_neg <- sample(1:n_neg, n_pos)
 resampled_neg <- training_negative[indexes_resample_neg,]
 training_balaned <- rbind(training_positive, resampled_neg)
 
-rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=1,proximity=TRUE)
+for (n_tree in seq(150, 500, 50)) {
+  rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=n_tree, mtry=sqrt(dim[2]), importance=TRUE, nodesize=2,proximity=TRUE)
+  print(n_tree)
+  print(rf_classifier)
+}
+
+for (min_nodesize in 1:5) {
+  for (max_nodesize in min_nodesize + 1 : min_nodesize+5 ) {
+    rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=300, mtry=sqrt(dim[2]), importance=TRUE, nodesize=min_nodesize,maxnodes = max_nodesize, proximity=TRUE)
+    print(n_tree)
+    print(rf_classifier)
+  }
+}
+rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=2,proximity=TRUE)
 rf_classifier
 #OOB estimate of  error rate: 9.31%
 #Rerun by Aaron with slightly different raw data: error rate is similar, but confusion matrix report far worse problem. 
@@ -88,7 +101,7 @@ rf_classifier
 #1  156 3 0.981132075
 varImpPlot(rf_classifier)
 
-index_of_outcome <- 95 
+index_of_outcome <- 121 
 
 colnames(test)[index_of_outcome]
 prediction_for_table <- predict(rf_classifier,test[,-index_of_outcome])

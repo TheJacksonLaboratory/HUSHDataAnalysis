@@ -12,6 +12,7 @@ src/main/r_script/*.html
 src/main/r_script/*.pdf
 src/main/r_script/Hush+_data_matrix.csv
 
+.Rhistory
 
 data/.DS_Store
 .idea/
