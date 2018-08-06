@@ -391,13 +391,14 @@ df4ML_selected <- df4ML[,c("patient_num","sex_cd", "age", "encounter_no_days",se
 dim(df4ML_selected) # 13660, 45
 
 df4ML_selected$sex_cd = as.factor(df4ML_selected$sex_cd)
-df4ML_selected <- df4ML_selected %>% mutate(isSevere = ifelse(prscbCount >= SEVERITY_THRESHOLD, 1, 0)) %>% select(-prscbCount)
+df4ML_selected <- df4ML_selected %>% mutate(isSevere = ifelse(prscbCount > SEVERITY_THRESHOLD, 1, 0)) %>% select(-prscbCount)
 df4ML_selected$isSevere = as.factor(df4ML_selected$isSevere)
 ```
 
 
 ```{r}
 require(caret)
+require(doSNOW)
 #df4ML_selected <- na.omit(df4ML_selected)
 rownames(df4ML_selected) = df4ML_selected$patient_num
 df4ML_selected$patient_num = NULL
@@ -428,6 +429,8 @@ partation data into training and testing, ratio = 0.7
 indexes <- createDataPartition(df4ML_dmy$isSevere, p = 0.7, list = FALSE)
 training <- df4ML_dmy[indexes,]
 testing <- df4ML_dmy[-indexes,]
+training$col4 <- ifelse(training$col4 > VISITTIMES_THRESHOLD, 1, 0)
+testing$col4 <- ifelse(testing$col4 > VISITTIMES_THRESHOLD, 1, 0)
 ```
 
 test support vector machine
@@ -443,7 +446,7 @@ cm <- confusionMatrix(prediction, testing$isSevere)
 cm
 
 train.ctrl.rf = trainControl(method = "repeatedcv", number = 10, repeats = 3, search = "grid")
-tunegrid <- expand.grid(.mtry = seq(1, 15, 3))
+tunegrid <- expand.grid(.mtry = 10)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
 model_rf <- train(training[,-target.index], training$isSevere, method = "rf", trControl = train.ctrl.rf, tuneGrid = tunegrid)
