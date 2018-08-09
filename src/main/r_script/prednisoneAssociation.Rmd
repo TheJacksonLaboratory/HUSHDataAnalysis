@@ -593,6 +593,25 @@ binarize the encounter days
 ```{r}
 training$encounter_no_days <- ifelse(training$encounter_no_days > VISITTIMES_THRESHOLD, 1, 0)
 testing$encounter_no_days <- ifelse(testing$encounter_no_days > VISITTIMES_THRESHOLD, 1, 0)
+nearZeroFeatures <- nearZeroVar(training)
+training <- training[,-nearZeroFeatures]
+testing <- testing[,-nearZeroFeatures]
+train_pos <- training[training$isSevere==1,]
+train_neg <- training[training$isSevere==0,]
+pos_size = nrow(train_pos)
+neg_size = nrow(train_neg)
+#only select same number of negative controls
+train_neg_sample <- train_neg[sample(1:neg_size, pos_size),]
+training <- rbind(train_pos, train_neg_sample)
+#add positive controls--not as good as the last solution
+#train_pos_expand <- train_pos[sample(1:pos_size, neg_size, replace = TRUE),]
+#training <- rbind(train_pos_expand, train_neg)
+
+training$isSevere <- make.names(training$isSevere)
+testing$isSevere <- make.names(testing$isSevere)
+training$isSevere <- as.factor(training$isSevere)
+testing$isSevere <- as.factor(testing$isSevere)
+
 ```
 
 ### build a model
@@ -600,17 +619,14 @@ testing$encounter_no_days <- ifelse(testing$encounter_no_days > VISITTIMES_THRES
 #### first test a linear model
 The Baysian Generalized Linear model is simple to use. So we tested this as our first step. This model does not have parameters to tune, so we just used cross validation (10 folds, 3 repeats)
 ```{r}
-training$isSevere <- make.names(training$isSevere)
-testing$isSevere <- make.names(testing$isSevere)
-training$isSevere <- as.factor(training$isSevere)
-testing$isSevere <- as.factor(testing$isSevere)
+
 train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = TRUE, classProbs = TRUE)
 target.index = ncol(training)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
-model <- train(training[,-target.index], training$isSevere, method = "bayesglm", trControl = train.ctrl, preProcess = c("BoxCox"))
+bayesglm <- train(training[,-target.index], training$isSevere, method = "bayesglm", trControl = train.ctrl, preProcess = c("center","scale", "YeoJohnson"))
 stopCluster(c1)
-prediction <- predict(model, testing[,-target.index])
+prediction <- predict(bayesglm, testing[,-target.index])
 cm <- confusionMatrix(prediction, testing$isSevere)
 # surpring: 100% sensitivity and specificity
 cm
@@ -622,72 +638,136 @@ The result is not quite good. We only have 11.9% recall. We try a method with bo
 Warning: takes a long time on laptop!
 ```{r}
 library(mboost)
-train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 1)
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
 tune.grid = expand.grid(prune = c("yes", "no"), mstop = c(3))
 target.index = ncol(training)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
-model <- train(training[,-target.index], training$isSevere, method = "glmboost", trControl = train.ctrl, tuneGrid = tune.grid)
+#mstop = 1300, prune = "no"
+glmboost <- train(training[,-target.index], training$isSevere, method = "glmboost", trControl = train.ctrl, tuneLength = 100)
 stopCluster(c1)
-prediction <- predict(model, testing[,-target.index])
+prediction <- predict(glmboost, testing[,-target.index])
 cm <- confusionMatrix(prediction, testing$isSevere)
-# surpring: 100% sensitivity and specificity
 cm
 ```
 
 Try random forest
 ```{r}
 train.ctrl.rf = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = T, search = "grid")
-tunegrid <- expand.grid(.mtry = 10)
+tunegrid <- expand.grid(.mtry = c(10))
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
 target.index = ncol(training)
-model_rf <- train(training[,-target.index], training$isSevere, method = "rf", trControl = train.ctrl.rf, tuneGrid = tunegrid)
+rf <- train(training[,-target.index], training$isSevere, method = "rf", trControl = train.ctrl.rf, tuneGrid = tunegrid, ntree = 300)
 stopCluster(c1)
-model_rf
-prediction <- predict(model_rf, testing[,-target.index])
+rf
+prediction <- predict(rf, testing[,-target.index])
 confusionMatrix(prediction, testing$isSevere)
 
 
 ```
 
-try neural net
+try svm
 ```{r}
-training$isSevere <- make.names(training$isSevere)
-testing$isSevere <- make.names(testing$isSevere)
-training$isSevere <- as.factor(training$isSevere)
-testing$isSevere <- as.factor(testing$isSevere)
-train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 1)
-tune.grid <- expand.grid(tau = c(0.001, 0.01, 0.1, 1, 5))
-target.index = ncol(training)
-c1 <- makeCluster(3, type = "SOCK")
-registerDoSNOW(c1)
-model <- train(training[,-target.index], training$isSevere, method = "lssvmLinear", trControl = train.ctrl, preProcess = c("BoxCox"), tuneGrid = tune.grid)
-stopCluster(c1)
-prediction <- predict(model, testing[,-target.index])
-cm <- confusionMatrix(prediction, testing$isSevere)
-# surpring: 100% sensitivity and specificity
-cm
-```
-
-```{r}
-training$isSevere <- make.names(training$isSevere)
-testing$isSevere <- make.names(testing$isSevere)
-training$isSevere <- as.factor(training$isSevere)
-testing$isSevere <- as.factor(testing$isSevere)
+#folds = 3
+#cvIndex <- createFolds(training$isSevere, folds, returnTrain = TRUE)
 train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
-tune.grid <- expand.grid(size=c(5, 10, 15), decay=c(0.01, 0.1, 1, 10))
+#train.ctrl = trainControl(method = "none")
+tune.grid <- expand.grid(sigma = c(0.1872799), C = c(2))
 target.index = ncol(training)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
-model <- train(training[,-target.index], training$isSevere, method = "nnet", trControl = train.ctrl, preProcess = c("BoxCox"), tuneGrid = tune.grid)
+svmRadial <- train(isSevere ~., data = training, method = "svmRadial", trControl = train.ctrl, tuneGrid = tune.grid, preProcess = c("center", "scale", "YeoJohnson"))
 stopCluster(c1)
-prediction <- predict(model, testing[,-target.index])
+prediction <- predict(svmRadial, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isSevere)
+# surpring: 100% sensitivity and specificity
+cm
+```
+
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
+
+tune.grid <- expand.grid(size=10, decay=c(0.00001, 0.0001, 0.0005, 0.001))
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+nnet <- train(isSevere ~., data = training, method = "nnet", preProcess = c("center", "scale", "YeoJohnson"), trControl = train.ctrl, tuneLength = 5)
+stopCluster(c1)
+prediction <- predict(nnet, testing[,-target.index])
 cm <- confusionMatrix(prediction, testing$isSevere)
 # surpring: 100% sensitivity and specificity
 cm
 
 ```
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
+#best: 3, 0.01, 1
+tune.grid <- expand.grid(degree=2:4, scale = c(0.01, 0.1, 1), C = c(0.1, 1, 10))
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+svmPoly <- train(isSevere ~., data = training, method = "svmPoly", trControl = train.ctrl, tuneGrid = tune.grid)
+stopCluster(c1)
+prediction <- predict(svmPoly, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isSevere)
+# surpring: 100% sensitivity and specificity
+cm
+```
+
+
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = TRUE, classProbs = TRUE)
+#0, FALSE, 1
+tune.grid = expand.grid(laplace = 0:3, usekernel = FALSE, adjust = 1:3)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+naive_bayes <- train(training[,-target.index], training$isSevere, method = "naive_bayes", trControl = train.ctrl, tuneGrid = tune.grid)
+#naive_bayes <- train(training[,-target.index], training$isSevere, method = "naive_bayes", trControl = train.ctrl, tuneLength = 10)
+stopCluster(c1)
+prediction <- predict(naive_bayes, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isSevere)
+# surpring: 100% sensitivity and specificity
+cm
+```
+```{r}
+
+```
+
+use emsembe to get poll all models
+```{r}
+models <- c(bayesglm, glmboost, svmRadial, rf, nnet, svmPoly, naive_bayes)
+prediction_ensemble = data.frame(expected = testing$isSevere)
+
+prediction_ensemble$bayesglm = predict(bayesglm, testing[,-target.index])
+prediction_ensemble$glmboost = predict(glmboost, testing[,-target.index])
+prediction_ensemble$svmRadial = predict(svmRadial, testing[,-target.index])
+prediction_ensemble$rf = predict(rf, testing[,-target.index])
+prediction_ensemble$nnet = predict(nnet, testing[,-target.index])
+prediction_ensemble$svmPoly = predict(svmPoly, testing[,-target.index])
+prediction_ensemble$naive_bayes = predict(naive_bayes, testing[,-target.index])
+prediction_ensemble$poll = rep("", nrow(prediction_ensemble))
+
+
+
+poll_method <- function(x) {
+  result = sum(x=="X1")
+  if (result >= length(x)/2) {
+    return ("X1")
+  } else {
+    return ("X0")
+  }
+}
+
+for (i in 1:nrow(prediction_ensemble)) {
+  prediction_ensemble[i, 9] = poll_method(unlist(prediction_ensemble[i, 2:8]))
+}
+
+prediction_ensemble$poll = as.factor(prediction_ensemble$poll)
+confusionMatrix(prediction_ensemble$poll, prediction_ensemble$expected)
+```
+
 
 Disconnect database
 ```{r}
