@@ -818,8 +818,8 @@ for (i in 1:nrow(prediction)) {
   #poll[i] = ifelse(mean(prediction[i,] > p_threshold), "X1", "X0")
   poll[i] = ifelse(sum(prediction[i,] == "X1") >= ncol(prediction)/2, "X1", "X0")
 }
-cm <- confusionMatrix(as.factor(poll), testing$isSevere)
-cm
+#cm <- confusionMatrix(as.factor(poll), testing$isSevere)
+#cm
 stack.train.ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 stack.rf <- caretStack(models_ensemble, method = "rf", trControl = stack.train.ctrl)
 ```
