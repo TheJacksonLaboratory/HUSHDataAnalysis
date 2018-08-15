@@ -58,6 +58,7 @@ methods_list = names(counts)
 alg_count = unlist(counts)
 data_alg_method_count <- data.frame(method = methods_list, count = alg_count)
 
+# combine ICD9 and ICD10 counts
 data_alg_method_count <- data_alg_method_count %>% 
   filter(str_detect(method, "ICD")) %>% 
   summarise(method = "ICD.Codes", count = sum(count)) %>%
