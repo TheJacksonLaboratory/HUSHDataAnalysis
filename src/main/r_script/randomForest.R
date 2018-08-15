@@ -3,6 +3,12 @@ require(randomForest)
 setwd("~/Documents/VIMSS/ontology/NCATS/HUSH+/patient_feature/")
 
 data <- read.csv("./Hush+_data_matrix.csv",sep=",",header=T,row.names=1)
+
+#Aaron's path
+setwd("~/git/HushToFhir")
+data <- read.csv("./data/Hush+_data_matrix.csv",sep=",",header=T, row.names = c("patient_num"))
+data$X = NULL
+
 dim <- dim(data)
 dim
 
@@ -15,7 +21,8 @@ female[which(data[,1] == "F")] <- 1
 data_all <- data
 
 #remove sex column
-data <- data[,-2]
+#data <- data[,-1]
+data$sex_cd = NULL
 
 datanew <- cbind(female, male, data)
 dim(datanew)
@@ -47,12 +54,54 @@ training$isSevere <- as.factor(training$isSevere)
 test$isSevere <- as.character(test$isSevere)
 test$isSevere <- as.factor(test$isSevere)
 
-rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=1,proximity=TRUE)
+#rm na
+training <- na.omit(training)
+testing <- na.omit(test)
+
+#Aaron
+n_pos = sum(training$isSevere == 1) #156
+n_neg = sum(training$isSevere == 0) #1353
+training_positive <- training[training$isSevere==1,]
+#try to add more positive examples
+#did not work
+indexes_resample_pos <- sample(1:n_pos, n_neg-n_pos, replace = TRUE)
+resampled_pos <- training_positive[indexes_resample_pos,]
+training_balaned <- rbind(training, resampled_pos)
+
+
+#Aaron
+#try to remove negative examples
+#not working either
+training_negative <- training[training$isSevere==0,]
+indexes_resample_neg <- sample(1:n_neg, n_pos)
+resampled_neg <- training_negative[indexes_resample_neg,]
+training_balaned <- rbind(training_positive, resampled_neg)
+
+for (n_tree in seq(150, 500, 50)) {
+  rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=n_tree, mtry=sqrt(dim[2]), importance=TRUE, nodesize=2,proximity=TRUE)
+  print(n_tree)
+  print(rf_classifier)
+}
+
+for (min_nodesize in 1:5) {
+  for (max_nodesize in min_nodesize + 1 : min_nodesize+5 ) {
+    rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=300, mtry=sqrt(dim[2]), importance=TRUE, nodesize=min_nodesize,maxnodes = max_nodesize, proximity=TRUE)
+    print(n_tree)
+    print(rf_classifier)
+  }
+}
+rf_classifier <- randomForest(isSevere ~ ., data=training, ntree=200, mtry=sqrt(dim[2]), importance=TRUE, nodesize=2,proximity=TRUE)
 rf_classifier
 #OOB estimate of  error rate: 9.31%
+#Rerun by Aaron with slightly different raw data: error rate is similar, but confusion matrix report far worse problem. 
+#All cases are reported as negative
+#Confusion matrix: 
+#0 1 class.error
+#0 1362 2 0.001466276
+#1  156 3 0.981132075
 varImpPlot(rf_classifier)
 
-index_of_outcome <- 95 
+index_of_outcome <- 121 
 
 colnames(test)[index_of_outcome]
 prediction_for_table <- predict(rf_classifier,test[,-index_of_outcome])
