@@ -24,13 +24,13 @@ III. Test whether the transformed data can be used for medical prediction with m
 
 ## load data
 For Goal I, the dataset is too big and the task too complicated to implicate in R. Instead, we implicated the conversion in Java. Run the code in command line:
-```{bash}
-java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \                                   # loinc to hpo transformation
--i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \              # input: all observations
--hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \                           # hpo.obo is required
--loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                                     # LOINC table is required
--a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \                   # loinc2hpo annotation map is                                                                                                 # required
--o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt # output transformed data
+```{bash, ignore = TRUE, include = FALSE}
+java --jar HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \                 # loinc to hpo transformation
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \  # input: all observations
+-hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \               # hpo.obo is required
+-loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                         # LOINC table is required
+-a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \       # loinc2hpo annotation map is                                                                                       # required
+#-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt # output transformed data
 ```
 
 We also counted prednisone prescription times for each patient in Java. Run:
@@ -690,7 +690,7 @@ cm <- confusionMatrix(prediction, testing$isSevere)
 cm
 ```
 ```{r}
-train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE)
 #tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
 #this is the best hyperparameters
 #tune.grid = expand.grid(n.trees = 200, interaction.depth = 1, shrinkage = 0.1, n.minobsinnode = 10)
@@ -703,6 +703,10 @@ stopCluster(c1)
 prediction <- predict(xgboost, testing[,-target.index])
 cm <- confusionMatrix(prediction, testing$isSevere)
 cm
+prediction <- predict(xgboost, testing[,-target.index], type = "prob")
+require(pROC)
+roc1 <- roc(testing$isSevere, prediction$X1, smooth = TRUE)
+data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
 ```
 
 Try random forest
@@ -809,7 +813,6 @@ c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
 models_ensemble <- caretList(training[,-target.index], training$isSevere, preProcess = c("center", "scale", "YeoJohnson"), trControl = train.ctrl, methodList = alg_list, tuneList = tuneSettings, continue_on_fail = TRUE)
 #naive_bayes <- train(training[,-target.index], training$isSevere, method = "naive_bayes", trControl = train.ctrl, tuneLength = 10)
-stopCluster(c1)
 prediction <- predict(models_ensemble, testing[,-target.index])
 poll <- vector(mode = "character")
 p_threshold = 0.73
@@ -822,6 +825,36 @@ for (i in 1:nrow(prediction)) {
 #cm
 stack.train.ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
 stack.rf <- caretStack(models_ensemble, method = "rf", trControl = stack.train.ctrl)
+stopCluster(c1)
+#calculate ROC and AUC
+prob4roc = cbind(as.data.frame(prediction), isSevere = testing$isSevere)
+rocs <- list()
+aucs <- list()
+for(i in 1:ncol(prediction)) {
+  rocs[[i]] <- roc(prob4roc$isSevere, prob4roc[,i], smooth = TRUE)
+  aucs[[i]] = rocs[[i]]$auc
+}
+names(rocs) = colnames(prediction)
+names(aucs) = colnames(prediction)
+print(unlist(aucs))
+
+aucs_text = "Area under curve:"
+for (i in 1:length(aucs)) {
+  aucs_text = paste(c(aucs_text, paste(c(toString(names(aucs[i]), width = 10), toString(round(aucs[[i]], 3))), collapse = ": ")), collapse = "\n")
+}
+print(toString(aucs_text))
+#plot the roc for xgbTree
+roc_data = data.frame(FPP = vector(mode = "double"), TPP = vector(mode = "double"), model_names = vector(mode = "character"))
+for (i in 1:length(rocs)) {
+  model_name = names(rocs[i])
+  print(model_name)
+  specificities = rocs[[i]]$specificities
+  sensitivies = rocs[[i]]$sensitivities
+  roc_data <- rbind(roc_data,  data.frame(FPP = 1- specificities, TPP = sensitivies, model_names=rep(model_name, length(specificities))))
+}
+ggplot(roc_data) + geom_line(aes(x = FPP, y = TPP, color = model_names, group = model_names)) + annotate("text", x = 0.5, y = 0.5, label = aucs_text) +
+  xlab("false positive rate") + ylab("true positive rate") +
+  theme_bw() + theme(panel.grid = element_blank())
 ```
 The result suggests that simplying polling different models does not improve prediction. @TODO: what is the correct way to use multiple models?
 
