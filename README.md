@@ -1,9 +1,11 @@
 # HushDataAnalysis
 
 **Data**
+
 This repository stores source code to analyze the electronic health records on ~15,000 patients that visited University of North Carolina for asthma patient. The raw dataset contains 8 separate tables that stores patient information, provider information, lab tests, medications, diagnosis etc. The raw data is not stored here for privacy reasons.
 
 **Goal**
+
 Our goal is to use this dataset to demonstrate how to use the loinc2hpo tool (link: https://github.com/monarch-initiative/loinc2hpo) and the loinc2hpoAnnotation library (link: https://github.com/TheJacksonLaboratory/loinc2hpoAnnotation).
 
 Specially, we hope to :
