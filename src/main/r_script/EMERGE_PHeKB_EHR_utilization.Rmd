@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
+```
+
+This is the dataset for the phenotyping algorithms deposited at PHeKB.
+Data retrived Aug 15, 2018
+
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+load data
+```{r}
+phekb <- read_xlsx("./data/PheKB_phenotype_algorithms.xlsx", skip = 1, col_names = TRUE, sheet = 1)
+```
+
+Count the percentage of algorithms that used lab tests
+```{r}
+colnames(phekb) <- make.names(colnames(phekb))
+methods <- phekb$Data.Modalities.and.Methods.Used.
+all <- vector(mode = "character")
+for (i in 1:length(methods)) {
+  if (length(methods[i]) == 0 | is.na(methods[i])) {
+    next
+  }
+  elements <- strsplit(methods[i], ",")[[1]]
+  for (j in 1: length(elements)){
+    e = trimws(elements[j]) # the trim is not working because, in short, there are different codings for space. 
+    e = gsub("(^\\s+)|(\\s+$)", "", e)
+    if (!is.element(e, all)){
+      all[length(all) + 1] = e
+    }
+  }
+}
+print(all)
+```
+
+```{r}
+names_all = make.names(all)
+n = ncol(phekb)
+for(i in 1:length(all)) {
+  phekb[,n+i] = ifelse(str_detect(phekb$Data.Modalities.and.Methods.Used., all[i]), 1, 0)
+}
+colnames(phekb)[(n+1):(n+length(names_all))] = names_all
+```
+
+Algorithms that used laboratories
+```{r}
+counts = lapply(phekb[,(n+1):(n+length(names_all))], sum, na.rm = TRUE)
+COUNT_ALL_METHODS = nrow(phekb)
+methods_list = names(counts)
+alg_count = unlist(counts)
+data_alg_method_count <- data.frame(method = methods_list, count = alg_count)
+
+data_alg_method_count <- data_alg_method_count %>% 
+  filter(str_detect(method, "ICD")) %>% 
+  summarise(method = "ICD.Codes", count = sum(count)) %>%
+  union(
+    data_alg_method_count %>% filter(!str_detect(method, "ICD"))
+  )
+
+ggplot(data_alg_method_count) + geom_bar(aes(fct_reorder(method, count, .desc = TRUE), count/COUNT_ALL_METHODS), stat = "identity", fill = "black") + 
+  xlab("Method Utilized") + ylab("percent of algorithms") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, vjust = 0.5))
+```
+
+Conclusion:
+
+In EMERGE phenotyping algorithms, lab test is only the fifth most frequently used data, behind diagnosis codes, medication, clinical notes and CPT procedure codes
