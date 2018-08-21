@@ -123,6 +123,8 @@ loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
+#select patient subset with Bronchospasm 
+patientWithBronchospasm <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:519%' OR icd LIKE 'ICD10:J98%'")
 #select all diagnosis for patients with asthma
 allICDCodesForPatientWithAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
 patient_withDiabetes <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:250%' OR icd LIKE 'ICD10:E11%'") %>%  mutate(withDiabeteICDCode = "Y")
@@ -543,11 +545,18 @@ selectedFeatures <- selectedFeatures$hpo
 # only choose records for patients diagnosed with asthma, not diabetes or chronic liver damage
 df4ML_filtered <- df4ML %>% filter(withAsthmaICDCode == "Y" & withDiabeteICDCode == "N" & withChronicLiverDamageICDCode == "N")
 df4ML_selected <- df4ML_filtered[,c("patient_num","sex_cd", "age", "encounter_no_days",selectedFeatures, "prscbCount")]
+#skip feature selection at this step
+#Conclusion: it performs worse!
+#df4ML_selected <- df4ML_filtered %>% select(patient_num, sex_cd, age, encounter_no_days, everything(), -record_duration, -starts_with("with"))
 dim(df4ML_selected)
 
 #factorize sex
 df4ML_selected$sex_cd = as.factor(df4ML_selected$sex_cd)
 #binarize prednisone prescription to 0 and 1--0 if not severe, 1 if severe
+#Important: 
+#Since there are more non-severe patients than severe patients, and that we are dropping many non-severe patients to balance the two classes, we will create a more strigent criteria for non-severe patients
+#Conclusion: it is not helpful. So switch back by changing the conditions in the ifelse statement
+#df4ML_selected <- df4ML_selected %>% mutate(isSevere = ifelse(prscbCount > SEVERITY_THRESHOLD, 1, ifelse(prscbCount <= SEVERITY_THRESHOLD, 0, 0.5))) %>% select(-prscbCount)
 df4ML_selected <- df4ML_selected %>% mutate(isSevere = ifelse(prscbCount > SEVERITY_THRESHOLD, 1, 0)) %>% select(-prscbCount)
 df4ML_selected$isSevere = as.factor(df4ML_selected$isSevere)
 
@@ -561,6 +570,7 @@ The caret library is used for machine learning. The doSNOW library is used for p
 ```{r}
 require(caret)
 require(doSNOW)
+require(pROC)
 ```
 
 ### preprocessing 
@@ -587,7 +597,11 @@ partation data into training and testing, ratio = 0.7
 ```{r}
 indexes <- createDataPartition(df4ML_dmy_imputed$isSevere, p = 0.7, list = FALSE)
 training <- df4ML_dmy_imputed[indexes,]
+#remove intermediant patients
+training <- training %>% filter(isSevere == 0 | isSevere == 1)
 testing <- df4ML_dmy_imputed[-indexes,]
+#change back intermediant patients to non-severe patients
+testing$isSevere[testing$isSevere == 0.5] = 0 
 ```
 optional: binarize the encounter days
 ```{r}
