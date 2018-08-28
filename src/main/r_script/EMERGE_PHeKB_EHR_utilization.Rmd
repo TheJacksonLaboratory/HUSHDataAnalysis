@@ -68,7 +68,7 @@ data_alg_method_count <- data_alg_method_count %>%
 
 ggplot(data_alg_method_count) + geom_bar(aes(fct_reorder(method, count, .desc = TRUE), count/COUNT_ALL_METHODS), stat = "identity", fill = "black") + 
   xlab("Method Utilized") + ylab("percent of algorithms") +
-  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
   theme_bw() + theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 

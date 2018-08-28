@@ -248,6 +248,15 @@ print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOp
   ggplot(uniqueHPOperPatient) + geom_histogram(aes(counts), binwidth = 10) + xlab("no. of unique HPO\nterms per patient") + ylab("patient Counts") +
   theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
 ggsave("./data/images/unique HPO term counts for each patient.png", width = 0.8, height = 0.8)
+
+aveKindsOfLoincs <- loinc2hpo %>% select(mapFailed, patient_num, concept_cd, hpoTerm) %>% 
+  filter(mapFailed == "false") %>%
+  select(-patient_num) %>%
+  distinct() %>%
+  group_by(hpoTerm) %>% 
+  summarise(counts = n()) %>%ungroup()
+no.aveKindsOfLoincsPerHPO = mean(aveKindsOfLoincs$counts)
+print(paste("average no. of distinct LOINC per HPO term: ", round(no.aveKindsOfLoincsPerHPO, 1), sep = ""))
 ```
 The results are pretty impressive. We have assigned ~500 HPO terms for each patient on average. Given that it is entirelly software-driven, we have made it possible to automatically phenotype patients from EHR at a large scale, which was still quite difficult to do. Among the ~500 HPO terms, ~50 of them are unique, which is expected because a patient are usually repeated given the same kind of lab test over time. 
 
@@ -878,22 +887,32 @@ Look visualize patients. Plot patients based on their HPO terms (do a PCA first)
 data_cluster <- df4ML_dmy_imputed 
 #data_cluster <- data_cluster %>% mutate(encounter_no_days = ifelse(encounter_no_days > VISITTIMES_THRESHOLD, 1, 0))
 
-k_cluster <- kmeans(data_cluster[,5:41], centers = 2, nstart = 4)
+k_cluster <- kmeans(data_cluster[,5:41], centers = 6, nstart = 4)
 data_clustered <- data_cluster %>% mutate(k_means_cluster = k_cluster$cluster)
 require(pcaPP)
 require(caret)
 preprocess <- preProcess(data_cluster[,c(5:41)], method = c("center", "scale", "YeoJohnson"))
 data_cluster_transformed <- predict(preprocess, newdata = data_cluster)
-data_cluster_2d <- PCAgrid(data_cluster_transformed[,c(5:41)], k = 2)
-
+data_cluster_2d <- PCAgrid(data_cluster_transformed[,c(5:41)], k = 2, scores = TRUE)
 cluster_pca <- cbind(data_clustered, data_cluster_2d$scores)
-
+#data_cluster_2d <- prcomp(data_cluster_transformed[,c(5:41)], scale. = TRUE, rank. = 2)
+#cluster_pca <- cbind(data_clustered, data_cluster_2d$x)
 ggplot(cluster_pca) + geom_point(aes(x = Comp.1, y = Comp.2, color = as.factor(isSevere), shape = as.factor(isSevere)), size = 1.3,  alpha = 0.6) +
   scale_shape_manual(name = "isSevere", values = c(20, 5)) + scale_color_manual(name = "isSevere",breaks = c(0, 1), values = c("deepskyblue", "red")) +
   xlab("PC1") + ylab("PC2") +
   theme_bw() + theme(panel.grid = element_blank())
 ```
 It defintely looks that severe patients are preferentially clustered on the right hand side.
+
+```{r}
+cluster_pca %>% mutate(Eosinophilia = ifelse(Eosinophilia >= 2, 2, Eosinophilia)) %>%
+ggplot() + geom_point(aes(x = Comp.1, y = Comp.2, color = as.factor(Eosinophilia), shape = as.factor(isSevere)), size = 1.3,  alpha = 1) + scale_color_brewer(name = "Eosinophilia Freq", palette = 3, breaks = c(0, 1, 2), labels = c("0", "1", ">=2")) + scale_shape_manual(name = "isSevere", values = c(15, 4), breaks = c(0, 1), labels = c("No", "Yes")) +
+  xlab("PC1") + ylab("PC2") +
+  theme_bw() + theme(panel.grid = element_blank())
+
+scale_fill_manual(name = "Eosinophilia",breaks = c(0, 1), values = c("deepskyblue", "red")) +scale_shape_manual(name = "isSevere", values = c(15, 4)) +scale_color_gradientn(name = "Eosinophilia Freq", breaks = c(0, 1, 2), labels = c("0", "1", ">=2"), colors = c("blue", "white","magenta"), space = "Lab")
+```
+
 
 Let's aggregate patients into each tile and plot the heatmap of ratios between severe vs nonsevere patients
 ```{r}
