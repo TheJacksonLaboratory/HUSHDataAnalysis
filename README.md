@@ -2,7 +2,7 @@
 
 **Data**
 
-This repository stores source code to analyze the electronic health records on ~15,000 patients that visited University of North Carolina for asthma patient. The raw dataset contains 8 separate tables that stores patient information, provider information, lab tests, medications, diagnosis etc. The raw data is not stored here for privacy reasons.
+This repository stores source code to analyze the electronic health records on ~15,000 patients that visited University of North Carolina for asthma patient. It can be packaged into a Jar to run on commandline. The raw dataset contains 8 separate tables that stores patient information, provider information, lab tests, medications, diagnosis etc. The raw data is not stored here for privacy reasons.
 
 **Goal**
 
