@@ -127,8 +127,13 @@ patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD W
 patientWithBronchospasm <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:519%' OR icd LIKE 'ICD10:J98%'")
 #select all diagnosis for patients with asthma
 allICDCodesForPatientWithAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
+#select all diagnosis for patients without asthma
+allICDCodesForPatientWithoutAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num NOT IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
 patient_withDiabetes <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:250%' OR icd LIKE 'ICD10:E11%'") %>%  mutate(withDiabeteICDCode = "Y")
 patient_withChronicLiverDamage <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'ICD10:N18' OR icd = 'ICD9:585'") %>% mutate(withChronicLiverDamageICDCode = "Y")
+#the following query is too broad. The vast majority of patients are selected
+#patient_withRepiratorySymptomsAndBreezingIssues <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'J45' OR icd = 'ICD10:R06' OR icd = 'ICD9:786' OR icd = 'ICD9:519'") %>% mutate(withRepiratorySymptomsAndBreezingIssues = "Y")
+patient_withBreazingDifficulties <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD10:R06.2%' OR concept_cd LIKE 'ICD10:R06.02' OR concept_cd LIKE 'ICD10:J98.01%' OR concept_cd LIKE 'ICD9:519.11%' OR concept_cd LIKE 'ICD9:786.07' ") %>% mutate(withBreathingDifficuities = "Y")
 
 icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
@@ -166,6 +171,7 @@ icd_3_digit_code_annotation <-
     )
 
 allDiagnosisCodesForAsthmaPatients <- allICDCodesForPatientWithAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+allDiagnosisCodesForNonAsthmaPatients <- allICDCodesForPatientWithoutAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
 head(allDiagnosisCodesForAsthmaPatients, n = 40)
 ```
 ```{r}
@@ -214,14 +220,14 @@ We have mapped nearly 70% of all lab tests into HPO, which is pretty good. Since
 Next, create a plot to show the success rate.
 ```{r}
 loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
-  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",  width = 1) + coord_polar(theta = "y") +
-  scale_fill_manual(name = "lab test to HPO\nconversion", breaks = c("false", "true"), labels = c("success", "fail"), values = c("green", "red")) + 
-  xlab("") + ylab("lab test to hpo conversion") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = c(0.0, 0.92), legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
+  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.5) + coord_polar(theta = "y") +
+  scale_fill_manual(name = "lab test to HPO\nconversion", breaks = c("false", "true"), labels = c("success", "fail"), values = c("white", "gray")) + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
 ```
 
 ```{r}
-ggsave("./data/images/Hush lab test to HPO conversion.png", width = 1.5, height = 1.5)
+ggsave("./data/images/Hush lab test to HPO conversion.png", width = 2, height = 2)
 ```
 
 ### count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
@@ -245,9 +251,9 @@ uniqueHPOperPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>%
 no.uniqueHPOperPatient = sum(uniqueHPOperPatient$counts) / nrow(patients)
 print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOperPatient, 1), sep = ""))
 
-  ggplot(uniqueHPOperPatient) + geom_histogram(aes(counts), binwidth = 10) + xlab("no. of unique HPO\nterms per patient") + ylab("patient Counts") +
-  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
-ggsave("./data/images/unique HPO term counts for each patient.png", width = 0.8, height = 0.8)
+  ggplot(uniqueHPOperPatient) + geom_histogram(aes(counts), binwidth = 10, fill = "white", color = "black", size = 0.75) + xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = 0), axis.title.x= element_text(vjust = 1))
+ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
 
 aveKindsOfLoincs <- loinc2hpo %>% select(mapFailed, patient_num, concept_cd, hpoTerm) %>% 
   filter(mapFailed == "false") %>%
@@ -259,6 +265,7 @@ no.aveKindsOfLoincsPerHPO = mean(aveKindsOfLoincs$counts)
 print(paste("average no. of distinct LOINC per HPO term: ", round(no.aveKindsOfLoincsPerHPO, 1), sep = ""))
 ```
 The results are pretty impressive. We have assigned ~500 HPO terms for each patient on average. Given that it is entirelly software-driven, we have made it possible to automatically phenotype patients from EHR at a large scale, which was still quite difficult to do. Among the ~500 HPO terms, ~50 of them are unique, which is expected because a patient are usually repeated given the same kind of lab test over time. 
+
 
 ### determine how many LOINC codes are collapsed to each HPO term
 We have shown that in our mapping library, we mapped multiple LOINC codes into one HPO term (8.7 LOINC per HPO term on average). Here, we will determine in a real-world dataset, how many LOINC-coded lab tests are collapsed to the same HPO terms. 
@@ -274,6 +281,17 @@ loincAggregated <- loinc2hpo %>%
   select(hpo, loincAggrgtdFrom) %>%
   distinct()
 head(loincAggregated, n = 20)
+
+aggrgedFromOneLOINC <- sum(loincAggregated$loincAggrgtdFrom==1)
+aggrgedFromTwoLOINC <- sum(loincAggregated$loincAggrgtdFrom==2)
+aggrgedFromThreeAndMoreLOINC <- sum(loincAggregated$loincAggrgtdFrom==3)
+data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC)) %>% 
+
+  ggplot() + geom_bar(aes(x = 1, y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.5) + coord_polar(theta = "y") +
+  scale_fill_manual(name = "aggregated from # distinct LOINC tests", breaks = c("1", "2", ">3"),  values = c("white", "gray75", "gray50")) + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8))
+ggsave("./data/images/aggregatedfrom.png", width = 2, height = 2)
 ```
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
 
@@ -484,12 +502,22 @@ outcome <- function(patientCombinedCounts, populationCount) {
     select(hpo, mappedTo = loincMappedTo, aggrgtdFrom = loincAggrgtdFrom, `notSeverePatientNo(%)`, nonSeverePercent, `severePatientNo(%)`, severePercent, pVal) %>% 
     arrange(pVal))
 }
-
+```
+```{r}
 noasthmaNoDiabetesNoLiverDamage <- outcome(noAsthmaNoDiabetesNoCLD[[1]], noAsthmaNoDiabetesNoCLD[[2]])
 noasthmaNoDiabetesNoLiverDamage_display <- noasthmaNoDiabetesNoLiverDamage %>% select(-nonSeverePercent, -severePercent)
 asthmaNoDiabetesNoLiverDamage <- outcome(hasAsthmaNoDiabetesNoCLD[[1]], hasAsthmaNoDiabetesNoCLD[[2]])
 asthmaNoDiabetesNoLiverDamage %>% select(-nonSeverePercent, -severePercent) %>% head(n = 10)
 ```
+
+```{r}
+noasthmaTerms <- outcome(noAsthma[[1]], noAsthma[[2]])
+View(noasthmaTerms)
+asthmaTerms <- outcome(hasAsthma[[1]], hasAsthma[[2]])
+View(asthmaTerms)
+```
+
+
 From the group of patients diagnosed with asthma but not diabetes or chronic liver damages, 
 
 save data
@@ -526,6 +554,56 @@ joined_data %>% na.omit() %>%
   scale_shape_manual(name = "significance", values = c(3, 4, 18, 16)) + scale_color_manual(name = "significance", values=c("red",  "blue", "orange", "black")) + scale_size_manual(name = "significance", values=c(3, 3, 2, 1)) +  xlab("HPO-dependent odds raio of being severe -asthma") + ylab("HPO-dependent odds raio of being severe +asthma") + theme_bw() + 
   theme(panel.grid = element_blank(), legend.position = c(0.2, 0.85), legend.background = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10), panel.border = element_rect(size = 1), legend.text = element_text(size = 10), legend.title = element_text(size = 10)) + geom_abline(intercept = 0, slope = 1, size = 0.5, color = "gray") + scale_y_continuous(limits = c(0, 10)) + scale_x_continuous(limits = c(0, 10))
 ```
+
+Test Logistic Regression for determining the HPO terms associated with asthma severity
+```{r}
+df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # still filter out patients that visited hospital infrequently 
+    distinct()
+#test if using breezing ICD codes will help
+#df_glm <- df_glm %>% left_join(patient_withBreazingDifficulties, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withBreathingDifficuities), "N", withBreathingDifficuities)) %>% select(-withBreathingDifficuities)
+
+glm_X = df_glm %>%  
+  mutate(isSevere = as.factor(ifelse(prscbCount >= SEVERITY_THRESHOLD, 1, 0))) %>%
+  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
+  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
+
+glm_Y = df_glm %>% select(9:133)
+low_variance <- nearZeroVar(glm_Y)
+glm_Y <- glm_Y[,-low_variance]  
+
+glm_p_value <- function(hpo, x = glm_X) {
+  target <- as.factor(ifelse(hpo > TERMFREQ_THRESHOLD, 1, ifelse(hpo == 0, 0, 0.5)))
+  df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1)
+  df_severe <- df %>% filter(isSevere == 1)
+  df_nonSevere <- df %>% filter(isSevere == 0)
+  sampled_rows <- sample(1:nrow(df_nonSevere), nrow(df_severe))
+  df <- rbind(df_severe, df_nonSevere[sampled_rows,])
+  glmmodel <- glm(target ~ isSevere + withAsthmaICDCode, data = df, family = binomial(link = "logit"))
+  return (summary(glmmodel))
+}
+
+l <- list(10)
+for (i in 1:10) {
+  tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
+  result <- data.frame(hpo = names(tests), 
+                           estimate.isSevere = tests %>% map_dbl(~.[2, 1]),
+                           estimate.withAsthmaICDCode = tests %>% map_dbl(~.[3,1]),
+                           p.isSevere = tests %>% map_dbl(~.[2,4]),
+                           p.withAsthmaICDCode = tests %>% map_dbl(~.[3,4]))
+  result %>% arrange(hpo)
+  l[[i]] = result
+}
+
+finalResult <- Reduce("+", l)/length(l)
+finalResult$hpo = l[[1]]$hpo
+finalResult %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
+
+finalResult %>% ggplot() +
+  geom_point(aes(x= Z.isSevere, y = Z.withAsthmaICDCode))
+```
+
+
+
 
 ```{r}
 ggsave("./data/images/likehood ratio.png", width = 4.5, height = 4.5)
@@ -960,11 +1038,47 @@ data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>%
 data_pyramid %>% na.omit() %>% 
   ggplot() +
   geom_bar(aes(x = cat, y = count, fill = sex_cd), stat = "identity") + 
-  scale_x_discrete(breaks = c(1:19), labels = c(1:19) * BINWIDTH) +
-  scale_y_continuous(breaks = seq(-2000, 2000, by = 500), labels = c(2000, 1500, 1000, 500, 0, 500, 1000, 1500, 2000), limits = c(-2000, 2000)) +
-  scale_fill_manual(name = "gender", values = c(M = "blue", F = "red"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") +
-  coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = c(0.1, 0.2))
+  scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(2,10,2) * BINWIDTH) +
+  scale_y_continuous(breaks = seq(-2000, 2000, by = 1000), labels = c(2000, 1000, 0, 1000, 2000)/1000, limits = c(-2000, 2000)) +
+  scale_fill_manual(name = "gender", values = c(M = "royalblue", F = "lightcoral"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") + ylab("count (x1,000)") +
+  coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10))
+
+ggsave("./data/images/patient_sex_age_distribution.png", width = 2, height = 1.5)
 ```
+
+```{r}
+patientPartation <- patients %>% left_join(patient_withAsthmaICD, by = "patient_num") %>% mutate(withAsthmaICDCode = replace_na(withAsthmaICDCode, "N")) %>% 
+  distinct() %>%
+  group_by(withAsthmaICDCode) %>%
+  summarise(count = n()) %>% ungroup() 
+patientPartation %>%
+  ggplot() + geom_bar(aes(x = 1, y = count, fill = withAsthmaICDCode), color = "black", stat = "identity", position = "stack") + xlab("") + ylab("") + 
+  scale_fill_manual(values = c(N = "white", Y = "black"), breaks = c("N", "Y")) +
+  theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", panel.border = element_blank(), axis.line = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) 
+
+ggsave("./data/images/asthma_code_partation.png", width = 1, height = 4)
+```
+
+```{r}
+diagnosisCodesForAsthmaAndNonAsthma <- allDiagnosisCodesForAsthmaPatients %>% transmute(icd, asthma = count) %>% full_join(
+  allDiagnosisCodesForNonAsthmaPatients %>% transmute(icd, nonAsthma = count), by = "icd"
+) %>%
+  mutate(asthma = replace_na(asthma, 0), nonAsthma = replace_na(nonAsthma, 0)) %>% left_join(icd_3_digit_code_annotation, by = "icd")
+originalLabel = diagnosisCodesForAsthmaAndNonAsthma[1:30,]$icd
+newLabel = diagnosisCodesForAsthmaAndNonAsthma[1:30,]$descr
+diagnosisCodesForAsthmaAndNonAsthma[1:30,] %>% 
+  mutate(icd = factor(icd, rev(reorder(icd, asthma))), asthma = asthma/patientPartation$count[2], nonAsthma = nonAsthma/patientPartation$count[1]) %>%
+  gather(asthma, nonAsthma, key = "asthma", value = "fraction") %>% filter(descr != "Asthma") %>%
+  ggplot() + geom_tile(aes(x = asthma, y = icd, fill = fraction)) + scale_y_discrete(breaks = originalLabel, labels = newLabel) +
+  xlab("") + ylab("") +
+  scale_fill_gradient2(low = "blue", mid = "white",
+  high = "magenta", midpoint = 0.6) + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10), panel.border = element_blank())
+
+ggsave("./data/images/otherICDcodes.png", width = 8, height = 5)
+  
+```
+
 
 track time
 ```{r}

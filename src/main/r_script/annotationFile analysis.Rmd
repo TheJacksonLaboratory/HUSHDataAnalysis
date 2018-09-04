@@ -2,8 +2,10 @@
 title: "R Notebook"
 output: html_notebook
 ---
-```{r}
 
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
 ```
 
 Statistics of the loinc2hpo annotation file
@@ -38,9 +40,9 @@ noOfLOINCsMappedToEachHPO <- annotationFile %>% select(loincId, hpoTermId) %>% d
 
 ggplot(noOfLOINCsMappedToEachHPO) + geom_bar(aes(noLoinc, ..count.. / sum (..count..)), fill = "black") + 
   scale_y_continuous(labels = scales::percent) +
-  scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
-  xlab("no. of LOINC codes mapped to the each HPO term") + ylab("frequency") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10))
-ggsave("distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
+  #scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
+  xlab("number of distinct LOINC codes mapped to the same HPO terms") + ylab("frequency") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75))
+ggsave("./data/images/distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
 ```
 
