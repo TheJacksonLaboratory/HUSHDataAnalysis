@@ -568,22 +568,24 @@ glm_X = df_glm %>%
   select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
 
 glm_Y = df_glm %>% select(9:133)
+library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  
 
 glm_p_value <- function(hpo, x = glm_X) {
-  target <- as.factor(ifelse(hpo > TERMFREQ_THRESHOLD, 1, ifelse(hpo == 0, 0, 0.5)))
+  target <- as.factor(ifelse(hpo >= 3, 1, ifelse(hpo == 0, 0, 0.5)))
   df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1)
   df_severe <- df %>% filter(isSevere == 1)
   df_nonSevere <- df %>% filter(isSevere == 0)
   sampled_rows <- sample(1:nrow(df_nonSevere), nrow(df_severe))
   df <- rbind(df_severe, df_nonSevere[sampled_rows,])
-  glmmodel <- glm(target ~ isSevere + withAsthmaICDCode, data = df, family = binomial(link = "logit"))
+  glmmodel <- glm(target ~ isSevere + withAsthmaICDCode, data = df, family = binomial(link = "logit"), maxit = 50)
   return (summary(glmmodel))
 }
 
+set.seed(757)
 l <- list(10)
-for (i in 1:10) {
+for (i in 1:1) {
   tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
   result <- data.frame(hpo = names(tests), 
                            estimate.isSevere = tests %>% map_dbl(~.[2, 1]),
