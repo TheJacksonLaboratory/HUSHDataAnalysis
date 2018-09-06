@@ -134,6 +134,7 @@ patient_withChronicLiverDamage <- dbGetQuery(db, "SELECT DISTINCT(patient_num) F
 #the following query is too broad. The vast majority of patients are selected
 #patient_withRepiratorySymptomsAndBreezingIssues <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'J45' OR icd = 'ICD10:R06' OR icd = 'ICD9:786' OR icd = 'ICD9:519'") %>% mutate(withRepiratorySymptomsAndBreezingIssues = "Y")
 patient_withBreazingDifficulties <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD10:R06.2%' OR concept_cd LIKE 'ICD10:R06.02' OR concept_cd LIKE 'ICD10:J98.01%' OR concept_cd LIKE 'ICD9:519.11%' OR concept_cd LIKE 'ICD9:786.07' ") %>% mutate(withBreathingDifficuities = "Y")
+patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD10:J45._1%' OR concept_cd LIKE 'ICD10:J45._2%' OR concept_cd LIKE 'ICD10:J45.90%'  OR concept_cd LIKE 'ICD9:493._1%' OR concept_cd LIKE 'ICD9:493._2' ") %>% mutate(withAcuteAsthma = "Y")
 
 icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
@@ -559,13 +560,29 @@ Test Logistic Regression for determining the HPO terms associated with asthma se
 ```{r}
 df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # still filter out patients that visited hospital infrequently 
     distinct()
-#test if using breezing ICD codes will help
-#df_glm <- df_glm %>% left_join(patient_withBreazingDifficulties, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withBreathingDifficuities), "N", withBreathingDifficuities)) %>% select(-withBreathingDifficuities)
 
 glm_X = df_glm %>%  
   mutate(isSevere = as.factor(ifelse(prscbCount >= SEVERITY_THRESHOLD, 1, 0))) %>%
   mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
   select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
+
+# severity classification
+severity_class <- function(x) {
+  y <- vector(mode = "numeric", length = length(x))
+  y = case_when(
+    x <= 1 ~ 0,
+    x >1 & x <= 5 ~ 1,
+    x > 5 & x < 10 ~ 2,
+    x > 10 ~ 3
+  )
+  return (y)
+}
+
+#glm_X = df_glm %>%  
+#  mutate(isSevere = as.factor(severity_class(prscbCount))) %>%
+#  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
+#  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
+
 
 glm_Y = df_glm %>% select(9:133)
 library(caret)
@@ -584,6 +601,68 @@ glm_p_value <- function(hpo, x = glm_X) {
 }
 
 set.seed(757)
+
+tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
+  result <- data.frame(hpo = names(tests), 
+                           estimate.isSevere = tests %>% map_dbl(~.[2, 1]),
+                           estimate.withAsthmaICDCode = tests %>% map_dbl(~.[3,1]),
+                           p.isSevere = tests %>% map_dbl(~.[2,4]),
+                           p.withAsthmaICDCode = tests %>% map_dbl(~.[3,4]))
+  
+result %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
+```
+
+The above test has a little unstability due to the fact that we have to sample the control popultion to get the p value. below the test is more rigious and the result is pretty similar. 
+Note: below we use acute asthma patients only. No sampling
+```{r}
+df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # still filter out patients that visited hospital infrequently 
+    distinct()
+#test if using breezing ICD codes will help
+#df_glm <- df_glm %>% left_join(patient_withBreazingDifficulties, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withBreathingDifficuities), "N", withBreathingDifficuities)) %>% select(-withBreathingDifficuities)
+
+#test if using severe asthma ICD codes will help
+df_glm <- df_glm %>% left_join(patient_withAcuteAsthma, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withAcuteAsthma), "N", "Y")) %>% select(-withAcuteAsthma)
+
+glm_X = df_glm %>%  
+  mutate(isSevere = as.factor(ifelse(prscbCount >= SEVERITY_THRESHOLD-3, 1, 0))) %>%
+  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
+  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
+
+# severity classification
+severity_class <- function(x) {
+  y <- vector(mode = "numeric", length = length(x))
+  y = case_when(
+    x <= 1 ~ 0,
+    x >1 & x <= 5 ~ 1,
+    x > 5 & x < 10 ~ 2,
+    x > 10 ~ 3
+  )
+  return (y)
+}
+
+#glm_X = df_glm %>%  
+#  mutate(isSevere = as.factor(severity_class(prscbCount))) %>%
+#  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
+#  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
+
+
+glm_Y = df_glm %>% select(9:133)
+library(caret)
+low_variance <- nearZeroVar(glm_Y)
+glm_Y <- glm_Y[,-low_variance]  
+
+glm_p_value <- function(hpo, x = glm_X) {
+  target <- as.factor(ifelse(hpo >= 3, 1, ifelse(hpo == 0, 0, 0.5)))
+  df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1)
+  df_severe <- df %>% filter(isSevere == 1)
+  df_nonSevere <- df %>% filter(isSevere == 0)
+  sampled_rows <- sample(1:nrow(df_nonSevere), nrow(df_nonSevere))
+  df <- rbind(df_severe, df_nonSevere[sampled_rows,])
+  glmmodel <- glm(target ~ isSevere + withAsthmaICDCode, data = df, family = binomial(link = "logit"), maxit = 50)
+  return (summary(glmmodel))
+}
+
+set.seed(9999)
 l <- list(10)
 for (i in 1:1) {
   tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
@@ -599,11 +678,7 @@ for (i in 1:1) {
 finalResult <- Reduce("+", l)/length(l)
 finalResult$hpo = l[[1]]$hpo
 finalResult %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
-
-finalResult %>% ggplot() +
-  geom_point(aes(x= Z.isSevere, y = Z.withAsthmaICDCode))
 ```
-
 
 
 
