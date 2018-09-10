@@ -48,8 +48,9 @@ ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count.
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75)) + scale_x_reverse() + coord_flip()
 ggsave("./data/images/distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
 
-noOfLOINCsMappedToEachHPO %>% filter(noLoinc == 10) %>% map_chr(~.$hpoTermId, "+")
-ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count../sum(..count..)), fill = "black", binwidth = 1) + geom_label(aes(x = 10, y = 0.1, label = "example")) +
+HPO_10 = noOfLOINCsMappedToEachHPO %>% filter(noLoinc == 10) %>% select(hpoTermId) %>% unlist() %>% as.character() %>% str_c(collapse = "\n")
+
+ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count../sum(..count..)), fill = "black", binwidth = 1) + geom_label(aes(x = 10, y = 0.3, label = str_c("aggregation factor = 10", HPO_10, sep = "\n")), size = 2) +
   scale_y_continuous(labels = scales::percent)+
   scale_x_continuous(limits = c(18, 0), trans = "reverse") +
   xlab("HPO aggregation factor ") + ylab("frequency of HPO terms") + theme_bw() +
