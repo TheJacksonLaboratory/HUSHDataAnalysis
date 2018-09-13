@@ -2,9 +2,9 @@ library(dplyr)
 library(ggplot2)
 library(scales)
 total_count <- 54683532
-cpt_category_counts <- read.csv("/Users/zhangx/git/HushToFhir/data/cpt_category_count.csv", header = TRUE, sep = ",", skip = 1)
-cpt_category_counts$index <- seq(nrow(cpt_category_counts))
-ggplot(cpt_category_counts) + geom_bar(aes(x = index, y = count / total_count), stat = "identity") + 
+concept_counts <- read.csv("/Users/zhangx/git/HushToFhir/data/cpt_category_count.csv", header = TRUE, sep = ",", skip = 1)
+concept_counts$index <- seq(nrow(concept_counts))
+ggplot(concept_counts) + geom_bar(aes(x = index, y = count / total_count), stat = "identity") + 
   geom_text(aes(x = index, y = count / total_count, label = category, vjust = -2 +1  * (index + 1) %% 2, hjust = (index + 1) %% 2 * 0.4)) +
   scale_x_continuous(limit = c(0, 15)) + scale_y_continuous(limit = c(0, 0.25), labels = percent) + 
   xlab("concept category rank") + ylab("percentage frequency") + 
@@ -22,3 +22,28 @@ ggplot(data) + geom_line(aes(x = step, y = count / total_count), color = "blue")
   xlab("most frequent concepts") + ylab("cumulative freq (% of total)") + ggtitle("Cumulative freq of top 500 concepts") +
   theme_bw() + theme(panel.grid = element_blank())
 ggsave("cumulative_freq_plot.pdf", width = 4, height = 5)
+
+
+# make a mosaic plot to show the information in the dataset
+concept_counts_top <- concept_counts %>% filter(index <= 9) %>% mutate(linecount = count) %>% select(-index)
+tables <- c("PATIENTS", "PROVIDERS", "VISITS")
+lineCount <- c(15682, 6986, 3471371)
+hush_data_line_counts <- concept_counts_top %>% select(category, linecount) %>%
+  bind_rows(data.frame(category = tables, linecount = lineCount)) %>%
+  arrange(-linecount) %>%
+  mutate(w = c(0.2, 0.2, 0.2, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05 ))
+
+set.seed(125)
+hush_data_line_counts %>% 
+  mutate(x1 = rep(1:3, each = 4)) %>%
+  mutate(x2 = rep(1:4, 3)) %>% 
+  mutate(x3 = sample(1:4, 12, replace = TRUE)) %>%
+  mutate(x1 = factor(x1), x2 = factor(x2), x3 = factor(x3)) %>%
+  ggplot() + geom_mosaic(aes(weight = linecount, x = product(x1, x2), fill = x3), na.rm = TRUE) +
+  xlab("") + ylab("") +
+  theme_bw() + 
+  theme(axis.ticks = element_blank(), axis.text = element_blank(), 
+        panel.grid = element_blank(), panel.background = element_blank(),
+        panel.border = element_blank(), legend.position = "none") +
+  coord_flip()
+  

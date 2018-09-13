@@ -601,12 +601,28 @@ glm_p_value <- function(hpo, x = glm_X) {
 }
 
 set.seed(757)
-
 tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
-  result <- data.frame(hpo = names(tests), 
-                           estimate.isSevere = tests %>% map_dbl(~.[2, 1]),
-                           estimate.withAsthmaICDCode = tests %>% map_dbl(~.[3,1]),
+
+confid.int <- function(mean, sd, critical.value = 1.98, FUN = exp) {
+  result <- vector(mode = "character", length = length(mean))
+  lower <- mean - critical.value * sd
+  upper <- mean + critical.value * sd
+  lower.transf <- FUN(lower)
+  upper.transf <- FUN(upper)
+  for (i in 1 : length(mean)){
+    result[i] <- str_c(c("[", as.character(round(lower.transf[i], 2)), "~", as.character(round(upper.transf[i], 2)), "]"), sep = "", collapse = "")
+  }
+  return (result)
+}
+
+result <- data.frame(hpo = names(tests), 
+                           estimate.isSevere = round(exp(tests %>% map_dbl(~.[2, 1])), 2),
+                           ci.isSevere = confid.int(tests %>% map_dbl(~.[2, 1]), 
+                                                    tests %>% map_dbl(~.[2, 2])),
                            p.isSevere = tests %>% map_dbl(~.[2,4]),
+                           estimate.withAsthmaICDCode = round(exp(tests %>% map_dbl(~.[3,1])), 2),
+                           ci.withAsthmaICDCode = confid.int(tests %>% map_dbl(~.[3, 1]), 
+                                                    tests %>% map_dbl(~.[3, 2])),
                            p.withAsthmaICDCode = tests %>% map_dbl(~.[3,4]))
   
 result %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
@@ -663,21 +679,32 @@ glm_p_value <- function(hpo, x = glm_X) {
 }
 
 set.seed(9999)
-l <- list(10)
-for (i in 1:1) {
+#l <- list(10)
   tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
   result <- data.frame(hpo = names(tests), 
-                           estimate.isSevere = tests %>% map_dbl(~.[2, 1]),
-                           estimate.withAsthmaICDCode = tests %>% map_dbl(~.[3,1]),
-                           p.isSevere = tests %>% map_dbl(~.[2,4]),
-                           p.withAsthmaICDCode = tests %>% map_dbl(~.[3,4]))
-  result %>% arrange(hpo)
-  l[[i]] = result
-}
-
-finalResult <- Reduce("+", l)/length(l)
-finalResult$hpo = l[[1]]$hpo
-finalResult %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
+                           `odds ratio_steroid` = round(exp(tests %>% map_dbl(~.[2, 1])), 2),
+                           `CI(95%)_steroid` = confid.int(tests %>% map_dbl(~.[2, 1]), 
+                                                    tests %>% map_dbl(~.[2, 2])),
+                           p_steroid = tests %>% map_dbl(~.[2,4]),
+                           `odds ratio_asthma diagnosis` = round(exp(tests %>% map_dbl(~.[3,1])), 2),
+                           `CI(95%)_asthma diagnosis` = confid.int(tests %>% map_dbl(~.[3, 1]), 
+                                                    tests %>% map_dbl(~.[3, 2])),
+                           `p_asthma diagnosis` = tests %>% map_dbl(~.[3,4]))
+  
+  
+  result_logistic <- result %>% arrange(-`odds.ratio_asthma.diagnosis`) 
+  write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
+  View(result_logistic)
+  
+  ggplot(result_logistic) + 
+    geom_point(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis)) + 
+    geom_text(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis, label = hpo), data = result_logistic %>% filter(odds.ratio_asthma.diagnosis > 1.1 | odds.ratio_steroid > 5), hjust = -0.1, check_overlap = TRUE) +
+    geom_hline(yintercept = 1) + geom_vline(xintercept = 1) + 
+    scale_x_continuous(limits = c(0, 15)) +
+    theme_bw()
+#finalResult <- Reduce("+", l)/length(l)
+#finalResult$hpo = l[[1]]$hpo
+#finalResult %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
 ```
 
 
