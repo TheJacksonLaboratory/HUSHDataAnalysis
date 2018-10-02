@@ -220,15 +220,18 @@ We have mapped nearly 70% of all lab tests into HPO, which is pretty good. Since
 
 Next, create a plot to show the success rate.
 ```{r}
+label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
+
 loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
-  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.5) + coord_polar(theta = "y") +
-  scale_fill_manual(name = "lab test to HPO\nconversion", breaks = c("false", "true"), labels = c("success", "fail"), values = c("white", "gray")) + 
+  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
+  geom_text(aes(x = 1, y = counts / sum(counts) - c(0, 0.15), label = c(label1, "")), size = 2) +
+  scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
 ```
 
 ```{r}
-ggsave("./data/images/Hush lab test to HPO conversion.png", width = 2, height = 2)
+ggsave("./data/images/Hush lab test to HPO conversion.png", width = 1.2, height = 1.2)
 ```
 
 ### count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
@@ -252,8 +255,17 @@ uniqueHPOperPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>%
 no.uniqueHPOperPatient = sum(uniqueHPOperPatient$counts) / nrow(patients)
 print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOperPatient, 1), sep = ""))
 
-  ggplot(uniqueHPOperPatient) + geom_histogram(aes(counts), binwidth = 10, fill = "white", color = "black", size = 0.75) + xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
-  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = 0), axis.title.x= element_text(vjust = 1))
+  ggplot(uniqueHPOperPatient) + 
+    geom_histogram(aes(counts), binwidth = 10, fill = "orange", color = "black", size = 0.25) +
+    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+  theme_bw() + 
+    theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
+          axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
+          axis.ticks.length = unit(0.1, "line"), 
+          panel.border = element_rect(size = 0.5), 
+          panel.background = element_blank(), 
+          axis.title.y = element_text(vjust = 0), 
+          axis.title.x= element_text(vjust = 1))
 ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
 
 aveKindsOfLoincs <- loinc2hpo %>% select(mapFailed, patient_num, concept_cd, hpoTerm) %>% 
@@ -286,13 +298,22 @@ head(loincAggregated, n = 20)
 aggrgedFromOneLOINC <- sum(loincAggregated$loincAggrgtdFrom==1)
 aggrgedFromTwoLOINC <- sum(loincAggregated$loincAggrgtdFrom==2)
 aggrgedFromThreeAndMoreLOINC <- sum(loincAggregated$loincAggrgtdFrom==3)
-data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC)) %>% 
+aggrgLOINCtypes <- data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC))  
 
-  ggplot() + geom_bar(aes(x = 1, y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.5) + coord_polar(theta = "y") +
+  ggplot(aggrgLOINCtypes) + geom_bar(aes(x = 1, y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.5) + coord_polar(theta = "y") +
   scale_fill_manual(name = "aggregated from # distinct LOINC tests", breaks = c("1", "2", ">3"),  values = c("white", "gray75", "gray50")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8))
 ggsave("./data/images/aggregatedfrom.png", width = 2, height = 2)
+
+ggplot(aggrgLOINCtypes) + 
+  geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
+  xlab("mapped LOINC terms") + ylab("counts of HPO") + 
+  theme_bw() + 
+  scale_y_continuous(limits = c(0, 140)) +
+  theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
+
+ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 2)
 ```
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
 
@@ -640,7 +661,7 @@ df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # stil
 df_glm <- df_glm %>% left_join(patient_withAcuteAsthma, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withAcuteAsthma), "N", "Y")) %>% select(-withAcuteAsthma)
 
 glm_X = df_glm %>%  
-  mutate(isSevere = as.factor(ifelse(prscbCount >= SEVERITY_THRESHOLD-3, 1, 0))) %>%
+  mutate(isSevere = as.factor(ifelse(prscbCount >= SEVERITY_THRESHOLD, 1, 0))) %>%
   mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
   select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
 
@@ -705,6 +726,9 @@ set.seed(9999)
 #finalResult <- Reduce("+", l)/length(l)
 #finalResult$hpo = l[[1]]$hpo
 #finalResult %>% arrange(-estimate.withAsthmaICDCode) %>% filter(p.isSevere < 1, p.withAsthmaICDCode < 1) %>% View()
+  
+  glm_X %>% mutate(isFrequent = prscbCount >= SEVERITY_THRESHOLD) %>% group_by(withAsthmaICDCode, isFrequent) %>% summarise(total = n()) %>% ungroup() %>% spread(key = isFrequent, value = total)
+  
 ```
 
 

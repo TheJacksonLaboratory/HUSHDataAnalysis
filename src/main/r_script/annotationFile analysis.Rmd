@@ -25,12 +25,15 @@ distribution of annotatio LOINC types
 ```{r}
 loincTypes <- annotationFile %>% select(loincId, loincScale) %>% distinct()
 ggplot(loincTypes) + 
-  geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..)), fill = "black") +
+  geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..), fill = loincScale)) +
   xlab("LOINC type") + ylab("percentage")  +
-  scale_x_discrete(breaks = c("Qn", "Ord", "Nom", "Unknown"), labels = c("Qn", "Ord", "Nom", "Panel"))+ theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8)) + 
+  scale_x_discrete(breaks = c("Qn", "Ord", "Nom", "Unknown"), labels = c("Qn", "Ord", "Nom", "Panel")) + 
+  theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), legend.position = "none") + 
   scale_y_continuous(labels = scales::percent)
-loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
+loincTypeStatistics <- loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
+loincTypeStatistics
+print(sum(loincTypeStatistics$no))
 ```
 ```{r}
 ggsave("./data/images/annotatedLoincDistribution.png", width = 1.8, height = 2)
@@ -40,21 +43,32 @@ count the total number of HPO terms
 ```{r}
 annotationFile %>% select(hpoTermId) %>% distinct() %>% count()
 noOfLOINCsMappedToEachHPO <- annotationFile %>% select(loincId, hpoTermId) %>% distinct() %>% group_by(hpoTermId) %>% mutate(noLoinc = n()) %>% ungroup() %>% select(hpoTermId, noLoinc) %>% distinct() 
+sum(noOfLOINCsMappedToEachHPO$noLoinc >= 2) / nrow(noOfLOINCsMappedToEachHPO)
+mean(noOfLOINCsMappedToEachHPO$noLoinc)
+median(noOfLOINCsMappedToEachHPO$noLoinc)
 
 ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count.. / sum (..count..)), fill = "black", binwidth =1) + 
   scale_y_continuous(labels = scales::percent) +
   #scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
   xlab("number of distinct LOINC codes mapped to the same HPO terms") + ylab("frequency") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75)) + scale_x_reverse() + coord_flip()
-ggsave("./data/images/distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
+#ggsave("./data/images/distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
 
-HPO_10 = noOfLOINCsMappedToEachHPO %>% filter(noLoinc == 10) %>% select(hpoTermId) %>% unlist() %>% as.character() %>% str_c(collapse = "\n")
+HIGHLIGHT = 10
+HPO_example = noOfLOINCsMappedToEachHPO %>% filter(noLoinc == HIGHLIGHT) %>% select(hpoTermId) %>% unlist() %>% as.character() %>% str_c(collapse = "\n")
 
-ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count../sum(..count..)), fill = "black", binwidth = 1) + geom_label(aes(x = 10, y = 0.3, label = str_c("aggregation factor = 10", HPO_10, sep = "\n")), size = 2) +
+noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc)) %>% group_by(noLoinc) %>% summarise(noHPO = n()) %>% ungroup() %>%
+  rename(aggrgFactor = noLoinc) %>% 
+  mutate(tohighlight = ifelse(aggrgFactor == HIGHLIGHT, "Y", "N")) %>%
+  ggplot() + 
+  geom_bar(aes(x = aggrgFactor, y = noHPO/sum(noHPO), fill = tohighlight), stat = "identity",  
+           size = 0.2) + 
+  geom_text(aes(x = 10, y = 0.3, label = str_c("mapped to 10 LOINC tests:", HPO_example, sep = "\n")), size = 2, color = "orange") +
   scale_y_continuous(labels = scales::percent)+
-  scale_x_continuous(limits = c(18, 0), trans = "reverse") +
-  xlab("HPO aggregation factor ") + ylab("frequency of HPO terms") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75)) + coord_flip()
+  scale_x_continuous(limits = c(21, 0), trans = "reverse", breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
+  scale_fill_manual(limits = c("Y", "N"), values = c("orange", "dodgerblue")) +
+  xlab("mapped LOINC terms") + ylab("percentage of HPO terms") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75), legend.position = "none") + coord_flip()
 
 ggsave("./data/images/distribution of HPO terms.png", width = 2, height = 2)
 

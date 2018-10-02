@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(ggmosaic)
 total_count <- 54683532
 concept_counts <- read.csv("/Users/zhangx/git/HushToFhir/data/cpt_category_count.csv", header = TRUE, sep = ",", skip = 1)
 concept_counts$index <- seq(nrow(concept_counts))
@@ -33,11 +34,11 @@ hush_data_line_counts <- concept_counts_top %>% select(category, linecount) %>%
   arrange(-linecount) %>%
   mutate(w = c(0.2, 0.2, 0.2, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05 ))
 
-set.seed(125)
+set.seed(121)
 hush_data_line_counts %>% 
   mutate(x1 = rep(1:3, each = 4)) %>%
   mutate(x2 = rep(1:4, 3)) %>% 
-  mutate(x3 = sample(1:4, 12, replace = TRUE)) %>%
+  mutate(x3 = sample(1:6, 12, replace = TRUE)) %>%
   mutate(x1 = factor(x1), x2 = factor(x2), x3 = factor(x3)) %>%
   ggplot() + geom_mosaic(aes(weight = linecount, x = product(x1, x2), fill = x3), na.rm = TRUE) +
   xlab("") + ylab("") +
@@ -47,3 +48,19 @@ hush_data_line_counts %>%
         panel.border = element_blank(), legend.position = "none") +
   coord_flip()
   
+ggsave("/Users/zhangx/git/HushToFhir/data/images/hush_dataset.png", width = 1.5, height = 1.5)
+
+hush_data_line_counts$isUsed = c("Y", "Y", "N", "Y", "Y", "Y", "N", "N", "N", "N", "Y", "N")
+
+hush_data_line_counts %>% 
+  ggplot() + 
+  geom_bar(aes(x=fct_reorder(category, -linecount), y = linecount/1000000, fill = isUsed), 
+           stat = "identity", color = "black", size = 0.1) +
+  xlab("") + ylab("million lines") +
+  scale_fill_manual(limits = c("N", "Y"), values = c("white", "cyan3")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, size = 8), axis.text.y = element_text(size = 8),
+        axis.title = element_text(size = 8),
+        panel.grid = element_blank(), 
+        legend.position = "none")
+ggsave("/Users/zhangx/git/HushToFhir/data/images/hush_dataset_bar.png", width = 3, height = 2.5)
