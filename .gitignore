@@ -11,6 +11,8 @@ data/loincAnnotationstats8-2-2018.tsv
 src/main/r_script/*.html
 src/main/r_script/*.pdf
 src/main/r_script/Hush+_data_matrix.csv
+data/patientAbnormalTermMapFreq-inferred.csv
+data/patientTermMapFreq.csv
 
 .Rhistory
 

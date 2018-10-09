@@ -1,7 +1,5 @@
 package org.jax.database;
 
-import org.antlr.v4.runtime.CodePointBuffer;
-import org.jax.DateModel.SourceSystemEnumType;
 import org.jax.Exception.IllegalDataTypeException;
 import org.jax.Exception.MalformedLineException;
 import org.jax.Parsers.ObservationFact;
@@ -13,7 +11,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
-import java.util.Date;
 
 public class LoadObservation extends TableImporter {
 

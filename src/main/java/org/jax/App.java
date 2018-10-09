@@ -13,22 +13,25 @@ import org.jax.database.TableImporter;
 import org.monarchinitiative.loinc2hpo.codesystems.Code;
 import org.monarchinitiative.loinc2hpo.codesystems.Loinc2HPOCodedValue;
 import org.monarchinitiative.loinc2hpo.exception.MalformedLoincCodeException;
+import org.monarchinitiative.loinc2hpo.io.HpoOntologyParser;
 import org.monarchinitiative.loinc2hpo.io.LoincAnnotationSerializationFactory;
 import org.monarchinitiative.loinc2hpo.loinc.HpoTerm4TestOutcome;
 import org.monarchinitiative.loinc2hpo.loinc.LOINC2HpoAnnotationImpl;
 import org.monarchinitiative.loinc2hpo.loinc.LoincEntry;
 import org.monarchinitiative.loinc2hpo.loinc.LoincId;
+import org.monarchinitiative.loinc2hpo.patientmodel.BagOfTerms;
+import org.monarchinitiative.loinc2hpo.patientmodel.BagOfTermsWithFrequencies;
 import org.monarchinitiative.loinc2hpo.testresult.PhenoSetUnionFind;
 import org.monarchinitiative.phenol.base.PhenolException;
 import org.monarchinitiative.phenol.formats.hpo.HpoOntology;
 import org.monarchinitiative.phenol.io.obo.hpo.HpOboParser;
+import org.monarchinitiative.phenol.ontology.data.Ontology;
 import org.monarchinitiative.phenol.ontology.data.Term;
 import org.monarchinitiative.phenol.ontology.data.TermId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.nio.Buffer;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,6 +49,7 @@ public class App {
     private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     private static Map<LoincId, LOINC2HpoAnnotationImpl> testmap = new HashMap<>();
+    private static HpoOntology hpo;
     private static Map<String, Term> hpoTermMap;
     private static Map<TermId, Term> hpoTermMap2;
     private static Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap;
@@ -514,21 +518,26 @@ public class App {
     }
 
     static void importHPO(String path) throws IOException, PhenolException {
-        HpOboParser hpoOboParser = new HpOboParser(new File(path));
-        HpoOntology hpo = hpoOboParser.parse();
-
-        ImmutableMap.Builder<String,Term> termmap = new ImmutableMap.Builder<>();
-        ImmutableMap.Builder<TermId, Term> termMap2 = new ImmutableMap.Builder<>();
-        if (hpo !=null) {
-            List<Term> res = hpo.getTermMap().values().stream().distinct()
-                    .collect(Collectors.toList());
-            res.forEach( term -> {
-                termmap.put(term.getName(),term);
-                termMap2.put(term.getId(), term);
-            });
-        }
-        hpoTermMap = termmap.build();
-        hpoTermMap2 = termMap2.build();
+//        HpOboParser hpoOboParser = new HpOboParser(new File(path));
+//        HpoOntology hpo = hpoOboParser.parse();
+//
+//        ImmutableMap.Builder<String,Term> termmap = new ImmutableMap.Builder<>();
+//        ImmutableMap.Builder<TermId, Term> termMap2 = new ImmutableMap.Builder<>();
+//        if (hpo !=null) {
+//            List<Term> res = hpo.getTermMap().values().stream().distinct()
+//                    .collect(Collectors.toList());
+//            res.forEach( term -> {
+//                termmap.put(term.getName(),term);
+//                termMap2.put(term.getId(), term);
+//            });
+//        }
+//        hpoTermMap = termmap.build();
+//        hpoTermMap2 = termMap2.build();
+        HpoOntologyParser parser = new HpoOntologyParser(path);
+        parser.parseOntology();
+        hpo = parser.getOntology();
+        hpoTermMap = parser.getTermMap();
+        hpoTermMap2 = parser.getTermMap2();
 
     }
 
@@ -757,6 +766,89 @@ public class App {
 //                .forEachOrdered(e-> System.out.println(e.getKey() + "\t" + e.getValue().size()));
     }
 
+    static void infer(String input, String output, String hpoPath) throws IOException, PhenolException {
+        System.out.println("enter function for infer");
+        BufferedWriter writer;
+        if (output == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(output));
+        }
+
+        Map<String, Term> termMapForR = termMap4R(hpoPath);
+        Map<String, BagOfTermsWithFrequencies> patientsModels = parseOriginalPatientTerms(input, termMapForR);
+
+        patientsModels.values().forEach(p -> p.infer());
+
+        writer.write("patient_num\thpoTerm\thpoTermFreq\n");
+        patientsModels.values().stream().forEach(p ->
+                p.getInferredTermCounts().entrySet().forEach(entry -> {
+                    try {
+                        writer.write(p.getPatientId());
+                        writer.write("\t");
+                        writer.write(hpoTermMap2.get(entry.getKey()).getName());
+                        writer.write("\t");
+                        writer.write(entry.getValue().toString());
+                        writer.write("\n");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }));
+        //System.out.println("total number of patients: " + patientsModels.size());
+        //System.out.println(patientsModels.get("162684198").getInferredTermCounts());
+        writer.close();
+    }
+
+    private static Map<String, BagOfTermsWithFrequencies> parseOriginalPatientTerms(String path, Map<String, Term> termMapForR) throws IOException {
+
+        Map<String, BagOfTermsWithFrequencies> patientModels = new HashMap<>();
+        BufferedReader reader = new BufferedReader(new FileReader(path));
+        String line = reader.readLine(); //skip header
+        String patientid;
+        boolean isNegated;
+        String term;
+        int frequency;
+        while ((line = reader.readLine()) != null) {
+            String[] elements = line.split(",");
+            if (!termMapForR.containsKey(elements[2])) {
+                System.out.println("illegal hpo term found: " + elements[2]);
+                System.out.println("check whether hpo is up-to-date; check whether R forms an unusual name");
+                continue;
+            }
+            if (!elements[3].matches("\\d+")) {
+                System.out.println("invalid term frequency: " + line);
+                continue;
+            }
+            patientid = elements[0];
+            isNegated = Boolean.valueOf(elements[1]);
+            term = elements[2];
+            frequency = Integer.parseInt(elements[3]);
+
+            if (isNegated) {
+                continue;
+            }
+ //System.out.println(patientid + "\t" + termMapForR.get(term).getId().getIdWithPrefix() + "\t" + frequency);
+
+            patientModels.putIfAbsent(patientid, new BagOfTermsWithFrequencies(patientid, hpo));
+            patientModels.get(patientid).addTerm(termMapForR.get(term).getId(), frequency);
+        }
+
+        return patientModels;
+    }
+
+    private static Map<String, Term> termMap4R(String hpoPath) throws IOException, PhenolException {
+//        HpoOntologyParser parser = new HpoOntologyParser(hpoPath);
+//        parser.parseOntology();
+//        //Map<String, Term> termMap = parser.getTermMap();
+        Map<String, Term> termMapForR = new HashMap<>(); //
+        if (hpoTermMap == null) {
+            importHPO(hpoPath);
+        }
+        hpoTermMap.entrySet().forEach(e -> termMapForR.putIfAbsent(e.getKey().replaceAll("\\W", "\\."), e.getValue()));
+        return termMapForR;
+    }
+
+
     public static void main( String[] args ) {
 
         Options options = new Options();
@@ -822,6 +914,11 @@ public class App {
                 .desc("icd statistics")
                 .build();
 
+        Option infer = Option.builder("infer")
+                .hasArg(false)
+                .desc("infer with HPO hierarchy")
+                .build();
+
         options.addOption(loadObservation)
                 .addOption(convertObservation)
                 .addOption(prednisone)
@@ -833,7 +930,8 @@ public class App {
                 .addOption(annotationStat)
                 .addOption(hpo)
                 .addOption(loinc)
-                .addOption(icd);
+                .addOption(icd)
+                .addOption(infer);
 
         HelpFormatter formatter = new HelpFormatter();
 
@@ -841,11 +939,12 @@ public class App {
         try {
             CommandLine commandLine = parser.parse(options, args);
 
-            Arrays.stream(commandLine.getOptions()).map(option -> option.getOpt() + "\t" + option.getValue() + "\n").forEach(System.out::print);
+            //print out all the arguments in command line
+            //Arrays.stream(commandLine.getOptions()).map(option -> option.getOpt() + "\t" + option.getValue() + "\n").forEach(System.out::print);
 
             //load OBSERVATION_FACT to database
             if (commandLine.hasOption("loadObser")) {
-                System.out.println("request to load observation");
+                //System.out.println("request to load observation");
                 if (!commandLine.hasOption("i") || commandLine.hasOption("d")){
                     formatter.printHelp("Hush2Fhir", options);
                 }
@@ -854,7 +953,7 @@ public class App {
 
             //convert LOINC records to HPO terms
             if (commandLine.hasOption("l2h")) {
-                System.out.println("request to convert observation");
+                //System.out.println("request to convert observation");
                 //require input (OBSERVATION_FACT), output, annotation file, hpo and LOINC
                 if (!commandLine.hasOption("i") || !commandLine.hasOption("a") || !commandLine.hasOption("hpo")) {
                     formatter.printHelp("HushToFhir", options);
@@ -946,174 +1045,29 @@ public class App {
                 commandLine.getArgList().forEach(System.out::println);
             }
 
+            if (commandLine.hasOption("infer")) {
+                if (!commandLine.hasOption("i")) {
+                    System.out.println("file for patient HPO terms (and counts) is required");
+                    return;
+                }
+                if (!commandLine.hasOption("hpo")) {
+                    System.out.println("hpo file path is required");
+                    return;
+                }
+
+                try {
+                    infer(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"), commandLine.getOptionValue("hpo"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (PhenolException e) {
+                    e.printStackTrace();
+                }
+            }
+
         } catch (org.apache.commons.cli.ParseException e) {
             System.out.println("arguments error");
             formatter.printHelp("HushToFhir", options);
         }
 
-
-/**
-        //replace with your file path
-        final String observationPath = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt";
-
-        final String observationLoincPath =
-                "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_LOINC.txt";
-
-        final String observationSamplePath =
-                "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/sample.csv";
-        //max_nums(observationPath);
-
-        //replate with your file path
-        final String observation_concept_statistics = "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/observation_fact_statistics.csv";
-
-        //concept_freq(observation_concept_statistics);
-        //cpt_category_count();
-
-        final String patientPath =
-                "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/PATIENT_DIMENTION.csv";
-        //Map<Integer, Patient> patientMap = parsePatientFile(patientPath);
-        //System.out.println(patientMap.size());
-        //TransformToFhir.s
-        //patientMap.values().forEach(TransformToFhir.getFhirServer()::upload);
-
- String hushSqlite = "jdbc:sqlite:/Users/zhangx/Documents/HUSH+_UNC_JAX/HUSH+_UNC_JAX.sqlite";
-
-
-
-        Set<String> predCodes;
-        try (BufferedReader reader = new BufferedReader(new FileReader(App.class.getClassLoader().getResource("prednison.txt").getPath()))){
-            predCodes = reader.lines().collect(Collectors.toSet());
-        } catch (FileNotFoundException e){
-            return;
-        } catch (IOException e){
-            return;
-        }
-
-        Map<Integer, Integer> patientPredCounts = new HashMap<>();
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter("patientPrednisonCount.txt"));
-            try (BufferedReader reader = new BufferedReader(new FileReader(observationPath))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("\"encounter_num\"")) { //skip header
-                        continue;
-                    }
-                    try {
-                        ObservationFact observationFact = new ObservationFactLazyImpl(line);
-                        if (!observationFact.concept_cd().startsWith("M")){
-                            continue;
-                        }
-                        predisonPatient(observationFact, predCodes, patientPredCounts);
-                    } catch (IllegalDataTypeException e) {
-                        //e.printStackTrace();
-                    } catch (MalformedLineException e) {
-                        //e.printStackTrace();
-                    }
-
-                }
-
-                patientPredCounts.entrySet()
-                        .stream()
-                        .sorted(Map.Entry.comparingByValue())
-                        .forEachOrdered(e -> {
-                            try {
-                                writer.write(e.getKey() + "\t" + e.getValue() + "\n");
-                            } catch (IOException e1) {
-                                e1.printStackTrace();
-                            }
-                        });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-
-        //import HPO
-        String hpo_obo = "/Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo";
-        HpoOboParser hpoOboParser = new HpoOboParser(new File(hpo_obo));
-        HpoOntology hpo = null;
-        try {
-            hpo = hpoOboParser.parse();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        ImmutableMap.Builder<String,Term> termmap = new ImmutableMap.Builder<>();
-        ImmutableMap.Builder<TermId, Term> termMap2 = new ImmutableMap.Builder<>();
-        if (hpo !=null) {
-            List<Term> res = hpo.getTermMap().values().stream().distinct()
-                    .collect(Collectors.toList());
-            res.forEach( term -> {
-                termmap.put(term.getName(),term);
-                termMap2.put(term.getId(), term);
-            });
-        }
-        hpoTermMap = termmap.build();
-        hpoTermMap2 = termMap2.build();
-
-        String tsvSingleFile = "/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv";
-        try {
-            annotationMap = LoincAnnotationSerializationFactory.parseFromFile(tsvSingleFile, hpoTermMap2, LoincAnnotationSerializationFactory.SerializationFormat.TSVSingleFile);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        final String loincCoreTablePath = "/Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv";
-
-        Map<LoincId, LoincEntry> loincIdLoincEntryMap = LoincEntry.getLoincEntryList(loincCoreTablePath);
-
-        String outputfile = "observation_to_hpo.txt";
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(outputfile));
-        } catch (IOException e) {
-            logger.error("cannot open file for writing: " + outputfile );
-        }
-
-        int count = 0;
-        //int MAXLINE = 10;
-        String recordLine = null;
-        try (BufferedReader reader = new BufferedReader(new FileReader(observationLoincPath))) {
-            while ((recordLine = reader.readLine()) != null) {
-                if (recordLine.startsWith("\"encounter_num\"")) { //skip header
-                    continue;
-                }
-                ObservationFact observationFact = null;
-                try {
-                    observationFact = new ObservationFactLazyImpl(recordLine);
-                    if (!observationFact.concept_cd().toLowerCase().startsWith("loinc")) {
-                        continue;
-                    }
-                    convertObservation(observationFact, writer, annotationMap, loincIdLoincEntryMap);
-                    count++;
-                    //logger.trace("count: " + count);
-                    if (count % 50 == 0) {
-                        logger.trace("Loinc lines already tried: " + count);
-                    }
-                } catch (MalformedLineException e) {
-                    //logger.error("Observation line is not parsed correctly: " + recordLine);
-                    continue;
-                } catch (IllegalDataTypeException e) {
-                    //logger.error("illegal data types encountered: " + recordLine);
-                    continue;
-                }
-
-            }
-        } catch(FileNotFoundException e) {
-            logger.error("cannot find file: " + observationPath);
-        } catch (IOException e) {
-            logger.error("database error to file: " + observationPath);
-        }
-
-        try {
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Loinc lines tried to transform: " + count);
-**/
     }
 }

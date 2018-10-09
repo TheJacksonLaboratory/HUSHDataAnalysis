@@ -332,6 +332,17 @@ patientTermMapFreq <- loinc2hpo %>%
 head(patientTermMapFreq)
 ```
 
+export patient terms, use the java command line to infer parent terms (only abnormal phenotypes)
+```{r}
+write.csv(patientTermMapFreq, "./data/patientTermMapFreq.csv",  row.names = FALSE, quote = FALSE)
+#
+# run java command line
+#
+
+patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+patientTermMapFreq_inferred <- patientTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false"))
+```
+
 ## join tables together
 We will join multiple tables created above together to do more interesting analysis. The join is centered on patients--for each patient, we indicate what HPO terms are assigned to them and how many times, when is the birthday, the first and last hospital visit date, whether they have ICD diagnosis codes for asthma, diabetes and chronic liver damage, and how many times they were prescribed with prednisone, a steriod drug that is typcially prescribed to severe asthma patients. 
 
@@ -341,7 +352,8 @@ patient_withAsthmaICD <- patient_withAsthmaICD %>% mutate(withAsthmaICDCode = "Y
 patient_lastFirstVisit <- loinc2hpo %>% select(patient_num, start_date) %>% mutate(start_date = as.Date(start_date)) %>% group_by(patient_num) %>% summarise(lastVisit = max(start_date), firstVisit = min(start_date))
 
 combined <- patients %>%
-  inner_join(patientTermMapFreq, by = "patient_num") %>%
+  #inner_join(patientTermMapFreq, by = "patient_num") %>% # replace with the inferred terms
+  inner_join(patientTermMapFreq_inferred, by = "patient_num") %>%
   left_join(visitCount, by = "patient_num") %>%
   left_join(prednisonPrescribTimes, by = "patient_num") %>%
   left_join(patient_withAsthmaICD, by = "patient_num") %>%
@@ -683,7 +695,7 @@ severity_class <- function(x) {
 #  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
 
 
-glm_Y = df_glm %>% select(9:133)
+glm_Y = df_glm %>% select(-c(1:8, ncol(df_glm)))
 library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  
@@ -1157,7 +1169,7 @@ ggplot(df4ML) + geom_histogram(aes(x = age, group = sex_cd), position = "dodge")
 BINWIDTH = 10
 data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>% 
   distinct() %>%
-  mutate(cat = as.factor(round(age/BINWIDTH, 0) + 1)) %>%
+  mutate(cat = as.factor(floor(age/BINWIDTH) + 1)) %>% # 0-10 year is cat 1; 10-20 is cat 2
   group_by(sex_cd, cat) %>%
   summarise(count = n()) %>%
   ungroup() %>%
@@ -1166,7 +1178,7 @@ data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>%
 data_pyramid %>% na.omit() %>% 
   ggplot() +
   geom_bar(aes(x = cat, y = count, fill = sex_cd), stat = "identity") + 
-  scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(2,10,2) * BINWIDTH) +
+  scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(1.5,9.5,2) * BINWIDTH) +
   scale_y_continuous(breaks = seq(-2000, 2000, by = 1000), labels = c(2000, 1000, 0, 1000, 2000)/1000, limits = c(-2000, 2000)) +
   scale_fill_manual(name = "gender", values = c(M = "royalblue", F = "lightcoral"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") + ylab("count (x1,000)") +
   coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10))
