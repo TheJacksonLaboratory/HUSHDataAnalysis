@@ -13,6 +13,7 @@ src/main/r_script/*.pdf
 src/main/r_script/Hush+_data_matrix.csv
 data/patientAbnormalTermMapFreq-inferred.csv
 data/patientTermMapFreq.csv
+data/logistic_regression_including_inferred_terms.xlsx
 
 .Rhistory
 

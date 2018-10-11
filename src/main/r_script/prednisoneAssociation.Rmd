@@ -10,51 +10,33 @@ knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
 ```
 
 # Data:
-UNC HUSH+ data about ~15,000 patients who visited hospitals for asthma treatment. The patient cohort was selected by ICD codes for asthma and asthma-related symptoms by collaborators at UNC. Therefore, in theory, all those patients should have some asthma-related issues. However, we are not provided with the list of ICD codes used for patient selection; we did discover that about 1/3 of them have ICD9/10 codes for asthma (see analysis).
+The UNC HUSH+ data is an deidentified Electronic Health Record dataset on about ~15,000 patients extracted from the Carolina Data Warehouse for Health (CDWH) at the University of North Carolina (UNC). The patient cohort was selected by ICD codes for asthma and asthma-related symptoms. An analysis of patient diagnosis showed that about 1/3 of them had asthma diagnosis, while the rest had other asthma-like symptoms, such as cough or pneumonia. 
 
-The raw dataset contains 8 CSV files, including PATIENT_DIMENTION, PROVIDER_DIMENSION, VISIT_DIMENSION, OBSERVATION_FACT, OBSERVATION_FACT_GEOCODES, CODE_LOOKUP, CONCEPT_DIMENSION, MODIFIER_DIMENSION. This analysis utilizes three tables, PATIENT_DIMENSION for patient information (de-identified), VISIT_DIMENSION for encounter information, and OBSERVATION_FACT. The OBSERVATION_FACT table is the core and largest of this dataset.  It contains all kinds of records meshed together, lab tests, prescription, diagnosis, procedure, vital signs etc, totaling 54 million lines and 10 gigabytes.  
+The original dataset contains 8 CSV files, including PATIENT_DIMENTION, PROVIDER_DIMENSION, VISIT_DIMENSION, OBSERVATION_FACT, OBSERVATION_FACT_GEOCODES, CODE_LOOKUP, CONCEPT_DIMENSION, MODIFIER_DIMENSION. This analysis utilizes three tables, PATIENT_DIMENSION for patient information (de-identified), VISIT_DIMENSION for encounter information, and OBSERVATION_FACT. The OBSERVATION_FACT table is the core and largest of this dataset.  It contains all kinds of records meshed together, laboratory tests, prescription, diagnosis, procedure, vital signs etc, totaling 54 million lines and 10 gigabytes.  
 
 # Goal:
-Our primary goal is to use this dataset to demonstrate how to semantically integrate lab tests with the LOINC to HPO mapping library. More specially, we hope to achieve the following goals:
+Our primary goal is to use this dataset to demonstrate how to semantically integrate labortory tests with the LOINC to HPO mapping library. More specially, we hope to achieve the following goals:
 I.   Convert LOINC-coded lab tests into HPO terms
-II.  Identify HPO differential distribution among different patient groups, e.g. severe and non-severe asthma groups
-III. Test whether the transformed data can be used for medical prediction with machine learning. 
+II.  Identify HPO terms enriched in severe asthma patients as candidate biomarkers for asthma 
+III. Test whether the phenotypic data can be used for medical prediction with machine learning. 
 
 # Analysis:
 
-## load data
-For Goal I, the dataset is too big and the task too complicated to implicate in R. Instead, we implicated the conversion in Java. Run the code in command line:
-```{bash, ignore = TRUE, include = FALSE}
-java --jar HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \                 # loinc to hpo transformation
--i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \  # input: all observations
--hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \               # hpo.obo is required
--loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                         # LOINC table is required
--a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \       # loinc2hpo annotation map is                                                                                       # required
-#-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt # output transformed data
-```
+## prepare & load data into a SQL database
 
-We also counted prednisone prescription times for each patient in Java. Run:
-```{bash}
-java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -p \                                   # prednisone prescription count
--i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \            # input: all observations
--o /Users/zhangx/git/HushToFhir/data/patientOnPrednison.txt                                   # output patients on prednisone
-```
-The raw dataset is provided to us as 9 separate CSV files. We have imported them into a SQLite database for easy query. 
-Note: import the patientOnPrednisone table to the SQLite database
-```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite"}
-CREATE TABLE IF NOT EXISTS PatientOnPrednison ( 
- patient_num integer PRIMARY KEY, 
- prescrib_times integer 
-)
-```
-Note: we have parsed the data in Java to select all diagnosis records (with ICD codes) and imported them to the database as a separate table.
-```{bash}
+To simplify data query, we have parsed the dataset in Java and imported all records to a SQLite database. The source code can be accessed through https://github.com/TheJacksonLaboratory/HUSHDataAnalysis. 
+
+Additionally, we select all diagnosis records (with ICD codes) and imported them to the database as a separate table.
+
+(NOTE: java code will not be evaluated here)
+```{bash eval = FALSE}
 java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -icd \                                 # select ICD records
 -i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \            # input: all observations
 -o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/ICD.txt                           # output: ICD records
 ```
-schema for ICD (same as the OBSERVATION_FACT table)
-```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite"}
+
+The schema for ICD diagnosis records is identifical to the OBSERVATION_FACT table.
+```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite", eval = FALSE}
 CREATE TABLE IF NOT EXISTS ICD(
   encounter_num INT,
   patient_num INT,
@@ -82,6 +64,32 @@ CREATE TABLE IF NOT EXISTS ICD(
   icd NUM
 )
 ```
+
+For Goal I, the dataset is too big and the task too complicated to implicate in R. Instead, we implicated the conversion in Java.
+```{bash eval = FALSE}
+java --jar HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \                 # loinc to hpo transformation
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \  # input: all observations
+-hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \               # hpo.obo is required
+-loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                         # LOINC table is required
+-a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \       # loinc2hpo annotation map is                                                                                       # required
+-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt # output transformed data
+```
+
+We also counted prednisone prescription times for each patient in Java. 
+```{bash eval = FALSE}
+java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -p \                                   # prednisone prescription count
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \            # input: all observations
+-o /Users/zhangx/git/HushToFhir/data/patientOnPrednison.txt                                   # output patients on prednisone
+```
+
+Import the patientOnPrednisone table to the SQLite database
+```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite", eval = FALSE}
+CREATE TABLE IF NOT EXISTS PatientOnPrednison ( 
+ patient_num integer PRIMARY KEY, 
+ prescrib_times integer 
+)
+```
+
 Note: we have calculated the loinc2hpo annotation statistics in Java
 ```{bash}
 java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \                                  # statistics
@@ -92,6 +100,8 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \                  
 ```
 
 
+## load data for analysis
+
 ```{r}
 #load R libraries
 library(tidyverse)
@@ -101,7 +111,7 @@ library(Rmpfr)
 library(lubridate)
 ```
 
-Connect to the database.
+Connect to the SQLite database.
 ```{r}
 db <- dbConnect(RSQLite::SQLite(), "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite")
 ```
@@ -181,7 +191,7 @@ write.table(allDiagnosisCodesForAsthmaPatients, "/Users/zhangx/git/HushToFhir/da
 
 
 ## calculate some statistics for the loinc2hpo conversion
-In this section, we will calculate some simple statistics about the LOINC to HPO mapping library and the transformed data from lab tests. Our goal is to determine whether we have successfully integrate lab tests. 
+In this section, we will calculate some simple statistics about the LOINC to HPO mapping library and the transformed data from laboratory tests. Our goal is to determine whether we have successfully integrate lab tests. 
 
 ### determine how many LOINC code are mapped to each HPO term in the mapping library
 ```{r}
