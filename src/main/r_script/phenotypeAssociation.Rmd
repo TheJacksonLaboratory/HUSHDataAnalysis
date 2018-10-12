@@ -493,7 +493,7 @@ confid.int <- function(mean, sd, critical.value = 1.98, FUN = exp) {
   lower.transf <- FUN(lower)
   upper.transf <- FUN(upper)
   for (i in 1 : length(mean)){
-    result[i] <- str_c(c("[", as.character(round(lower.transf[i], 2)), "~", as.character(round(upper.transf[i], 2)), "]"), sep = "", collapse = "")
+    result[i] <- str_c(c("[", as.character(round(lower.transf[i], 2)), "-", as.character(round(upper.transf[i], 2)), "]"), sep = "", collapse = "")
   }
   return (result)
 }
