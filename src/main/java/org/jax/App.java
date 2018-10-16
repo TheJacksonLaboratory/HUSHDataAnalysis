@@ -458,6 +458,32 @@ public class App {
          **/
     }
 
+    /**
+     * Check whether a record indicates a patient is prescribed with predisone; if so, increment the count for the patient by one, add the start date of the prescription for the patient
+     * @param observationFact
+     * @param prednisonSet
+     * @param patientPredCounts
+     * @param patientPredTimes
+     */
+    public static void predisonPatient(ObservationFact observationFact, Set<String> prednisonSet, Map<Integer, Integer> patientPredCounts, Map<Integer, Set<Date>> patientPredTimes) {
+
+        String mdctnCode = observationFact.concept_cd().trim().toLowerCase();
+        if (mdctnCode.startsWith("mdctn:")) {
+            mdctnCode = mdctnCode.substring(6, mdctnCode.length());
+        }
+        if (mdctnCode.endsWith("|ADS") || mdctnCode.endsWith("|ads")) {
+            mdctnCode = mdctnCode.substring(0, mdctnCode.length() - 4);
+        }
+
+        int patientNum = observationFact.patient_num();
+        patientPredCounts.putIfAbsent(patientNum, 0);
+        patientPredTimes.putIfAbsent(patientNum, new HashSet<>());
+        if (prednisonSet.contains(mdctnCode)){
+            patientPredCounts.put(patientNum, patientPredCounts.get(patientNum) + 1);
+            patientPredTimes.get(patientNum).add(observationFact.start_date());
+        }
+    }
+
     static void loinc2hpo(String observationPath, String outputPath) throws IOException {
 
         //open a writer to output file
@@ -566,6 +592,7 @@ public class App {
         writer.write("patient_num\tprscbCount\n");
 
         Map<Integer, Integer> patientPredCounts = new HashMap<>();
+        //Map<Integer, Set<Date>> patientPredTimes = new HashMap<>();
         Set<String> predCodes = importPrednisoneCodes();
         BufferedReader reader = new BufferedReader(new FileReader(obserPath));
         String line = reader.readLine(); //skip header

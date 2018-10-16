@@ -306,7 +306,7 @@ uniqueHPOperPatientNoInfer <- loinc2hpo %>% select(mapFailed, patient_num, isNeg
   group_by(patient_num, isNegated) %>% 
   summarise(counts = n()) %>%ungroup()
 
-uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map2_dbl(., "mean")
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map_dbl(., mean)
 
 ggplot(uniqueHPOperPatientNoInfer) + 
     geom_histogram(aes(counts, group = isNegated, fill = isNegated), binwidth = 5, color = "black", size = 0.25) +
@@ -422,7 +422,7 @@ patient_lastFirstVisit <- loinc2hpo %>% select(patient_num, start_date) %>% muta
 
 combined <- patients %>%
   #inner_join(patientTermMapFreq, by = "patient_num") %>% # replace with the inferred terms
-  inner_join(patientTermMapFreq_inferred, by = "patient_num") %>%
+  inner_join(patientAbnormalTermMapFreq_inferred, by = "patient_num") %>%
   left_join(visitCount, by = "patient_num") %>%
   left_join(prednisonPrescribTimes, by = "patient_num") %>%
   left_join(patient_withAsthmaICD, by = "patient_num") %>%
@@ -434,7 +434,7 @@ combined <- patients %>%
   mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y")) %>%
   mutate(withDiabeteICDCode = ifelse(is.na(withDiabeteICDCode), "N", "Y")) %>%
   mutate(withChronicLiverDamageICDCode = ifelse(is.na(withChronicLiverDamageICDCode), "N", "Y")) %>%
-  mutate(hpoTerm = make.names(hpoTerm))
+  mutate(hpoTerm = make.names(hpo))
 nrow(combined)
 ```
 
