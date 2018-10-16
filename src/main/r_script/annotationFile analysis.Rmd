@@ -16,7 +16,8 @@ library(tidyverse)
 
 load the annotation file
 ```{r}
-annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t")
+annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE)
+top2000Loinc <- read.csv("/Users/zhangx/Downloads/LOINC_2/Accessory/Top2000/LOINC_1.6_Top2000CommonLabResultsUS.csv", stringsAsFactors = FALSE)
 ```
 
 
@@ -67,10 +68,16 @@ noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc
   scale_y_continuous(labels = scales::percent)+
   scale_x_continuous(limits = c(21, 0), trans = "reverse", breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
   scale_fill_manual(limits = c("Y", "N"), values = c("orange", "dodgerblue")) +
-  xlab("mapped LOINC terms") + ylab("percentage of HPO terms") + theme_bw() +
+  xlab("number of mapped LOINC codes") + ylab("percentage of HPO terms") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75), legend.position = "none") + coord_flip()
 
 ggsave("./data/images/distribution of HPO terms.png", width = 2, height = 2)
 
+```
+
+analyze how many top2000 LOINC is annotated
+```{r}
+top2000Loinc <- top2000Loinc %>% rename(loincId = LOINC..)
+annotatedLoinc <- annotationFile %>% select(loincId) %>% distinct()
 ```
 

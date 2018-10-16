@@ -299,6 +299,29 @@ ggplot(uniqueHPOperPatient) +
 ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
 ```
 
+```{r}
+uniqueHPOperPatientNoInfer <- loinc2hpo %>% select(mapFailed, patient_num, isNegated, hpoTerm) %>% 
+  filter(mapFailed == "false") %>%
+  distinct() %>%
+  group_by(patient_num, isNegated) %>% 
+  summarise(counts = n()) %>%ungroup()
+
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map2_dbl(., "mean")
+
+ggplot(uniqueHPOperPatientNoInfer) + 
+    geom_histogram(aes(counts, group = isNegated, fill = isNegated), binwidth = 5, color = "black", size = 0.25) +
+    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+  theme_bw() + 
+    theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
+          axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
+          axis.ticks.length = unit(0.1, "line"), 
+          panel.border = element_rect(size = 0.5), 
+          panel.background = element_blank(), 
+          axis.title.y = element_text(vjust = 0), 
+          axis.title.x= element_text(vjust = 1))
+```
+
+
 The results are pretty impressive. We have assigned ~500 HPO terms for each patient on average. Given that it is entirelly software-driven, we have made it possible to automatically phenotype patients from EHR at a large scale, which was still quite difficult to do. Among the ~500 HPO terms, ~50 of them are unique, which is expected because a patient are usually repeated given the same kind of lab test over time. 
 
 
@@ -376,10 +399,18 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 Read in the inferred terms and use it instead of the original list for the following analysis
 ```{r}
-patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-patientTermMapFreq_inferred <- patientTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false"))
-hpoTermMap <- patientTermMapFreq_inferred %>% select(hpoTerm) %>% na.omit() %>% distinct() %>% mutate(hpo = make.names(hpoTerm))
+patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false")) %>% rename(hpo = hpoTerm)
+
 ```
+
+count the number of phenotypic abnormalities before and after the inference. Note: currently, we just inferred additional terms based on phenotypic abnormalities, not normal phenotypes
+```{r}
+abnormalTermsBeforeInferPerPatient <- patientTermMapFreq %>% filter(isNegated == "false") %>% group_by(patient_num) %>% summarise(count_before_infer = n())
+abnormalTermsWithInferPerPatient <- patientAbnormalTermMapFreq_inferred %>% group_by(patient_num) %>% summarise(count_after_infer = n())
+mean(abnormalTermsBeforeInferPerPatient$count_before_infer)
+mean(abnormalTermsWithInferPerPatient$count_after_infer)
+```
+
 
 ## join tables together
 We will join multiple tables created above together to do more interesting analysis. The join is centered on patients--for each patient, we indicate what HPO terms are assigned to them and how many times, when is the birthday, the first and last hospital visit date, whether they have ICD diagnosis codes for asthma, diabetes and chronic liver damage, and how many times they were prescribed with prednisone, a steriod drug that is typcially prescribed to severe asthma patients. 
@@ -424,6 +455,7 @@ colnames(df4ML)
 export the data frame for machine learning
 ```{r}
 write.csv(df4ML, "./data/Hush+_data_matrix.csv", quote = FALSE, row.names = FALSE)
+df4ML <- read.csv("./data/Hush+_data_matrix.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription and acute asthma diagnosis
