@@ -14,7 +14,10 @@ src/main/r_script/Hush+_data_matrix.csv
 data/patientAbnormalTermMapFreq-inferred.csv
 data/patientTermMapFreq.csv
 data/logistic_regression_including_inferred_terms.xlsx
-
+data/Hush+_data_matrix_v1.0.csv
+data/images/2018_zhang_fig1_proof1.png
+data/loincAnnotationstats_v1.0.tsv
+data/patientAbnormalTermMapFreq-inferred_v1.0.csv
 .Rhistory
 
 data/.DS_Store

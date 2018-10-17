@@ -1,158 +1,171 @@
 hpoTerm,odds.ratio_steroid,CI.95.._steroid,p_steroid,odds.ratio_asthma.diagnosis,CI.95.._asthma.diagnosis,p_asthma.diagnosis
-Increased VLDL cholesterol concentration,0.76,[0.38~1.52],4.35e-01,1.5,[1~2.24],4.63e-02
-Abnormal VLDL cholesterol concentration,0.72,[0.36~1.43],3.40e-01,1.42,[0.96~2.11],7.58e-02
-Increased hematocrit,2.41,[1.87~3.09],3.35e-12,1.24,[1~1.54],4.97e-02
-Abnormal eosinophil morphology,3.72,[3.17~4.37],2.57e-59,1.18,[1.02~1.36],2.68e-02
-Eosinophilia,3.72,[3.17~4.37],2.57e-59,1.18,[1.02~1.36],2.68e-02
-Decreased lipoprotein lipase activity,3.78,[2.83~5.05],1.34e-19,1.09,[0.82~1.44],5.65e-01
-Increased LDL cholesterol concentration,0.8,[0.56~1.14],2.12e-01,1.07,[0.86~1.34],5.15e-01
-Hypercholesterolemia,2.97,[2.56~3.45],3.00e-47,1.05,[0.93~1.19],4.07e-01
-Abnormal LDL cholesterol concentration,0.84,[0.6~1.18],3.10e-01,1.02,[0.83~1.26],8.40e-01
-All,1,[0~Inf],1.00e+00,1,[0~Inf],1.00e+00
-Phenotypic abnormality,1,[0~Inf],1.00e+00,1,[0~Inf],1.00e+00
-Leukocytosis,4.53,[3.95~5.19],1.59e-106,0.98,[0.9~1.08],6.93e-01
-Thrombocytosis,2.54,[2.17~2.98],1.86e-31,0.98,[0.85~1.12],7.68e-01
-Decreased mean platelet volume,4.5,[3.95~5.12],4.00e-117,0.97,[0.88~1.08],5.68e-01
-Hypoxemia,2.94,[2.39~3.62],8.44e-25,0.97,[0.8~1.17],7.26e-01
-Abnormal granulocyte morphology,5.75,[4.94~6.7],1.60e-114,0.95,[0.86~1.04],2.42e-01
-Abnormality of myeloid leukocytes,5.75,[4.94~6.7],1.60e-114,0.95,[0.86~1.04],2.42e-01
-Abnormal erythrocyte sedimentation rate,9.09,[7.47~11.06],3.17e-110,0.93,[0.75~1.14],4.67e-01
-Abnormality of the endocrine system,3.66,[2.93~4.58],7.05e-31,0.93,[0.75~1.15],4.85e-01
-Elevated erythrocyte sedimentation rate,9.09,[7.47~11.06],3.17e-110,0.93,[0.75~1.14],4.67e-01
-Elevated serum alanine aminotransferase,2.87,[2.5~3.3],3.09e-51,0.93,[0.83~1.04],2.12e-01
-Hyperlipidemia,2.42,[2.06~2.84],7.23e-28,0.93,[0.81~1.06],2.48e-01
-Hypertriglyceridemia,2.42,[2.06~2.84],7.23e-28,0.93,[0.81~1.06],2.48e-01
-Abnormal liver morphology,2.82,[2.48~3.19],3.67e-59,0.92,[0.84~1.02],1.07e-01
-Abnormality of circulating hormone level,3.8,[3.02~4.78],1.55e-30,0.92,[0.73~1.15],4.37e-01
-Abnormality of the abdominal organs,2.82,[2.48~3.19],3.67e-59,0.92,[0.84~1.02],1.07e-01
-Abnormality of the digestive system,2.82,[2.48~3.19],3.67e-59,0.92,[0.84~1.02],1.07e-01
-Abnormality of the liver,2.82,[2.48~3.19],3.67e-59,0.92,[0.84~1.02],1.07e-01
-Elevated hepatic transaminase,2.82,[2.48~3.19],3.67e-59,0.92,[0.84~1.02],1.07e-01
-Abnormal circulating thyroxine level,3.74,[2.96~4.73],9.87e-29,0.91,[0.72~1.14],4.07e-01
-Abnormal thyroid hormone level,3.74,[2.96~4.73],9.87e-29,0.91,[0.72~1.14],4.07e-01
-Abnormality of the thyroid gland,3.74,[2.96~4.73],9.87e-29,0.91,[0.72~1.14],4.07e-01
-Abnormality of thyroid physiology,3.74,[2.96~4.73],9.87e-29,0.91,[0.72~1.14],4.07e-01
-Hematuria,4.65,[3.86~5.61],8.11e-60,0.91,[0.75~1.09],2.93e-01
-Abnormal platelet volume,6.12,[5.3~7.06],1.10e-136,0.9,[0.82~0.99],3.70e-02
-Abnormality of the immune system,5.17,[4.22~6.34],2.10e-57,0.9,[0.82~0.99],3.19e-02
-Elevated C-reactive protein level,7.79,[6.52~9.32],3.28e-114,0.9,[0.75~1.09],2.77e-01
-Neutrophilia,4.78,[4.17~5.48],3.02e-115,0.9,[0.81~0.99],3.30e-02
-Abnormal leukocyte count,5.22,[4.26~6.38],6.87e-59,0.89,[0.81~0.98],1.64e-02
-Abnormal leukocyte morphology,5.13,[4.19~6.28],1.04e-57,0.89,[0.81~0.98],1.47e-02
-Abnormal levels of creatine kinase in blood,3.31,[2.75~3.99],1.65e-37,0.89,[0.75~1.07],2.12e-01
-Abnormality of cellular immune system,5.13,[4.19~6.28],1.04e-57,0.89,[0.81~0.98],1.47e-02
-Abnormality of circulating enzyme level,3.31,[2.75~3.99],1.65e-37,0.89,[0.75~1.07],2.12e-01
-Elevated serum creatine phosphokinase,3.31,[2.75~3.99],1.65e-37,0.89,[0.75~1.07],2.12e-01
-Hypokalemia,2.79,[2.45~3.18],1.41e-54,0.88,[0.79~0.98],1.83e-02
-Abnormal neutrophil count,5.64,[4.87~6.52],7.09e-123,0.87,[0.79~0.96],4.03e-03
-Abnormality of neutrophils,5.64,[4.87~6.52],7.09e-123,0.87,[0.79~0.96],4.03e-03
-Decreased serum creatinine,1.68,[1.47~1.93],3.63e-14,0.87,[0.78~0.96],8.15e-03
-Abnormality of blood and blood-forming tissues,4.23,[3.14~5.71],1.59e-21,0.86,[0.76~0.98],2.30e-02
-Hyperlipoproteinemia,1.82,[1.56~2.13],8.88e-15,0.86,[0.76~0.97],1.40e-02
-Monocytosis,2.03,[1.75~2.37],3.09e-20,0.86,[0.76~0.97],1.60e-02
-Elevated serum anion gap,2.79,[2.33~3.34],2.79e-29,0.84,[0.72~0.99],3.99e-02
-Elevated serum aspartate aminotransferase,2.98,[2.6~3.41],1.57e-57,0.84,[0.75~0.94],2.29e-03
-Hypercapnia,2.8,[2.45~3.2],5.87e-53,0.84,[0.75~0.93],1.10e-03
-Abnormal enzyme/coenzyme activity,3.35,[2.95~3.81],7.19e-78,0.83,[0.75~0.92],3.07e-04
-Abnormality of alkaline phosphatase activity,2.39,[2.09~2.74],3.87e-37,0.83,[0.74~0.93],9.14e-04
-Abnormality of potassium homeostasis,3.57,[3.13~4.08],7.72e-82,0.81,[0.73~0.89],7.05e-06
-Abnormality of cholesterol metabolism,2.45,[2.15~2.8],2.60e-41,0.79,[0.73~0.87],4.01e-07
-Elevated alkaline phosphatase,2.39,[2.08~2.76],2.78e-34,0.79,[0.7~0.89],9.61e-05
-Hyperglycemia,1,[0.88~1.13],9.39e-01,0.79,[0.73~0.87],1.60e-07
-Hypernatremia,3.2,[2.68~3.83],3.46e-38,0.79,[0.67~0.93],4.73e-03
-Increased HDL cholesterol concentration,2.63,[2.21~3.12],1.29e-28,0.79,[0.67~0.92],2.13e-03
-Abnormal erythrocyte morphology,4.11,[3.48~4.85],4.11e-64,0.78,[0.71~0.85],1.74e-08
-Abnormal erythrocyte volume,2.32,[2.05~2.62],8.57e-41,0.78,[0.71~0.86],1.09e-06
-Abnormal glucose homeostasis,1.07,[0.94~1.21],2.91e-01,0.78,[0.71~0.85],1.66e-08
-Abnormal monocyte count,2.95,[2.57~3.37],2.80e-56,0.78,[0.69~0.87],1.67e-05
-Abnormal renal physiology,4.01,[3.53~4.55],1.30e-102,0.78,[0.71~0.86],2.70e-07
-Abnormality monocyte morphology,2.95,[2.57~3.37],2.80e-56,0.78,[0.69~0.87],1.67e-05
-Abnormality of acid-base homeostasis,3.73,[3.28~4.25],4.34e-89,0.78,[0.71~0.86],3.28e-07
-Abnormality of blood glucose concentration,1.07,[0.94~1.21],3.17e-01,0.78,[0.71~0.85],1.73e-08
-Abnormality of carbohydrate metabolism/homeostasis,1.07,[0.94~1.21],2.91e-01,0.78,[0.71~0.85],1.66e-08
-Abnormality of the kidney,4.01,[3.53~4.55],1.30e-102,0.78,[0.71~0.86],2.70e-07
-Abnormality of the upper urinary tract,4.01,[3.53~4.55],1.30e-102,0.78,[0.71~0.86],2.70e-07
-Abnormality of urine homeostasis,4.22,[3.65~4.88],1.06e-85,0.78,[0.68~0.89],2.30e-04
-Hypercalcemia,2.93,[2.36~3.64],9.69e-23,0.78,[0.63~0.96],1.74e-02
-Abnormal blood gas level,3.85,[3.36~4.4],6.15e-88,0.77,[0.71~0.85],3.58e-08
-Abnormal urine cytology,4.34,[3.75~5.04],6.46e-86,0.77,[0.67~0.89],2.27e-04
-Abnormality of lipid metabolism,2.39,[2.09~2.73],1.61e-38,0.77,[0.71~0.84],5.54e-09
-Abnormality of monovalent inorganic cation homeostasis,3.57,[3.09~4.11],1.53e-69,0.77,[0.7~0.84],5.34e-09
-Abnormality of the genitourinary system,3.98,[3.49~4.54],8.85e-98,0.77,[0.7~0.85],4.37e-08
-Abnormality of the respiratory system,3.85,[3.36~4.4],6.15e-88,0.77,[0.71~0.85],3.58e-08
-Abnormality of the urinary system,3.98,[3.49~4.54],8.85e-98,0.77,[0.7~0.85],4.37e-08
-Abnormality of the urinary system physiology,3.98,[3.49~4.54],8.85e-98,0.77,[0.7~0.85],4.37e-08
-Functional respiratory abnormality,3.85,[3.36~4.4],6.15e-88,0.77,[0.71~0.85],3.58e-08
-Hyperproteinemia,2.8,[2.27~3.46],4.30e-22,0.77,[0.63~0.95],1.12e-02
-Hypochloremia,2.54,[2.23~2.89],1.95e-46,0.77,[0.7~0.86],1.07e-06
-Increased RBC distribution width,3.07,[2.71~3.47],2.99e-71,0.77,[0.7~0.84],1.69e-09
-Abnormal serum anion gap,3.36,[2.95~3.83],3.97e-75,0.76,[0.69~0.84],3.02e-08
-Abnormal thrombocyte morphology,4.67,[4~5.46],1.41e-85,0.76,[0.7~0.84],3.52e-09
-Abnormality lipoprotein cholesterol concentration,2.28,[1.99~2.6],1.11e-33,0.76,[0.69~0.84],2.34e-08
-Abnormality of ion homeostasis,3.95,[3.24~4.82],5.14e-43,0.76,[0.69~0.84],2.11e-08
-Hyperphosphatemia,6.3,[5.52~7.2],3.34e-165,0.76,[0.67~0.85],6.53e-06
-Abnormal hematocrit,10.11,[8.76~11.66],2.19e-225,0.75,[0.68~0.83],8.68e-09
-Abnormality of cation homeostasis,3.52,[2.98~4.17],4.59e-50,0.75,[0.69~0.83],1.23e-09
-Abnormality of circulating protein level,5.75,[4.99~6.63],2.49e-130,0.74,[0.67~0.81],1.49e-10
-Decreased HDL cholesterol concentration,1.97,[1.65~2.34],1.06e-14,0.74,[0.64~0.85],4.37e-05
-Hypocapnia,3.5,[3.07~3.99],1.68e-79,0.74,[0.66~0.83],8.83e-08
-Abnormal glomerular filtration rate,3.69,[3.26~4.17],3.58e-98,0.73,[0.66~0.8],2.28e-10
-Abnormality of chloride homeostasis,3.83,[3.32~4.41],8.69e-79,0.73,[0.66~0.8],5.12e-12
-Abnormality of phosphate homeostasis,5.72,[5.02~6.52],3.99e-154,0.73,[0.66~0.82],5.53e-08
-Acidosis,3.39,[2.84~4.05],1.27e-42,0.73,[0.62~0.87],3.82e-04
-Decreased glomerular filtration rate,3.69,[3.27~4.18],2.60e-98,0.73,[0.66~0.8],1.74e-10
-Elevated gamma-glutamyltransferase activity,6.35,[5.39~7.48],2.02e-110,0.73,[0.61~0.87],3.16e-04
-Hypolipoproteinemia,1.97,[1.66~2.32],1.58e-15,0.73,[0.63~0.84],1.12e-05
-Abnormal circulating creatinine level,2.69,[2.35~3.08],3.18e-48,0.72,[0.66~0.79],2.17e-13
-Abnormality of divalent inorganic cation homeostasis,3.17,[2.77~3.63],2.95e-64,0.72,[0.66~0.79],1.64e-13
-Abnormality of iron homeostasis,4.36,[3.64~5.23],1.37e-57,0.72,[0.6~0.87],4.55e-04
-Abnormality of transition element cation homeostasis,4.36,[3.64~5.23],1.37e-57,0.72,[0.6~0.87],4.55e-04
-Elevated serum creatinine,2.48,[2.19~2.8],2.27e-49,0.72,[0.66~0.79],3.92e-12
-Hyperchloremia,3.63,[3.19~4.13],1.17e-86,0.72,[0.65~0.8],1.17e-10
-Hypomagnesemia,3.87,[3.39~4.43],8.20e-89,0.72,[0.64~0.82],2.59e-07
-Abnormality of magnesium homeostasis,4.01,[3.53~4.56],1.52e-103,0.71,[0.64~0.79],1.16e-10
-Abnormality of sodium homeostasis,2.9,[2.55~3.31],8.55e-58,0.71,[0.64~0.78],4.60e-12
-Hyponatremia,2.18,[1.91~2.48],2.37e-32,0.71,[0.64~0.79],1.15e-10
-Abnormal concentration of calcium in blood,2.76,[2.42~3.13],5.35e-55,0.7,[0.64~0.77],6.85e-15
-Abnormal HDL cholesterol concentration,2.89,[2.51~3.33],2.64e-50,0.7,[0.63~0.79],1.31e-09
-Abnormality of calcium homeostasis,2.76,[2.42~3.13],5.35e-55,0.7,[0.64~0.77],6.85e-15
-Hypermagnesemia,4.01,[3.48~4.62],2.55e-84,0.7,[0.61~0.8],9.91e-08
-Hyperoxemia,2.41,[2~2.9],6.83e-21,0.7,[0.59~0.84],4.88e-05
-Increased serum ferritin,4.34,[3.28~5.74],2.97e-25,0.7,[0.52~0.95],1.99e-02
-Abnormal serum ferritin,3.99,[3.09~5.14],6.66e-27,0.69,[0.52~0.9],5.50e-03
-Decreased serum anion gap,2.89,[2.53~3.3],3.60e-57,0.69,[0.62~0.77],1.57e-11
-Hypocalcemia,2.55,[2.25~2.89],2.64e-50,0.69,[0.63~0.76],2.62e-15
-Hypoproteinemia,3.46,[3.03~3.94],4.25e-78,0.69,[0.62~0.77],2.15e-11
-Reduced hematocrit,9.77,[8.54~11.17],2.44e-246,0.69,[0.62~0.77],2.02e-12
-Abnormal lymphocyte morphology,5.52,[4.78~6.37],1.82e-122,0.68,[0.62~0.75],8.34e-16
-Abnormality of nitrogen compound homeostasis,2.72,[2.35~3.16],2.87e-40,0.67,[0.61~0.73],3.36e-19
-Azotemia,2.39,[2.11~2.72],2.64e-41,0.66,[0.6~0.72],2.63e-21
-Hyperkalemia,4.22,[3.68~4.84],2.71e-95,0.66,[0.58~0.75],1.17e-10
-Increased mean platelet volume,3.48,[2.99~4.05],2.05e-60,0.66,[0.58~0.76],1.16e-08
-Leukopenia,5.18,[4.49~5.97],1.78e-115,0.66,[0.6~0.72],4.47e-19
-Increased mean corpuscular volume,1.81,[1.56~2.1],3.80e-15,0.65,[0.58~0.74],5.34e-11
-Conjugated hyperbilirubinemia,2.52,[1.98~3.2],2.48e-14,0.64,[0.51~0.81],1.87e-04
-Decreased serum iron,4.29,[3.19~5.77],2.22e-22,0.64,[0.46~0.89],7.12e-03
-Hypoglycemia,3.58,[2.95~4.34],1.50e-39,0.64,[0.52~0.78],7.20e-06
-Lymphopenia,5.41,[4.71~6.22],4.03e-127,0.64,[0.58~0.71],9.33e-20
-Neutropenia,3.22,[2.77~3.74],1.38e-53,0.64,[0.55~0.74],1.18e-09
-Abnormal platelet count,2.56,[2.26~2.9],5.09e-51,0.63,[0.57~0.69],4.75e-22
-Abnormal serum iron,4.35,[3.29~5.75],1.72e-25,0.63,[0.46~0.85],2.65e-03
-Acellular urinary casts,5.36,[4.41~6.51],3.40e-65,0.62,[0.5~0.76],7.73e-06
-Cylindruria,5.36,[4.41~6.51],3.40e-65,0.62,[0.5~0.76],7.73e-06
-Hyaline casts,5.36,[4.41~6.51],3.40e-65,0.62,[0.5~0.76],7.73e-06
-Hypophosphatemia,4.05,[3.41~4.81],1.32e-58,0.61,[0.51~0.73],4.67e-08
-Abnormal blood urea nitrogen,2.06,[1.83~2.33],9.76e-32,0.59,[0.54~0.64],1.45e-30
-Increased blood urea nitrogen,2.06,[1.83~2.33],9.76e-32,0.59,[0.54~0.64],1.45e-30
-Abnormality of coagulation,3.27,[2.87~3.73],3.81e-71,0.57,[0.5~0.64],5.42e-22
-Abnormality of the coagulation cascade,3.27,[2.87~3.73],3.81e-71,0.57,[0.5~0.64],5.42e-22
-Abnormal albumin level,11.41,[9.7~13.43],1.02e-193,0.56,[0.46~0.67],1.02e-09
-Abnormality of nucleobase metabolism,6.85,[5.59~8.4],3.64e-78,0.56,[0.44~0.71],1.66e-06
-Abnormality of prothrombin,3.3,[2.89~3.77],8.73e-72,0.56,[0.49~0.62],7.37e-23
-Abnormality of purine metabolism,6.85,[5.59~8.4],3.64e-78,0.56,[0.44~0.71],1.66e-06
-Hyperbilirubinemia,2.25,[1.91~2.66],3.32e-22,0.56,[0.48~0.66],1.64e-13
-Prolonged prothrombin time,3.3,[2.89~3.77],8.73e-72,0.56,[0.49~0.62],7.37e-23
-Abnormality of metabolism/homeostasis,3.22,[1.99~5.21],1.47e-06,0.55,[0.45~0.67],2.36e-09
-Hypoalbuminemia,11.23,[9.54~13.22],7.34e-189,0.55,[0.45~0.67],7.66e-10
-Thrombocytopenia,2.02,[1.77~2.29],5.43e-27,0.53,[0.48~0.59],1.45e-30
-Increased total bilirubin,2.27,[1.9~2.71],3.01e-20,0.52,[0.44~0.62],6.06e-14
+Increased red blood cell count,2.47,[2-3.06],6.08e-17,1.5,[1.25-1.79],9.20e-06
+Increased VLDL cholesterol concentration,0.77,[0.38-1.53],4.45e-01,1.49,[1-2.23],4.84e-02
+Abnormal VLDL cholesterol concentration,0.72,[0.36-1.44],3.48e-01,1.42,[0.96-2.1],7.90e-02
+Increased hematocrit,2.42,[1.89-3.11],2.40e-12,1.23,[0.99-1.53],5.35e-02
+Abnormal eosinophil count,3.74,[3.18-4.39],1.03e-59,1.17,[1.01-1.36],3.13e-02
+Abnormal eosinophil morphology,3.74,[3.18-4.39],1.03e-59,1.17,[1.01-1.36],3.13e-02
+Eosinophilia,3.74,[3.18-4.39],1.03e-59,1.17,[1.01-1.36],3.13e-02
+Decreased lipoprotein lipase activity,3.8,[2.84-5.08],9.52e-20,1.08,[0.82-1.44],5.78e-01
+Reduced blood urea nitrogen,2.35,[2.01-2.75],7.97e-27,1.08,[0.95-1.24],2.39e-01
+Increased LDL cholesterol concentration,0.81,[0.57-1.15],2.25e-01,1.07,[0.86-1.33],5.39e-01
+Hypercholesterolemia,2.99,[2.57-3.47],7.99e-48,1.05,[0.93-1.19],4.48e-01
+Abnormal LDL cholesterol concentration,0.85,[0.61-1.18],3.28e-01,1.02,[0.82-1.26],8.71e-01
+All,1,[0-Inf],1.00e+00,1,[0-Inf],1.00e+00
+Phenotypic abnormality,1,[0-Inf],1.00e+00,1,[0-Inf],1.00e+00
+Leukocytosis,4.53,[3.95-5.19],3.57e-107,0.98,[0.89-1.07],6.09e-01
+Thrombocytosis,2.56,[2.18-2.99],7.80e-32,0.98,[0.85-1.12],7.28e-01
+Decreased mean platelet volume,4.53,[3.98-5.15],2.84e-118,0.97,[0.87-1.07],5.06e-01
+Abnormal granulocyte morphology,5.75,[4.95-6.7],1.18e-115,0.94,[0.85-1.03],1.66e-01
+Abnormality of myeloid leukocytes,5.75,[4.95-6.7],1.18e-115,0.94,[0.85-1.03],1.66e-01
+Abnormal hemoglobin,2.05,[1.79-2.35],4.46e-25,0.93,[0.83-1.03],1.65e-01
+Elevated hemoglobin A1c,2.05,[1.79-2.35],4.46e-25,0.93,[0.83-1.03],1.65e-01
+Abnormal erythrocyte sedimentation rate,9.13,[7.51-11.11],9.49e-111,0.92,[0.75-1.14],4.54e-01
+Abnormal liver morphology,2.83,[2.5-3.21],5.57e-60,0.92,[0.83-1.01],8.79e-02
+Abnormality of the abdominal organs,2.83,[2.5-3.21],5.57e-60,0.92,[0.83-1.01],8.79e-02
+Abnormality of the digestive system,2.83,[2.5-3.21],5.57e-60,0.92,[0.83-1.01],8.79e-02
+Abnormality of the liver,2.83,[2.5-3.21],5.57e-60,0.92,[0.83-1.01],8.79e-02
+Elevated erythrocyte sedimentation rate,9.13,[7.51-11.11],9.49e-111,0.92,[0.75-1.14],4.54e-01
+Elevated hepatic transaminase,2.83,[2.5-3.21],5.57e-60,0.92,[0.83-1.01],8.79e-02
+Elevated serum alanine aminotransferase,2.89,[2.51-3.31],7.70e-52,0.92,[0.82-1.04],1.88e-01
+Hyperlipidemia,2.43,[2.08-2.86],2.83e-28,0.92,[0.81-1.05],2.24e-01
+Hypertriglyceridemia,2.43,[2.08-2.86],2.83e-28,0.92,[0.81-1.05],2.24e-01
+Abnormal circulating thyroxine level,3.76,[2.97-4.75],5.95e-29,0.91,[0.72-1.14],3.94e-01
+Abnormal thyroid hormone level,3.76,[2.97-4.75],5.95e-29,0.91,[0.72-1.14],3.94e-01
+Abnormality of the thyroid gland,3.76,[2.97-4.75],5.95e-29,0.91,[0.72-1.14],3.94e-01
+Abnormality of thyroid physiology,3.76,[2.97-4.75],5.95e-29,0.91,[0.72-1.14],3.94e-01
+Abnormal platelet volume,6.13,[5.31-7.08],3.96e-138,0.9,[0.82-0.99],2.68e-02
+Abnormality of the immune system,5.37,[4.37-6.6],1.33e-58,0.9,[0.82-0.99],2.75e-02
+Elevated C-reactive protein level,7.83,[6.55-9.36],8.30e-115,0.9,[0.74-1.09],2.65e-01
+Hematuria,4.68,[3.88-5.64],2.89e-60,0.9,[0.75-1.09],2.78e-01
+Neutrophilia,4.79,[4.18-5.48],5.19e-116,0.89,[0.81-0.99],2.42e-02
+Abnormal leukocyte count,5.2,[4.26-6.35],4.65e-60,0.88,[0.8-0.97],7.42e-03
+Abnormal leukocyte morphology,5.11,[4.19-6.24],7.15e-59,0.88,[0.8-0.97],6.52e-03
+Abnormality of cellular immune system,5.11,[4.19-6.24],7.15e-59,0.88,[0.8-0.97],6.52e-03
+Abnormality of urine homeostasis,3.42,[3-3.9],4.83e-77,0.88,[0.8-0.97],8.92e-03
+Hypokalemia,2.81,[2.47-3.2],1.31e-55,0.88,[0.79-0.98],1.41e-02
+Decreased serum iron,3.84,[3.17-4.65],5.65e-44,0.87,[0.72-1.05],1.43e-01
+Abnormal neutrophil count,5.64,[4.88-6.52],5.62e-124,0.86,[0.79-0.95],2.30e-03
+Abnormality of neutrophils,5.64,[4.88-6.52],5.62e-124,0.86,[0.79-0.95],2.30e-03
+Decreased serum creatinine,1.69,[1.48-1.94],1.65e-14,0.86,[0.78-0.96],6.40e-03
+Hyperlipoproteinemia,1.84,[1.58-2.14],4.22e-15,0.86,[0.76-0.97],1.12e-02
+Abnormal urine cytology,3.44,[3.02-3.92],3.68e-78,0.85,[0.77-0.94],2.14e-03
+Abnormality of blood and blood-forming tissues,4.01,[2.8-5.76],2.49e-14,0.85,[0.73-0.98],2.84e-02
+Monocytosis,2.04,[1.75-2.38],1.64e-20,0.85,[0.75-0.96],1.08e-02
+Abnormal serum iron,4.24,[3.55-5.07],7.67e-58,0.84,[0.71-1.01],5.65e-02
+Abnormality of the endocrine system,3.52,[2.88-4.3],2.24e-35,0.84,[0.69-1.01],6.72e-02
+Elevated serum anion gap,2.8,[2.34-3.36],1.36e-29,0.84,[0.71-0.99],3.59e-02
+Elevated serum aspartate aminotransferase,2.99,[2.62-3.43],3.17e-58,0.84,[0.75-0.94],1.79e-03
+Pyuria,3.47,[3-4.03],3.06e-62,0.84,[0.74-0.96],9.67e-03
+Abnormal enzyme/coenzyme activity,3.43,[3.02-3.9],3.78e-81,0.83,[0.75-0.91],1.74e-04
+Hypercapnia,2.81,[2.46-3.21],1.72e-53,0.83,[0.74-0.92],4.93e-04
+Abnormal erythrocyte morphology,2.91,[2.37-3.58],1.38e-24,0.82,[0.74-0.91],1.68e-04
+Abnormality of alkaline phosphatase activity,2.41,[2.1-2.76],1.40e-37,0.82,[0.74-0.92],6.25e-04
+Abnormality of circulating hormone level,3.62,[2.95-4.45],1.14e-35,0.82,[0.67-1.01],5.48e-02
+Abnormality of the genitourinary system,3.91,[3.41-4.5],6.72e-85,0.82,[0.75-0.9],9.79e-06
+Abnormality of the urinary system,3.91,[3.41-4.5],6.72e-85,0.82,[0.75-0.9],9.79e-06
+Abnormality of the urinary system physiology,3.91,[3.41-4.5],6.72e-85,0.82,[0.75-0.9],9.79e-06
+Abnormality of potassium homeostasis,3.59,[3.15-4.1],5.90e-83,0.8,[0.73-0.88],4.07e-06
+Abnormality of acid-base homeostasis,3.65,[3.2-4.16],8.00e-86,0.79,[0.72-0.86],4.10e-07
+Abnormality of cholesterol metabolism,2.47,[2.17-2.82],2.89e-42,0.79,[0.72-0.86],1.95e-07
+Hypernatremia,3.22,[2.69-3.85],1.57e-38,0.79,[0.67-0.93],4.18e-03
+Abnormal blood carbon dioxide level,3.97,[3.47-4.53],2.27e-92,0.78,[0.71-0.86],1.71e-07
+Abnormal levels of creatine kinase in blood,3.04,[2.56-3.61],1.04e-37,0.78,[0.66-0.92],2.37e-03
+Abnormal mean corpuscular volume,2.33,[2.06-2.64],1.86e-41,0.78,[0.7-0.86],7.11e-07
+Abnormal renal physiology,4.03,[3.55-4.58],9.33e-104,0.78,[0.7-0.85],1.55e-07
+Abnormality of circulating enzyme level,3.04,[2.56-3.61],1.04e-37,0.78,[0.66-0.92],2.37e-03
+Abnormality of the kidney,4.03,[3.55-4.58],9.33e-104,0.78,[0.7-0.85],1.55e-07
+Abnormality of the upper urinary tract,4.03,[3.55-4.58],9.33e-104,0.78,[0.7-0.85],1.55e-07
+Acidosis,3.18,[2.67-3.79],1.22e-39,0.78,[0.66-0.92],3.43e-03
+Elevated alkaline phosphatase,2.4,[2.09-2.77],1.24e-34,0.78,[0.69-0.88],6.43e-05
+Elevated serum creatine phosphokinase,3.04,[2.56-3.61],1.04e-37,0.78,[0.66-0.92],2.37e-03
+Hyperglycemia,1.04,[0.92-1.18],5.40e-01,0.78,[0.72-0.85],2.35e-08
+Increased HDL cholesterol concentration,2.64,[2.22-3.14],6.17e-29,0.78,[0.67-0.91],1.82e-03
+Increased serum lactate,3.18,[2.67-3.79],1.22e-39,0.78,[0.66-0.92],3.43e-03
+Abnormal blood gas level,3.87,[3.38-4.42],9.70e-89,0.77,[0.7-0.84],1.24e-08
+Abnormal glucose homeostasis,1.12,[0.99-1.27],8.07e-02,0.77,[0.7-0.84],1.78e-09
+Abnormal monocyte count,2.96,[2.58-3.38],9.96e-57,0.77,[0.69-0.87],9.12e-06
+Abnormality monocyte morphology,2.96,[2.58-3.38],9.96e-57,0.77,[0.69-0.87],9.12e-06
+Abnormality of blood glucose concentration,1.11,[0.98-1.26],9.08e-02,0.77,[0.7-0.84],1.86e-09
+Abnormality of carbohydrate metabolism/homeostasis,1.12,[0.99-1.27],8.07e-02,0.77,[0.7-0.84],1.78e-09
+Abnormality of iron homeostasis,3.81,[3.27-4.44],5.66e-68,0.77,[0.66-0.88],2.08e-04
+Abnormality of lipid metabolism,2.42,[2.12-2.76],1.35e-39,0.77,[0.71-0.84],2.45e-09
+Abnormality of the respiratory system,3.87,[3.38-4.42],9.70e-89,0.77,[0.7-0.84],1.24e-08
+Functional respiratory abnormality,3.87,[3.38-4.42],9.70e-89,0.77,[0.7-0.84],1.24e-08
+Hyperproteinemia,2.81,[2.28-3.47],2.61e-22,0.77,[0.63-0.94],1.02e-02
+Hypochloremia,2.56,[2.25-2.91],4.10e-47,0.77,[0.69-0.85],7.15e-07
+Abnormal thrombocyte morphology,4.56,[3.9-5.32],1.42e-83,0.76,[0.69-0.83],7.04e-10
+Abnormality of cation homeostasis,3.44,[2.91-4.06],1.13e-48,0.76,[0.69-0.83],1.11e-09
+Abnormality of ion homeostasis,3.83,[3.15-4.66],4.95e-42,0.76,[0.69-0.84],3.32e-08
+Abnormality of monovalent inorganic cation homeostasis,3.59,[3.12-4.14],6.80e-71,0.76,[0.7-0.83],2.07e-09
+Abnormality of transition element cation homeostasis,3.85,[3.31-4.48],6.52e-70,0.76,[0.66-0.87],1.04e-04
+Increased RBC distribution width,3.09,[2.73-3.49],2.27e-72,0.76,[0.7-0.83],7.45e-10
+Abnormal serum anion gap,3.38,[2.96-3.85],5.11e-76,0.75,[0.68-0.83],1.72e-08
+Abnormality of lipoprotein cholesterol concentration,2.29,[2.01-2.63],2.01e-34,0.75,[0.68-0.83],1.24e-08
+Hypercalcemia,2.79,[2.25-3.46],3.20e-21,0.75,[0.61-0.92],5.66e-03
+Hyperphosphatemia,6.33,[5.54-7.23],2.90e-166,0.75,[0.67-0.85],5.08e-06
+Abnormal blood oxygen level,2.59,[2.22-3.02],1.71e-34,0.74,[0.64-0.85],1.22e-05
+Abnormal hemoglobin concentration,3.13,[2.72-3.61],1.58e-56,0.74,[0.68-0.81],5.69e-12
+Hypocapnia,3.48,[3.06-3.97],4.79e-80,0.74,[0.67-0.83],1.17e-07
+Abnormal glomerular filtration rate,3.71,[3.28-4.19],3.82e-99,0.73,[0.66-0.8],1.35e-10
+Abnormal hematocrit,3.98,[3.4-4.66],4.20e-67,0.73,[0.66-0.79],6.79e-13
+Abnormal serum bicarbonate concentration,3,[2.57-3.5],1.23e-45,0.73,[0.64-0.85],1.40e-05
+Abnormality of phosphate homeostasis,5.74,[5.04-6.54],2.93e-155,0.73,[0.65-0.82],3.78e-08
+Decreased HDL cholesterol concentration,1.98,[1.66-2.35],6.00e-15,0.73,[0.63-0.85],3.56e-05
+Decreased hemoglobin concentration,2.98,[2.6-3.41],2.84e-56,0.73,[0.67-0.79],1.44e-13
+Hypolipoproteinemia,1.98,[1.67-2.34],8.49e-16,0.73,[0.63-0.84],8.90e-06
+Abnormal circulating creatinine level,2.71,[2.37-3.1],2.52e-49,0.72,[0.66-0.78],6.71e-14
+Abnormality of chloride homeostasis,3.85,[3.34-4.43],4.99e-80,0.72,[0.66-0.79],1.82e-12
+Abnormality of divalent inorganic cation homeostasis,3.18,[2.78-3.64],1.76e-64,0.72,[0.66-0.78],1.12e-13
+Decreased glomerular filtration rate,3.71,[3.28-4.2],2.77e-99,0.72,[0.66-0.8],1.03e-10
+Elevated gamma-glutamyltransferase activity,6.38,[5.41-7.51],4.90e-111,0.72,[0.61-0.86],2.83e-04
+Elevated serum creatinine,2.49,[2.21-2.82],3.62e-50,0.72,[0.66-0.79],1.95e-12
+Hyperchloremia,3.65,[3.2-4.15],1.18e-87,0.72,[0.65-0.79],6.39e-11
+Hypomagnesemia,3.89,[3.41-4.45],1.32e-89,0.72,[0.64-0.82],1.94e-07
+Abnormality of magnesium homeostasis,4.03,[3.55-4.58],1.45e-104,0.71,[0.64-0.79],6.98e-11
+Abnormality of nitrogen compound homeostasis,2.98,[2.54-3.5],1.42e-41,0.71,[0.65-0.77],2.51e-14
+Abnormality of sodium homeostasis,2.92,[2.56-3.33],1.28e-58,0.71,[0.64-0.78],2.25e-12
+Hyponatremia,2.19,[1.92-2.5],7.32e-33,0.71,[0.64-0.79],6.13e-11
+Abnormal concentration of calcium in blood,2.74,[2.41-3.11],1.93e-54,0.7,[0.64-0.76],1.40e-15
+Abnormal HDL cholesterol concentration,2.91,[2.53-3.35],5.03e-51,0.7,[0.63-0.79],8.12e-10
+Abnormal red blood cell count,3.66,[3.15-4.25],8.81e-66,0.7,[0.64-0.77],1.19e-15
+Abnormality of calcium homeostasis,2.75,[2.41-3.12],1.74e-54,0.7,[0.64-0.76],2.06e-15
+Abnormality of circulating protein level,5.62,[4.87-6.48],2.03e-125,0.7,[0.64-0.77],7.53e-14
+Hypermagnesemia,4.03,[3.5-4.64],5.09e-85,0.7,[0.61-0.8],7.62e-08
+Hyperoxemia,2.4,[1.99-2.89],7.97e-21,0.7,[0.59-0.83],2.78e-05
+Increased serum ferritin,4.36,[3.29-5.77],2.04e-25,0.7,[0.52-0.95],1.91e-02
+Reduced hematocrit,3.75,[3.24-4.34],1.67e-72,0.7,[0.64-0.76],4.62e-17
+Decreased serum anion gap,2.9,[2.55-3.31],7.65e-58,0.69,[0.62-0.77],9.34e-12
+Hypocalcemia,2.54,[2.24-2.87],8.22e-50,0.69,[0.63-0.76],4.77e-16
+Hypoproteinemia,3.48,[3.05-3.96],6.11e-79,0.69,[0.62-0.77],1.32e-11
+Abnormal lymphocyte morphology,5.52,[4.78-6.37],2.28e-123,0.68,[0.61-0.74],3.51e-16
+Abnormal serum ferritin,4.01,[3.1-5.17],4.33e-27,0.68,[0.52-0.9],5.18e-03
+Abnormal blood urea nitrogen,2.49,[2.19-2.84],5.15e-44,0.67,[0.62-0.74],1.14e-18
+Azotemia,2.42,[2.13-2.76],5.85e-42,0.66,[0.6-0.72],7.32e-22
+Hyperkalemia,4.24,[3.7-4.87],4.13e-96,0.66,[0.58-0.75],8.07e-11
+Increased mean platelet volume,3.5,[3.01-4.07],6.11e-61,0.66,[0.57-0.76],8.75e-09
+Increased mean corpuscular volume,1.82,[1.57-2.11],2.03e-15,0.65,[0.57-0.74],3.75e-11
+Leukopenia,5.2,[4.51-5.99],6.92e-117,0.65,[0.6-0.72],1.47e-19
+Conjugated hyperbilirubinemia,2.53,[1.99-3.22],1.78e-14,0.64,[0.5-0.81],1.70e-04
+Hypoglycemia,3.59,[2.96-4.35],9.06e-40,0.64,[0.52-0.77],5.74e-06
+Lymphopenia,5.43,[4.73-6.24],1.60e-128,0.64,[0.58-0.7],3.42e-20
+Neutropenia,3.24,[2.79-3.76],4.48e-54,0.64,[0.55-0.74],8.95e-10
+Decreased red blood cell count,3.33,[2.91-3.82],1.52e-68,0.63,[0.58-0.69],1.17e-26
+Abnormal platelet count,2.58,[2.28-2.92],8.14e-52,0.62,[0.57-0.69],1.97e-22
+Acellular urinary casts,5.38,[4.43-6.54],1.31e-65,0.62,[0.5-0.76],6.91e-06
+Cylindruria,5.38,[4.43-6.54],1.31e-65,0.62,[0.5-0.76],6.91e-06
+Hyaline casts,5.38,[4.43-6.54],1.31e-65,0.62,[0.5-0.76],6.91e-06
+Abnormality of metabolism/homeostasis,2.64,[1.67-4.18],2.66e-05,0.61,[0.49-0.74],1.48e-06
+Hypophosphatemia,4.07,[3.43-4.84],4.93e-59,0.61,[0.51-0.73],3.90e-08
+Increased blood urea nitrogen,2.08,[1.84-2.35],2.72e-32,0.59,[0.54-0.64],4.26e-31
+Abnormal albumin level,10.58,[9.02-12.41],9.99e-188,0.58,[0.48-0.7],4.27e-09
+Hyperbilirubinemia,2.3,[1.95-2.7],7.90e-24,0.58,[0.5-0.67],1.14e-12
+Abnormality of coagulation,3.29,[2.88-3.75],7.24e-72,0.57,[0.5-0.64],3.17e-22
+Abnormality of the coagulation cascade,3.29,[2.88-3.75],7.24e-72,0.57,[0.5-0.64],3.17e-22
+Hypoalbuminemia,10.39,[8.85-12.21],7.33e-183,0.57,[0.48-0.69],3.32e-09
+Abnormality of nucleobase metabolism,6.88,[5.62-8.44],1.49e-78,0.56,[0.44-0.71],1.52e-06
+Abnormality of purine metabolism,6.88,[5.62-8.44],1.49e-78,0.56,[0.44-0.71],1.52e-06
+Abnormality of prothrombin,3.32,[2.91-3.79],1.67e-72,0.55,[0.49-0.62],4.35e-23
+Prolonged prothrombin time,3.32,[2.91-3.79],1.67e-72,0.55,[0.49-0.62],4.35e-23
+Thrombocytopenia,2.03,[1.78-2.31],1.85e-27,0.53,[0.48-0.59],7.09e-31
+Increased total bilirubin,2.28,[1.91-2.72],1.72e-20,0.52,[0.44-0.62],4.60e-14

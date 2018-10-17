@@ -70,7 +70,7 @@ java --jar HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \             
 -hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \               # hpo.obo is required
 -loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                         # LOINC table is required
 -a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \       # loinc2hpo annotation map is                                                                                       # required
--o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt # output transformed data
+-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v1.0.txt # output transformed data
 ```
 
 3) We also counted prednisone prescription times for each patient in Java.
@@ -90,11 +90,11 @@ CREATE TABLE IF NOT EXISTS PatientOnPrednison (
 
 4) We have calculated the loinc2hpo annotation statistics in Java
 ```{bash eval = FALSE}
-java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \                                  # statistics
+java -jar /Users/zhangx/git/HushToFhir/target/HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \  # statistics
 -hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \                           # hpo.obo is required
 -loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                                     # LOINC table is required
 -a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \                   # loinc2hpo annotation map is                                                                                                 # required
--o /Users/zhangx/git/HushToFhir/data/loincAnnotationstats8-2-2018.tsv                           # output transformed data
+-o /Users/zhangx/git/HushToFhir/data/loincAnnotationstats_v1.0.tsv                           # output transformed data
 ```
 
 
@@ -128,7 +128,7 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 # replace na with 0
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt", header = TRUE, sep = "\t")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v1.0.txt", header = TRUE, sep = "\t")
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
@@ -148,7 +148,7 @@ patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBS
 icd9_3_digit_codes <- read.csv("./src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 icd10_3_digit_codes <- read.csv("./src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-loincAnnotationStat <- read.csv("./data/loincAnnotationstats8-2-2018.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- read.csv("./data/loincAnnotationstats_v1.0.tsv", header = TRUE, sep = "\t")
 ```
 
 define a helper function that handles the negation information in loinc2hpo mapping library
@@ -355,7 +355,7 @@ ggplot(aggrgLOINCtypes) +
   geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
   xlab("mapped LOINC terms") + ylab("counts of HPO") + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0, 140)) +
+  #scale_y_continuous(limits = c(0, 240)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
 ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 2)
@@ -368,11 +368,11 @@ We have shown that a patient is mapped to the same HPO terms multiple times. Her
 ```{r}
 patientTermMapFreq <- loinc2hpo %>% 
   filter(mapFailed == "false") %>%
-  select(patient_num, isNegated, hpoTerm) %>% #7,636,885 lines of records
+  select(patient_num, isNegated, hpoTerm) %>% #9,311,827 lines of records
   #count()
   group_by(patient_num, isNegated, hpoTerm) %>% # for each patient and each term, count how many times the term is diagnosed with a test
   summarise(hpoTermFreq = n()) %>%
-  ungroup() %>% #726,747 lines of records ---->>> a patient is frequenctly mapped to the same HPO term!
+  ungroup() %>% #865,461 lines of records ---->>> a patient is frequenctly mapped to the same HPO term!
   #count()
   mutate(hpoTerm = make.names(hpoTerm))
 head(patientTermMapFreq)
@@ -399,7 +399,11 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 Read in the inferred terms and use it instead of the original list for the following analysis
 ```{r}
-patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false")) %>% rename(hpo = hpoTerm)
+patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v1.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) 
+
+hpoTermMap <- patientAbnormalTermMapFreq_inferred %>% select(hpoTerm) %>% distinct() %>% mutate(hpo = make.names(hpoTerm))
+
+patientAbnormalTermMapFreq_inferred <- patientAbnormalTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false")) %>% rename(hpo = hpoTerm)
 
 ```
 
@@ -434,7 +438,7 @@ combined <- patients %>%
   mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y")) %>%
   mutate(withDiabeteICDCode = ifelse(is.na(withDiabeteICDCode), "N", "Y")) %>%
   mutate(withChronicLiverDamageICDCode = ifelse(is.na(withChronicLiverDamageICDCode), "N", "Y")) %>%
-  mutate(hpoTerm = make.names(hpo))
+  mutate(hpoTerm = make.names(hpo)) %>% select(-hpo)
 nrow(combined)
 ```
 
@@ -454,8 +458,8 @@ colnames(df4ML)
 ```
 export the data frame for machine learning
 ```{r}
-write.csv(df4ML, "./data/Hush+_data_matrix.csv", quote = FALSE, row.names = FALSE)
-df4ML <- read.csv("./data/Hush+_data_matrix.csv", header = TRUE)
+write.csv(df4ML, "./data/Hush+_data_matrix_v1.0.csv", quote = FALSE, row.names = FALSE)
+df4ML <- read.csv("./data/Hush+_data_matrix_v1.0.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription and acute asthma diagnosis
@@ -498,7 +502,7 @@ df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # filt
 #df_glm <- df_glm %>% left_join(patient_withBreazingDifficulties, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withBreathingDifficuities), "N", withBreathingDifficuities)) %>% select(-withBreathingDifficuities)
 
 #test if using severe asthma ICD codes will help
-df_glm <- df_glm %>% mutate(withAcuteAsthmaICDCode = ifelse(is.na(withAcuteAsthma), "N", "Y")) %>% select(-withAcuteAsthma)
+df_glm <- df_glm %>% mutate(withAcuteAsthma = ifelse(is.na(withAcuteAsthma), "N", "Y")) %>% rename(withAcuteAsthmaICDCode = withAcuteAsthma)
 
 glm_X = df_glm %>%  # prepare the independent variables
   mutate(isFrequent = as.factor(ifelse(prscbCount >= PREDNISON_THRESHOLD, 1, 0))) %>%
@@ -535,7 +539,22 @@ confid.int <- function(mean, sd, critical.value = 1.98, FUN = exp) {
 #  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
 #  select(patient_num, encounter_no_days, prscbCount, isFrequent, withAsthmaICDCode)
 
-glm_Y = df_glm %>% select(-c(1:8, ncol(df_glm))) # select all the HPO columns
+glm_Y = df_glm %>% select(-c(1:9, ncol(df_glm))) # select all the HPO columns
+# For IgE-related HPO terms, we don't need the threshold because we assume one test is sufficient to call such HPO terms
+# so bump bup such HPO frequencies to positive infinite so that they are always called
+bumping_IgE <- function(x) {
+  for (i in 1:length(x)) {
+    if (x[i] > 0) {
+      x[i] = Inf
+    }
+  }
+  return (x)
+}
+
+IgE.columns <- glm_Y %>% select(contains(".IgE."))
+non_IgE.columns <- glm_Y %>% select(-contains(".IgE."))
+IgE.columns <- 
+
 library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  # remove phenotypes without much changes, i.e. almost all 0s
@@ -551,7 +570,7 @@ glm_p_value <- function(hpo, x = glm_X) {
   return (summary(glmmodel))
 }
 
-set.seed(9999)
+
 #l <- list(10)
   tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
   result <- data.frame(hpo = names(tests), 
@@ -569,7 +588,7 @@ set.seed(9999)
   
   #change HPO terms to their original names, e.g. change *Elevated.C.reactive.proteins* to *Elevated C-reactive proteins*
   result_logistic <- result_logistic %>% left_join(hpoTermMap, by = "hpo") %>% select(-hpo) %>% select(hpoTerm, everything()) %>% mutate(p_steroid = scientific(p_steroid), p_asthma.diagnosis = scientific(p_asthma.diagnosis))
-  #View(result_logistic)
+  View(result_logistic)
   head(result_logistic)
   
 ```
@@ -584,7 +603,7 @@ Plot the result and display some
 ```{r}
 ggplot(result_logistic) + 
     geom_point(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis)) + 
-    geom_text(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis, label = hpo), data = result_logistic %>% filter(odds.ratio_asthma.diagnosis > 1.1 | odds.ratio_steroid > 5), hjust = -0.1, check_overlap = TRUE) +
+    geom_text(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis, label = hpoTerm), data = result_logistic %>% filter(odds.ratio_asthma.diagnosis > 1.1 | odds.ratio_steroid > 5), hjust = -0.1, check_overlap = TRUE) +
     geom_hline(yintercept = 1) + geom_vline(xintercept = 1) + 
     scale_x_continuous(limits = c(0, 15)) +
     theme_bw()
