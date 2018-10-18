@@ -26,6 +26,11 @@ III. Test whether the phenotypic data can be used for medical prediction with ma
 
 To simplify data query, we have parsed the dataset in Java and imported all records to a SQLite database. The source code can be accessed through https://github.com/TheJacksonLaboratory/HUSHDataAnalysis. The source repository also contains Java code for other forms of data preporation. For example, we converted laboratory tests into HPO using the LOINC to HPO mapping (refer to: https://github.com/TheJacksonLaboratory/loinc2hpoAnnotation/blob/master/Data/TSVSingleFile/annotations.tsv), we counted the frequency of each ICD-9/10 codes (first three latters) for every patient, and counted prednisone prescriptions for each patient etc. Those tasks are too complicated to implement in R. The rest of this sub-section contains bash codes that can be used to recreate those steps.
 
+```{bash}
+say hi
+```
+
+
 1) We select all diagnosis records (with ICD codes) and imported them to the database as a separate table.
 ```{bash eval = FALSE}
 java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -icd \                                 # select ICD records
@@ -236,7 +241,7 @@ label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse
 
 loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
-  geom_text(aes(x = 1, y = counts / sum(counts) - c(0, 0.15), label = c(label1, "")), size = 2) +
+  geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
   scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
@@ -306,7 +311,8 @@ uniqueHPOperPatientNoInfer <- loinc2hpo %>% select(mapFailed, patient_num, isNeg
   group_by(patient_num, isNegated) %>% 
   summarise(counts = n()) %>%ungroup()
 
-uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map_dbl(., mean)
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map_dbl(., sum)/nrow(patients)
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "true") %>% select(counts) %>% map_dbl(., sum)/nrow(patients)
 
 ggplot(uniqueHPOperPatientNoInfer) + 
     geom_histogram(aes(counts, group = isNegated, fill = isNegated), binwidth = 5, color = "black", size = 0.25) +
@@ -358,7 +364,7 @@ ggplot(aggrgLOINCtypes) +
   #scale_y_continuous(limits = c(0, 240)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
-ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 2)
+ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 1.5)
 ```
 
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
@@ -541,7 +547,7 @@ confid.int <- function(mean, sd, critical.value = 1.98, FUN = exp) {
 
 glm_Y = df_glm %>% select(-c(1:9, ncol(df_glm))) # select all the HPO columns
 # For IgE-related HPO terms, we don't need the threshold because we assume one test is sufficient to call such HPO terms
-# so bump bup such HPO frequencies to positive infinite so that they are always called
+# so bump bup such HPO frequencies to positive infinity so that they are always called
 bumping_IgE <- function(x) {
   for (i in 1:length(x)) {
     if (x[i] > 0) {
@@ -550,30 +556,45 @@ bumping_IgE <- function(x) {
   }
   return (x)
 }
+#IgE.columns <- glm_Y %>% select(contains(".IgE.")) %>% colnames()
+#glm_Y <- glm_Y %>% mutate_at(IgE.columns, bumping_IgE) 
+# look at how many patients had IgE-related phenotypes
+# Too few, the only one potentially useful is Increased IgE level, a term inferred from the rest of IgE related HPO terms
+#glm_Y %>% select(IgE.columns) %>% map_int(., function(x) sum(x == Inf))
+#increased.IgE.level <- glm_Y %>% select(Increased.IgE.level)
 
-IgE.columns <- glm_Y %>% select(contains(".IgE."))
-non_IgE.columns <- glm_Y %>% select(-contains(".IgE."))
-IgE.columns <- 
+# categorize HPO based on counts:
+# above threshold: 1
+# exactly 0 count: 0
+# in between:      0.5
+hpo_count_class <- function(x) {
+  for (i in 1:length(x)) {
+    x[i] = ifelse(x[i] >= TERMFREQ_THRESHOLD, 1, ifelse(x[i] == 0, 0, 0.5))
+  }
+  return (x)
+}
 
+glm_Y <- glm_Y %>% map(., hpo_count_class)
+glm_Y <- as.data.frame(glm_Y)
 library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  # remove phenotypes without much changes, i.e. almost all 0s
 
 glm_p_value <- function(hpo, x = glm_X) {
-  target <- as.factor(ifelse(hpo >= TERMFREQ_THRESHOLD, 1, ifelse(hpo == 0, 0, 0.5)))
-  df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1) # exclude patients that had a phenotype but did not reach the threshold
-  #df_severe <- df %>% filter(isFrequent == 1)
-  #df_nonSevere <- df %>% filter(isFrequent == 0)
-  #sampled_rows <- sample(1:nrow(df_nonSevere), nrow(df_nonSevere))
-  #df <- rbind(df_severe, df_nonSevere[sampled_rows,])
+  target <- as.factor(hpo)
+  # exclude patients that had a phenotype but did not reach the threshold
+  df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1) 
   glmmodel <- glm(target ~ isFrequent + withAcuteAsthmaICDCode, data = df, family = binomial(link = "logit"), maxit = 50)
   return (summary(glmmodel))
 }
 
+# do a test on Increased IgE level
+# not interesting result
+#test.IgE <- increased.IgE.level %>% map(glm_p_value) %>% map(~.$coefficients)
 
-#l <- list(10)
-  tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
-  result <- data.frame(hpo = names(tests), 
+tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
+
+result <- data.frame(hpo = names(tests), 
                            `odds ratio_steroid` = round(exp(tests %>% map_dbl(~.[2, 1])), 2),
                            `CI(95%)_steroid` = confid.int(tests %>% map_dbl(~.[2, 1]), 
                                                     tests %>% map_dbl(~.[2, 2])),
@@ -590,11 +611,19 @@ glm_p_value <- function(hpo, x = glm_X) {
   result_logistic <- result_logistic %>% left_join(hpoTermMap, by = "hpo") %>% select(-hpo) %>% select(hpoTerm, everything()) %>% mutate(p_steroid = scientific(p_steroid), p_asthma.diagnosis = scientific(p_asthma.diagnosis))
   View(result_logistic)
   head(result_logistic)
-  
 ```
 
 save analysis result
 ```{r}
+asterisk_labal <- function(x) {
+  label <- rep("", length(x))
+  label[x <= 0.05] = "*"
+  label[x <= 0.01] = "**"
+  return (label)
+}
+
+result_logistic <- result_logistic %>% mutate(p_steroid_label = asterisk_labal(as.numeric(p_steroid)), p_asthma.diagnosis_label = asterisk_labal(as.numeric(p_asthma.diagnosis))) %>% select(hpoTerm, odds.ratio_steroid, CI.95.._steroid, p_steroid, p_steroid_label, odds.ratio_asthma.diagnosis, CI.95.._asthma.diagnosis, p_asthma.diagnosis, p_asthma.diagnosis_label)
+
 write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
 ```
 

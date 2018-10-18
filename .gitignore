@@ -18,6 +18,7 @@ data/Hush+_data_matrix_v1.0.csv
 data/images/2018_zhang_fig1_proof1.png
 data/loincAnnotationstats_v1.0.tsv
 data/patientAbnormalTermMapFreq-inferred_v1.0.csv
+data/images/FHIR2HPO Workflow.png
 .Rhistory
 
 data/.DS_Store
