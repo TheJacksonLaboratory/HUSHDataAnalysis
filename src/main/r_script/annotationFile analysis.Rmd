@@ -69,7 +69,7 @@ noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc
   #scale_x_continuous(limits = c(21, 0), trans = "reverse", breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
   scale_x_continuous(limits = c(0, 21), breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
   scale_fill_manual(limits = c("Y", "N"), values = c("dodgerblue", "dodgerblue")) +
-  xlab("number of mapped LOINC codes per HPO term") + ylab("percentage of HPO terms") + theme_bw() +
+  xlab("number of mapped LOINC terms per HPO term") + ylab("percentage of HPO terms") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75), legend.position = "none")
 
 ggsave("./data/images/distribution of HPO terms.png", width = 3, height = 1.6)
@@ -78,7 +78,30 @@ ggsave("./data/images/distribution of HPO terms.png", width = 3, height = 1.6)
 
 analyze how many top2000 LOINC is annotated
 ```{r}
-top2000Loinc <- top2000Loinc %>% rename(loincId = LOINC..)
+MAXRANK = 2000 # other LOINC codes should not be analyzed
+top2000Loinc <- top2000Loinc %>% rename(loincId = LOINC..) %>% filter(Rank <= MAXRANK)
 annotatedLoinc <- annotationFile %>% select(loincId) %>% distinct()
+top2000Loinc %>% filter(Rank < 2000) %>% inner_join(annotatedLoinc, by = "loincId") %>% count
+coverage <- function(x) {
+  n <- top2000Loinc %>% filter(Rank <= x) %>% inner_join(annotatedLoinc, by = "loincId") %>% count %>% unlist
+  return (n)
+}
+x <- seq(1:MAXRANK)
+coverage_x <- rep(0, length(x))
+for (i in 1:length(x)) {
+  coverage_x[i] = coverage(x[i])
+}
+coverage_df <- data.frame(rank = x, covered = coverage_x)
+break_points <- c(100, 200, 500, 1000, 1500, 2000)
+break_points_coverage <- coverage_df %>% filter(is.element(rank, break_points)) %>% select(covered) %>% unlist 
+break_points_label <- str_c(round(break_points_coverage/break_points * 100, 1), "%")
+ggplot(coverage_df) + geom_line(aes(x = rank, y = covered), size = 1, color = "blue") + 
+  geom_label(aes(x = rank, y = covered, label = break_points_label), data = coverage_df %>% filter(is.element(rank, break_points)),nudge_x = -50, nudge_y = 20) + 
+  geom_point(aes(x = rank, y = covered), data = coverage_df %>% filter(is.element(rank, break_points)), shape = 21, size = 2, color = "black", fill = "red") + 
+  scale_x_continuous(breaks = break_points ) +
+  xlab("number of top ranked LOINC codes") + ylab("number of mapped LOINC codes") + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75))
+
+ggsave("./data/images/distribution of annotated HPO terms.png", width = 5, height = 2.5)
 ```
 

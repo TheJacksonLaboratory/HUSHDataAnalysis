@@ -364,7 +364,7 @@ ggplot(aggrgLOINCtypes) +
   #scale_y_continuous(limits = c(0, 240)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
-ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 1.5)
+ggsave("./data/images/loinc_type_aggreg.png", width = 1.7, height = 1.5)
 ```
 
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
@@ -636,6 +636,22 @@ ggplot(result_logistic) +
     geom_hline(yintercept = 1) + geom_vline(xintercept = 1) + 
     scale_x_continuous(limits = c(0, 15)) +
     theme_bw()
+```
+
+
+check how many people with Increased red blood cell count also have COPD
+patients having Increased red blood cell count
+```{r}
+patient_withCOPD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD9:491.21%' OR concept_cd LIKE 'ICD9:491.22%' OR concept_cd LIKE 'ICD10:J44.1%'")
+patient_withIncreasedRBCcount <- df4ML %>% select(patient_num, Increased.red.blood.cell.count) %>% map_at("Increased.red.blood.cell.count", hpo_count_class) %>% as.data.frame() %>% filter(Increased.red.blood.cell.count == 1.0) %>% select(patient_num)
+patient_withCOPDandIncreasedRBCcount <- patient_withCOPD %>% inner_join(patient_withIncreasedRBCcount) %>% count
+# percent of patients with increased RBC count having COPD
+patient_withCOPDandIncreasedRBCcount/nrow(patient_withIncreasedRBCcount)
+patient_withBreazingDifficulties %>% inner_join(patient_withIncreasedRBCcount) %>% count
+
+patient_withCOPDandAcuteAsthma <- patient_withCOPD %>% inner_join(patient_withAcuteAsthma) %>% count %>% unlist()
+#percent of acute asthma patients having COPD
+patient_withCOPDandAcuteAsthma / nrow(patient_withAcuteAsthma)
 ```
 
 
