@@ -1,0 +1,731 @@
+---
+title: "Prednisone-association"
+author: "Aaron Zhang"
+date: "6/1/2018"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
+```
+
+# Data:
+The UNC HUSH+ data is an deidentified Electronic Health Record dataset on about ~15,000 patients extracted from the Carolina Data Warehouse for Health (CDWH) at the University of North Carolina (UNC). The patient cohort was selected by ICD codes for asthma and asthma-related symptoms. An analysis of patient diagnosis showed that about 1/3 of them had asthma diagnosis, while the rest had other asthma-like symptoms, such as cough or pneumonia. 
+
+The original dataset contains 8 CSV files, including PATIENT_DIMENTION, PROVIDER_DIMENSION, VISIT_DIMENSION, OBSERVATION_FACT, OBSERVATION_FACT_GEOCODES, CODE_LOOKUP, CONCEPT_DIMENSION, MODIFIER_DIMENSION. This analysis utilizes three tables, PATIENT_DIMENSION for patient information (de-identified), VISIT_DIMENSION for encounter information, and OBSERVATION_FACT. The OBSERVATION_FACT table is the core and largest of this dataset.  It contains all kinds of records meshed together, laboratory tests, prescription, diagnosis, procedure, vital signs etc, totaling 54 million lines and 10 gigabytes.  
+
+# Goal:
+Our primary goal is to use this dataset to demonstrate how to semantically integrate labortory tests with the LOINC to HPO mapping library. More specially, we hope to achieve the following goals:
+I.   Convert LOINC-coded lab tests into HPO terms
+II.  Identify HPO terms enriched in severe asthma patients as candidate biomarkers for asthma 
+III. Test whether the phenotypic data can be used for medical prediction with machine learning. 
+
+# Analysis:
+
+## prepare & load data into a SQL database
+
+To simplify data query, we have parsed the dataset in Java and imported all records to a SQLite database. The source code can be accessed through https://github.com/TheJacksonLaboratory/HUSHDataAnalysis. The source repository also contains Java code for other forms of data preporation. For example, we converted laboratory tests into HPO using the LOINC to HPO mapping (refer to: https://github.com/TheJacksonLaboratory/loinc2hpoAnnotation/blob/master/Data/TSVSingleFile/annotations.tsv), we counted the frequency of each ICD-9/10 codes (first three latters) for every patient, and counted prednisone prescriptions for each patient etc. Those tasks are too complicated to implement in R. The rest of this sub-section contains bash codes that can be used to recreate those steps.
+
+```{bash}
+say hi
+```
+
+
+1) We select all diagnosis records (with ICD codes) and imported them to the database as a separate table.
+```{bash eval = FALSE}
+java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -icd \                                 # select ICD records
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \            # input: all observations
+-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/ICD.txt                           # output: ICD records
+```
+
+The schema for ICD diagnosis records is identifical to the OBSERVATION_FACT table.
+```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite", eval = FALSE}
+CREATE TABLE IF NOT EXISTS ICD(
+  encounter_num INT,
+  patient_num INT,
+  concept_cd TEXT,
+  provider_id TEXT,
+  start_date NUM,
+  modifier_cd TEXT,
+  instance_num INT,
+  valtype_cd TEXT,
+  tval_char TEXT,
+  nval_num REAL,
+  valueflag_cd TEXT,
+  quantity_num REAL,
+  units_cd TEXT,
+  end_date NUM,
+  location_cd TEXT,
+  observation_blob TEXT,
+  confidence_num REAL,
+  update_date NUM,
+  download_date NUM,
+  import_date NUM,
+  sourcesystem_cd TEXT,
+  upload_id INT,
+  text_search_index TEXT,
+  icd NUM
+)
+```
+
+2) Convert laboratory tests into HPO terms (Goal I)
+```{bash eval = FALSE}
+java --jar HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -l2h \                 # loinc to hpo transformation
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \  # input: all observations
+-hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \               # hpo.obo is required
+-loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                         # LOINC table is required
+-a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \       # loinc2hpo annotation map is                                                                                       # required
+-o /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v1.0.txt # output transformed data
+```
+
+3) We also counted prednisone prescription times for each patient in Java.
+```{bash eval = FALSE}
+java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -p \                                   # prednisone prescription count
+-i /Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/OBSERVATION_FACT.txt \            # input: all observations
+-o /Users/zhangx/git/HushToFhir/data/patientOnPrednison.txt                                   # output patients on prednisone
+```
+
+Import the patientOnPrednisone table to the SQLite database
+```{sql connection="/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite", eval = FALSE}
+CREATE TABLE IF NOT EXISTS PatientOnPrednison ( 
+ patient_num integer PRIMARY KEY, 
+ prescrib_times integer 
+)
+```
+
+4) We have calculated the loinc2hpo annotation statistics in Java
+```{bash eval = FALSE}
+java -jar /Users/zhangx/git/HushToFhir/target/HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \  # statistics
+-hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo \                           # hpo.obo is required
+-loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv \                                     # LOINC table is required
+-a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv \                   # loinc2hpo annotation map is                                                                                                 # required
+-o /Users/zhangx/git/HushToFhir/data/loincAnnotationstats_v1.0.tsv                           # output transformed data
+```
+
+
+## load data for analysis
+
+```{r}
+#load R libraries
+library(tidyverse)
+library(scales)
+library(RSQLite)
+library(Rmpfr)
+library(lubridate)
+```
+
+Connect to the SQLite database.
+```{r}
+db <- dbConnect(RSQLite::SQLite(), "/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+_UNC_JAX.sqlite")
+```
+
+From the database, retrieve patient list
+import prednisone prescription times for each patient (0 is no prednison was ever prescribed)
+calculate the number of patient visits to hospitals from the database
+  How do we count the number of hospital visits for each patient?
+  It is impossible to get an accurate number, so we use the number of unique dates when a patient had an encounter to estimate the number of visits.
+import loinc2hpo transformation
+select the patients that were diagnosed with asthma ICD9/10 codes
+import the ICD9 and ICD10 codes 
+```{r}
+patients <- dbGetQuery(db, "SELECT patient_num, birth_date, sex_cd FROM PATIENT_DIMENTION")
+prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/patientPrednisonPrsbCount.txt", header = TRUE, sep = "\t");
+# replace na with 0
+prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
+visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v1.0.txt", header = TRUE, sep = "\t")
+
+#select patient subset with ICD codes for asthma
+patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
+#select patient subset with Bronchospasm 
+patientWithBronchospasm <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:519%' OR icd LIKE 'ICD10:J98%'")
+#select all diagnosis for patients with asthma
+allICDCodesForPatientWithAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
+#select all diagnosis for patients without asthma
+allICDCodesForPatientWithoutAsthma <- dbGetQuery(db, "SELECT icd, COUNT(DISTINCT(patient_num)) AS count FROM ICD WHERE patient_num NOT IN (SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%') GROUP BY icd ORDER BY count DESC ;")
+patient_withDiabetes <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:250%' OR icd LIKE 'ICD10:E11%'") %>%  mutate(withDiabeteICDCode = "Y")
+patient_withChronicLiverDamage <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'ICD10:N18' OR icd = 'ICD9:585'") %>% mutate(withChronicLiverDamageICDCode = "Y")
+#the following query is too broad. The vast majority of patients are selected
+#patient_withRepiratorySymptomsAndBreezingIssues <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd = 'J45' OR icd = 'ICD10:R06' OR icd = 'ICD9:786' OR icd = 'ICD9:519'") %>% mutate(withRepiratorySymptomsAndBreezingIssues = "Y")
+patient_withBreazingDifficulties <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD10:R06.2%' OR concept_cd LIKE 'ICD10:R06.02' OR concept_cd LIKE 'ICD10:J98.01%' OR concept_cd LIKE 'ICD9:519.11%' OR concept_cd LIKE 'ICD9:786.07' ") %>% mutate(withBreathingDifficuities = "Y")
+patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD10:J45._1%' OR concept_cd LIKE 'ICD10:J45._2%' OR concept_cd LIKE 'ICD10:J45.90%'  OR concept_cd LIKE 'ICD9:493._1%' OR concept_cd LIKE 'ICD9:493._2' ") %>% mutate(withAcuteAsthma = "Y")
+
+icd9_3_digit_codes <- read.csv("./src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+icd10_3_digit_codes <- read.csv("./src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
+loincAnnotationStat <- read.csv("./data/loincAnnotationstats_v1.0.tsv", header = TRUE, sep = "\t")
+```
+
+define a helper function that handles the negation information in loinc2hpo mapping library
+```{r}
+boolString <- function(x) {
+  newvec <- vector(mode = "character")
+  for (i in 1:length(x)) {
+    if (x[i] == "true") {
+      newvec[i] <- "NOT "   # if an HPO is negated (true), the string for the HPO should be prefixed with "NOT "
+    } else {
+      newvec[i] <- ""       # otherwise, no prefix
+    }
+  }
+  return (newvec)
+}
+```
+
+## What diagnosis does 
+Combine ICD9 and ICD10 code lists (just use the first three digits), look at what diagnosis codes do asthma patients have. From this analysis, we got the impression that many asthma patients seemed to suffer from diabetes(hypertension, lipid metabolism disorders) and liver issues (combined from other analysis).   
+```{r}
+icd_3_digit_code_annotation <- 
+  icd9_3_digit_codes %>% 
+      mutate(icd = paste("ICD9", icd9code, sep = ":")) %>% 
+      rename(descr = icd9descr) %>% 
+      select(icd, descr) %>%
+    bind_rows(
+    icd10_3_digit_codes %>% 
+      mutate(icd = paste("ICD10", icd10code, sep = ":")) %>% 
+      rename(descr = icd10descr) %>% 
+      select(icd, descr) 
+    )
+
+allDiagnosisCodesForAsthmaPatients <- allICDCodesForPatientWithAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+allDiagnosisCodesForNonAsthmaPatients <- allICDCodesForPatientWithoutAsthma %>% left_join(icd_3_digit_code_annotation) %>% select(icd, count, descr)
+head(allDiagnosisCodesForAsthmaPatients, n = 20)
+```
+```{r}
+write.table(allDiagnosisCodesForAsthmaPatients, "./data/allDiagnosisCodesForAsthmaPatients.tsv", sep = "\t", quote = FALSE)
+```
+
+
+## calculate some statistics for the loinc2hpo conversion
+In this section, we will calculate some simple statistics about the LOINC to HPO mapping library and the transformed data from laboratory tests. Our goal is to determine whether we have successfully integrate lab tests. 
+
+### determine how many LOINC code are mapped to each HPO term in the mapping library
+```{r}
+loinc2hpoAnnotationFile %>% select(loincId, loincScale) %>% distinct() %>% 
+  group_by(loincScale) %>%
+  summarise(counts = n()) %>% 
+  arrange(desc(counts)) %>%
+  print()
+  
+#loincAnnotationStat <- loinc2hpoAnnotationFile %>% select(loincId, hpoTermId) %>% distinct() %>% group_by(hpoTermId) %>%
+#  summarise(counts = n()) %>% arrange(desc(counts))
+#mean(loincAnnotationStat$counts)
+#quantile(loincAnnotationStat$counts)
+#sum(loincAnnotationStat$counts >=2) / length(loincAnnotationStat$counts)
+
+loincAnnotationStat <- loincAnnotationStat %>% mutate(hpo = make.names(as.character(hpo)), loincMappedTo = loincCounts) %>% select(hpo, loincMappedTo)
+no.LOINC.per.HPO_ave = mean(loincAnnotationStat$loincMappedTo)
+no.LOINC.per.HPO_q = quantile(loincAnnotationStat$loincMappedTo)
+fraction.multi.LOINC.per.HPO = sum(loincAnnotationStat$loincMappedTo >=2) / length(loincAnnotationStat$loincMappedTo)
+```
+
+Print out statistics of the annotation file:
+```{r}
+print(paste("average number of LOINC code per HPO term: ", round(no.LOINC.per.HPO_ave, 1)))
+print("number of LOINC code per HPO term quantile: ")
+print(no.LOINC.per.HPO_q)
+print(paste("fraction of HPO terms mapped from multiple LOINC codes: ", round(fraction.multi.LOINC.per.HPO, 3)))
+```
+Since we are mapping multiple LOINC tests into one HPO term, we have achieved semantic integration of lab tests (at least in theory!). 
+
+### determine the percentage of lab tests that can be successfully mapped to an HPO with our mapping library
+```{r}
+successRate <- sum(loinc2hpo$mapFailed == "false")/nrow(loinc2hpo)
+print(paste("loinc2hpo conversion rate: ", round(successRate, 3) * 100, "%", sep = ""))
+```
+
+We have mapped nearly 70% of all lab tests into HPO, which is pretty good. Since we are still expanding our LOINC to HPO mapping library, we will be able to further improve the success rate in future.
+
+Next, create a plot to show the success rate.
+```{r}
+label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
+
+loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+  ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
+  geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
+  scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
+```
+
+```{r}
+ggsave("./data/images/Hush lab test to HPO conversion.png", width = 1.2, height = 1.2)
+```
+
+### count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
+```{r}
+hpoTermCountsWithDuplicationPerPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+  filter(mapFailed == "false") %>% 
+  group_by(patient_num) %>% summarise(counts = n())  %>% ungroup()
+
+no.HPOperPatient = sum(hpoTermCountsWithDuplicationPerPatient$counts) / nrow(patients)
+print(paste("average no. of HPO terms per patient: ", round(no.HPOperPatient, 1), sep = ""))
+```
+
+Plot the distribution of HPO terms (with duplication) for each patient.
+```{r}
+ggplot(hpoTermCountsWithDuplicationPerPatient) + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms\nper patient") + ylab("patient Counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
+```
+
+save graph
+```{r}
+ggsave("./data/images/HPO term counts for each patient.png", width = 0.8, height = 0.8 )
+```
+
+calculate the number of unique HPO terms for each patient
+```{r}
+uniqueHPOperPatient <- loinc2hpo %>% select(mapFailed, patient_num, hpoTerm) %>% 
+  filter(mapFailed == "false") %>%
+  distinct() %>%
+  group_by(patient_num) %>% 
+  summarise(counts = n()) %>%ungroup()
+no.uniqueHPOperPatient = sum(uniqueHPOperPatient$counts) / nrow(patients)
+print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOperPatient, 1), sep = ""))
+```
+
+plot the distribution of the unique HPO terms for each patient
+```{r}
+ggplot(uniqueHPOperPatient) + 
+    geom_histogram(aes(counts), binwidth = 10, fill = "orange", color = "black", size = 0.25) +
+    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+  theme_bw() + 
+    theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
+          axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
+          axis.ticks.length = unit(0.1, "line"), 
+          panel.border = element_rect(size = 0.5), 
+          panel.background = element_blank(), 
+          axis.title.y = element_text(vjust = 0), 
+          axis.title.x= element_text(vjust = 1))
+
+```
+
+
+```{r}
+ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
+```
+
+```{r}
+uniqueHPOperPatientNoInfer <- loinc2hpo %>% select(mapFailed, patient_num, isNegated, hpoTerm) %>% 
+  filter(mapFailed == "false") %>%
+  distinct() %>%
+  group_by(patient_num, isNegated) %>% 
+  summarise(counts = n()) %>%ungroup()
+
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "false") %>% select(counts) %>% map_dbl(., sum)/nrow(patients)
+uniqueHPOperPatientNoInfer %>% filter(isNegated == "true") %>% select(counts) %>% map_dbl(., sum)/nrow(patients)
+
+ggplot(uniqueHPOperPatientNoInfer) + 
+    geom_histogram(aes(counts, group = isNegated, fill = isNegated), binwidth = 5, color = "black", size = 0.25) +
+    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+  theme_bw() + 
+    theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
+          axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
+          axis.ticks.length = unit(0.1, "line"), 
+          panel.border = element_rect(size = 0.5), 
+          panel.background = element_blank(), 
+          axis.title.y = element_text(vjust = 0), 
+          axis.title.x= element_text(vjust = 1))
+```
+
+
+The results are pretty impressive. We have assigned ~500 HPO terms for each patient on average. Given that it is entirelly software-driven, we have made it possible to automatically phenotype patients from EHR at a large scale, which was still quite difficult to do. Among the ~500 HPO terms, ~50 of them are unique, which is expected because a patient are usually repeated given the same kind of lab test over time. 
+
+
+### determine how many LOINC codes are collapsed to each HPO term
+We have shown that in our mapping library, we mapped multiple LOINC codes into one HPO term (8.7 LOINC per HPO term on average). Here, we will determine in a real-world dataset, how many LOINC-coded lab tests are collapsed to the same HPO terms. 
+```{r}
+loincAggregated <- loinc2hpo %>%
+  filter(mapFailed == "false") %>%
+  select(concept_cd, hpoTerm) %>%
+  distinct() %>%
+  group_by(hpoTerm) %>%
+  mutate(loincAggrgtdFrom = n()) %>%
+  ungroup() %>%
+  mutate(hpo = make.names(as.character(hpoTerm))) %>%
+  select(hpo, loincAggrgtdFrom) %>%
+  distinct()
+head(loincAggregated, n = 20)
+
+no.aveKindsOfLoincsPerHPO = mean(loincAggregated$loincAggrgtdFrom)
+print(paste("average no. of distinct LOINC per HPO term: ", round(no.aveKindsOfLoincsPerHPO, 1), sep = ""))
+```
+
+Plot the distribution of LOINC codes aggregated for each HPO term
+```{r}
+aggrgedFromOneLOINC <- sum(loincAggregated$loincAggrgtdFrom==1)
+aggrgedFromTwoLOINC <- sum(loincAggregated$loincAggrgtdFrom==2)
+aggrgedFromThreeAndMoreLOINC <- sum(loincAggregated$loincAggrgtdFrom==3)
+aggrgLOINCtypes <- data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC))  
+
+ggplot(aggrgLOINCtypes) + 
+  geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
+  xlab("mapped LOINC terms") + ylab("counts of HPO") + 
+  theme_bw() + 
+  #scale_y_continuous(limits = c(0, 240)) +
+  theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
+
+ggsave("./data/images/loinc_type_aggreg.png", width = 1.7, height = 1.5)
+```
+
+The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
+
+### determine how many times a patient is mapped to a hpo term
+We have shown that a patient is mapped to the same HPO terms multiple times. Here, we will create a list of the number of times a patient is assigned to each HPO term. 
+```{r}
+patientTermMapFreq <- loinc2hpo %>% 
+  filter(mapFailed == "false") %>%
+  select(patient_num, isNegated, hpoTerm) %>% #9,311,827 lines of records
+  #count()
+  group_by(patient_num, isNegated, hpoTerm) %>% # for each patient and each term, count how many times the term is diagnosed with a test
+  summarise(hpoTermFreq = n()) %>%
+  ungroup() %>% #865,461 lines of records ---->>> a patient is frequenctly mapped to the same HPO term!
+  #count()
+  mutate(hpoTerm = make.names(hpoTerm))
+head(patientTermMapFreq)
+```
+
+Export patient terms.
+```{r}
+write.csv(patientTermMapFreq, "./data/patientTermMapFreq.csv",  row.names = FALSE, quote = FALSE)
+```
+
+An important advantage of using the Human Phenotype Ontology is that one can use its hierarchy to infer additional phenotypes. For example, *Abnormal blood glucose concentration* is the parent of *Hyperglycemia*. Therefore, one can infer that if a patient has *Hyperglycemia*, the patient also has *Abnormal blood glucose concentration*, which is exactly what it should be.
+
+Use the java command line to infer parent terms (only abnormal phenotypes)
+
+```{bash eval = FALSE}
+java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar
+-infer
+-i /Users/zhangx/git/HushToFhir/data/patientTermMapFreq.csv
+-hpo /Users/zhangx/git/human-phenotype-ontology/src/ontology/hp.obo
+-loinc /Users/zhangx/Downloads/LOINC_2/LoincTableCore.csv
+-a /Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv
+-o /Users/zhangx/git/HushToFhir/data/patientAbnormalTermMapFreq-inferred.csv
+```
+
+Read in the inferred terms and use it instead of the original list for the following analysis
+```{r}
+patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v1.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) 
+
+hpoTermMap <- patientAbnormalTermMapFreq_inferred %>% select(hpoTerm) %>% distinct() %>% mutate(hpo = make.names(hpoTerm))
+
+patientAbnormalTermMapFreq_inferred <- patientAbnormalTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false")) %>% rename(hpo = hpoTerm)
+
+```
+
+count the number of phenotypic abnormalities before and after the inference. Note: currently, we just inferred additional terms based on phenotypic abnormalities, not normal phenotypes
+```{r}
+abnormalTermsBeforeInferPerPatient <- patientTermMapFreq %>% filter(isNegated == "false") %>% group_by(patient_num) %>% summarise(count_before_infer = n())
+abnormalTermsWithInferPerPatient <- patientAbnormalTermMapFreq_inferred %>% group_by(patient_num) %>% summarise(count_after_infer = n())
+mean(abnormalTermsBeforeInferPerPatient$count_before_infer)
+mean(abnormalTermsWithInferPerPatient$count_after_infer)
+```
+
+
+## join tables together
+We will join multiple tables created above together to do more interesting analysis. The join is centered on patients--for each patient, we indicate what HPO terms are assigned to them and how many times, when is the birthday, the first and last hospital visit date, whether they have ICD diagnosis codes for asthma, diabetes and chronic liver damage, and how many times they were prescribed with prednisone, a steriod drug that is typcially prescribed to severe asthma patients. 
+
+In doing the joining, skip patients without any HPO terms and skip HPO terms for unknown patients.
+```{r}
+patient_withAsthmaICD <- patient_withAsthmaICD %>% mutate(withAsthmaICDCode = "Y")
+patient_lastFirstVisit <- loinc2hpo %>% select(patient_num, start_date) %>% mutate(start_date = as.Date(start_date)) %>% group_by(patient_num) %>% summarise(lastVisit = max(start_date), firstVisit = min(start_date))
+
+combined <- patients %>%
+  #inner_join(patientTermMapFreq, by = "patient_num") %>% # replace with the inferred terms
+  inner_join(patientAbnormalTermMapFreq_inferred, by = "patient_num") %>%
+  left_join(visitCount, by = "patient_num") %>%
+  left_join(prednisonPrescribTimes, by = "patient_num") %>%
+  left_join(patient_withAsthmaICD, by = "patient_num") %>%
+  left_join(patient_withAcuteAsthma, by = "patient_num") %>% 
+  left_join(patient_withDiabetes, by = "patient_num") %>% # add diabete label
+  left_join(patient_withChronicLiverDamage, by = "patient_num") %>% # add chronic liver damage label
+  left_join(patient_lastFirstVisit, by = "patient_num") %>%
+  mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount)) %>%
+  mutate(withAsthmaICDCode = ifelse(is.na(withAsthmaICDCode), "N", "Y")) %>%
+  mutate(withDiabeteICDCode = ifelse(is.na(withDiabeteICDCode), "N", "Y")) %>%
+  mutate(withChronicLiverDamageICDCode = ifelse(is.na(withChronicLiverDamageICDCode), "N", "Y")) %>%
+  mutate(hpoTerm = make.names(hpo)) %>% select(-hpo)
+nrow(combined)
+```
+
+Convert our combined data from long to wide so that every column is a variable for machine learning. 
+```{r}
+#spread it to a matrix for machine learning
+df4ML <- combined %>%
+  filter(isNegated == "false") %>% # ignore records that were not converted into HPO
+  spread(key = hpoTerm, value = hpoTermFreq, fill = 0) %>%
+  mutate(age = round(as.duration(interval(birth_date, lastVisit))/dyears(1), 1)) %>%
+  mutate(record_duration = round(as.duration(interval(firstVisit, lastVisit))/dyears(1), 1)) %>%
+  select(-c(birth_date, firstVisit, lastVisit, isNegated)) %>%
+  select(patient_num, age, record_duration, sex_cd, everything()) %>%
+  select(-prscbCount, prscbCount)
+dim(df4ML)
+colnames(df4ML)
+```
+export the data frame for machine learning
+```{r}
+write.csv(df4ML, "./data/Hush+_data_matrix_v1.0.csv", quote = FALSE, row.names = FALSE)
+df4ML <- read.csv("./data/Hush+_data_matrix_v1.0.csv", header = TRUE)
+```
+
+## identify HPO terms that are associated with frequent prednisone prescription and acute asthma diagnosis
+
+We divided patients into frequent and non-frequent prednisone users based on the number of prednisone prescription.
+
+P(i) = 1 for patients with prednisone prescriptions >= t(P)
+       0 for patients with prednisone prescriptions < t(P),
+t(P) is a tunable threshold value. 
+
+Each patient is also assigned a label based on whether they had acute asthma diagnosis or not. 
+
+A(i) = 1 for patients that had acute asthma diagnosis 
+       0 for patients that did not have acute asthma diagnosis
+       
+Laboratory values can fluctuate. Since patients are usually tested many times for the same HPO terms, we consider a patient has a phenotype is it reached a threshold value, no such phenotype if the patient was never test positive, and unsure if a phenotypic abnormality occurred but did not reach the threshold value. 
+
+H(i) = 1 if occurrance >= t(H)
+       0.5 if occurrance < t(H) AND occurrance > 0 (excluded)
+       0 if occurrance = 0
+t(H) is a tunable threshold value.
+
+Additionally, we excluded patients that rarelly visited hospitals. Since it is impossible to get a precise count of patient visits from the current dataset, we counted the number of days when a patient has at least one medical encounter as a way to set up a threshold. 
+
+E(i) = excluded if days of visit < t(E)
+t(E) is a tunable threshold for the exclusion criteria. 
+
+Our aim is to test whether frequent using of prednisone and acute asthma diagnosis are significantly contributing to the presence of each HPO term by logistic regression.
+
+H ~ P + A
+
+```{r}
+VISITTIMES_THRESHOLD = 10  
+PREDNISON_THRESHOLD = 4
+TERMFREQ_THRESHOLD = 3
+
+df_glm <- df4ML %>% filter(encounter_no_days >= VISITTIMES_THRESHOLD) %>% # filter out patients that visited hospital infrequently 
+    distinct()
+#test if using breezing ICD codes will help
+#df_glm <- df_glm %>% left_join(patient_withBreazingDifficulties, by = "patient_num") %>% mutate(withAsthmaICDCode = ifelse(is.na(withBreathingDifficuities), "N", withBreathingDifficuities)) %>% select(-withBreathingDifficuities)
+
+#test if using severe asthma ICD codes will help
+df_glm <- df_glm %>% mutate(withAcuteAsthma = ifelse(is.na(withAcuteAsthma), "N", "Y")) %>% rename(withAcuteAsthmaICDCode = withAcuteAsthma)
+
+glm_X = df_glm %>%  # prepare the independent variables
+  mutate(isFrequent = as.factor(ifelse(prscbCount >= PREDNISON_THRESHOLD, 1, 0))) %>%
+  mutate(withAcuteAsthmaICDCode = as.factor(ifelse(withAcuteAsthmaICDCode == "Y", 1, 0))) %>%
+  select(patient_num, encounter_no_days, prscbCount, isFrequent, withAcuteAsthmaICDCode)
+
+# severity classification based on the number of prednisone prescription times
+severity_class <- function(x) {
+  y <- vector(mode = "numeric", length = length(x))
+  y = case_when(
+    x <= 1 ~ 0,
+    x >1 & x <= 5 ~ 1,
+    x > 5 & x < 10 ~ 2,
+    x > 10 ~ 3
+  )
+  return (y)
+}
+
+# calculate 95% confidence interval from the mean and standard deviation
+confid.int <- function(mean, sd, critical.value = 1.98, FUN = exp) {
+  result <- vector(mode = "character", length = length(mean))
+  lower <- mean - critical.value * sd
+  upper <- mean + critical.value * sd
+  lower.transf <- FUN(lower)
+  upper.transf <- FUN(upper)
+  for (i in 1 : length(mean)){
+    result[i] <- str_c(c("[", as.character(round(lower.transf[i], 2)), "-", as.character(round(upper.transf[i], 2)), "]"), sep = "", collapse = "")
+  }
+  return (result)
+}
+
+#glm_X = df_glm %>%  
+#  mutate(isFrequent = as.factor(severity_class(prscbCount))) %>%
+#  mutate(withAsthmaICDCode = as.factor(ifelse(withAsthmaICDCode == "Y", 1, 0))) %>%
+#  select(patient_num, encounter_no_days, prscbCount, isFrequent, withAsthmaICDCode)
+
+glm_Y = df_glm %>% select(-c(1:9, ncol(df_glm))) # select all the HPO columns
+# For IgE-related HPO terms, we don't need the threshold because we assume one test is sufficient to call such HPO terms
+# so bump bup such HPO frequencies to positive infinity so that they are always called
+bumping_IgE <- function(x) {
+  for (i in 1:length(x)) {
+    if (x[i] > 0) {
+      x[i] = Inf
+    }
+  }
+  return (x)
+}
+#IgE.columns <- glm_Y %>% select(contains(".IgE.")) %>% colnames()
+#glm_Y <- glm_Y %>% mutate_at(IgE.columns, bumping_IgE) 
+# look at how many patients had IgE-related phenotypes
+# Too few, the only one potentially useful is Increased IgE level, a term inferred from the rest of IgE related HPO terms
+#glm_Y %>% select(IgE.columns) %>% map_int(., function(x) sum(x == Inf))
+#increased.IgE.level <- glm_Y %>% select(Increased.IgE.level)
+
+# categorize HPO based on counts:
+# above threshold: 1
+# exactly 0 count: 0
+# in between:      0.5
+hpo_count_class <- function(x) {
+  for (i in 1:length(x)) {
+    x[i] = ifelse(x[i] >= TERMFREQ_THRESHOLD, 1, ifelse(x[i] == 0, 0, 0.5))
+  }
+  return (x)
+}
+
+glm_Y <- glm_Y %>% map(., hpo_count_class)
+glm_Y <- as.data.frame(glm_Y)
+library(caret)
+low_variance <- nearZeroVar(glm_Y)
+glm_Y <- glm_Y[,-low_variance]  # remove phenotypes without much changes, i.e. almost all 0s
+
+glm_p_value <- function(hpo, x = glm_X) {
+  target <- as.factor(hpo)
+  # exclude patients that had a phenotype but did not reach the threshold
+  df <- cbind(x, hpo, target) %>% filter(target == 0 | target == 1) 
+  glmmodel <- glm(target ~ isFrequent + withAcuteAsthmaICDCode, data = df, family = binomial(link = "logit"), maxit = 50)
+  return (summary(glmmodel))
+}
+
+# do a test on Increased IgE level
+# not interesting result
+#test.IgE <- increased.IgE.level %>% map(glm_p_value) %>% map(~.$coefficients)
+
+tests <- glm_Y %>% map(glm_p_value) %>% map(~.$coefficients)
+
+result <- data.frame(hpo = names(tests), 
+                           `odds ratio_steroid` = round(exp(tests %>% map_dbl(~.[2, 1])), 2),
+                           `CI(95%)_steroid` = confid.int(tests %>% map_dbl(~.[2, 1]), 
+                                                    tests %>% map_dbl(~.[2, 2])),
+                           p_steroid = tests %>% map_dbl(~.[2,4]),
+                           `odds ratio_asthma diagnosis` = round(exp(tests %>% map_dbl(~.[3,1])), 2),
+                           `CI(95%)_asthma diagnosis` = confid.int(tests %>% map_dbl(~.[3, 1]), 
+                                                    tests %>% map_dbl(~.[3, 2])),
+                           `p_asthma diagnosis` = tests %>% map_dbl(~.[3,4]))
+  
+  
+  result_logistic <- result %>% arrange(-`odds.ratio_asthma.diagnosis`) 
+  
+  #change HPO terms to their original names, e.g. change *Elevated.C.reactive.proteins* to *Elevated C-reactive proteins*
+  result_logistic <- result_logistic %>% left_join(hpoTermMap, by = "hpo") %>% select(-hpo) %>% select(hpoTerm, everything()) %>% mutate(p_steroid = scientific(p_steroid), p_asthma.diagnosis = scientific(p_asthma.diagnosis))
+  View(result_logistic)
+  head(result_logistic)
+```
+
+save analysis result
+```{r}
+asterisk_labal <- function(x) {
+  label <- rep("", length(x))
+  label[x <= 0.05] = "*"
+  label[x <= 0.01] = "**"
+  return (label)
+}
+
+result_logistic <- result_logistic %>% mutate(p_steroid_label = asterisk_labal(as.numeric(p_steroid)), p_asthma.diagnosis_label = asterisk_labal(as.numeric(p_asthma.diagnosis))) %>% select(hpoTerm, odds.ratio_steroid, CI.95.._steroid, p_steroid, p_steroid_label, odds.ratio_asthma.diagnosis, CI.95.._asthma.diagnosis, p_asthma.diagnosis, p_asthma.diagnosis_label)
+
+write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
+```
+
+
+Plot the result and display some 
+```{r}
+ggplot(result_logistic) + 
+    geom_point(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis)) + 
+    geom_text(aes(x = odds.ratio_steroid, y = odds.ratio_asthma.diagnosis, label = hpoTerm), data = result_logistic %>% filter(odds.ratio_asthma.diagnosis > 1.1 | odds.ratio_steroid > 5), hjust = -0.1, check_overlap = TRUE) +
+    geom_hline(yintercept = 1) + geom_vline(xintercept = 1) + 
+    scale_x_continuous(limits = c(0, 15)) +
+    theme_bw()
+```
+
+
+check how many people with Increased red blood cell count also have COPD
+patients having Increased red blood cell count
+```{r}
+patient_withCOPD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBSERVATION_FACT where concept_cd LIKE 'ICD9:491.21%' OR concept_cd LIKE 'ICD9:491.22%' OR concept_cd LIKE 'ICD10:J44.1%'")
+patient_withIncreasedRBCcount <- df4ML %>% select(patient_num, Increased.red.blood.cell.count) %>% map_at("Increased.red.blood.cell.count", hpo_count_class) %>% as.data.frame() %>% filter(Increased.red.blood.cell.count == 1.0) %>% select(patient_num)
+patient_withCOPDandIncreasedRBCcount <- patient_withCOPD %>% inner_join(patient_withIncreasedRBCcount) %>% count
+# percent of patients with increased RBC count having COPD
+patient_withCOPDandIncreasedRBCcount/nrow(patient_withIncreasedRBCcount)
+patient_withBreazingDifficulties %>% inner_join(patient_withIncreasedRBCcount) %>% count
+
+patient_withCOPDandAcuteAsthma <- patient_withCOPD %>% inner_join(patient_withAcuteAsthma) %>% count %>% unlist()
+#percent of acute asthma patients having COPD
+patient_withCOPDandAcuteAsthma / nrow(patient_withAcuteAsthma)
+```
+
+
+## Build a predictive model for asthma severity
+See next page.
+
+
+calculate some initial statistics of patient cohort
+sex of patients:
+```{r}
+patients %>% select(patient_num, sex_cd) %>% distinct() %>% group_by(sex_cd) %>% summarise(count = n()) %>% ungroup() %>% mutate(fraction = count/sum(count))
+```
+
+## Patient distribution by gender and age
+This cohort is biased toward senior and femal patients. 
+```{r}
+df4ML$age %>% na.omit() %>% quantile()
+df4ML$age %>% na.omit() %>% hist()
+
+# define the binwidth
+BINWIDTH = 10
+data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>% 
+  distinct() %>%
+  mutate(cat = as.factor(floor(age/BINWIDTH) + 1)) %>% # 0-10 year is cat 1; 10-20 is cat 2
+  group_by(sex_cd, cat) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  mutate(count = ifelse(sex_cd == "M", -count, count))
+  
+data_pyramid %>% na.omit() %>% 
+  ggplot() +
+  geom_bar(aes(x = cat, y = count, fill = sex_cd), stat = "identity") + 
+  scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(1.5,9.5,2) * BINWIDTH) +
+  scale_y_continuous(breaks = seq(-2000, 2000, by = 1000), labels = c(2000, 1000, 0, 1000, 2000)/1000, limits = c(-2000, 2000)) +
+  scale_fill_manual(name = "gender", values = c(M = "royalblue", F = "lightcoral"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") + ylab("count (x1,000)") +
+  coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10))
+
+ggsave("./data/images/patient_sex_age_distribution.png", width = 2, height = 1.5)
+```
+
+
+
+```{r}
+diagnosisCodesForAsthmaAndNonAsthma <- allDiagnosisCodesForAsthmaPatients %>% transmute(icd, asthma = count) %>% full_join(
+  allDiagnosisCodesForNonAsthmaPatients %>% transmute(icd, nonAsthma = count), by = "icd"
+) %>%
+  mutate(asthma = replace_na(asthma, 0), nonAsthma = replace_na(nonAsthma, 0)) %>% left_join(icd_3_digit_code_annotation, by = "icd")
+originalLabel = diagnosisCodesForAsthmaAndNonAsthma[1:30,]$icd
+newLabel = diagnosisCodesForAsthmaAndNonAsthma[1:30,]$descr
+diagnosisCodesForAsthmaAndNonAsthma[1:30,] %>% 
+  mutate(icd = factor(icd, rev(reorder(icd, asthma))), asthma = asthma/patientPartation$count[2], nonAsthma = nonAsthma/patientPartation$count[1]) %>%
+  gather(asthma, nonAsthma, key = "asthma", value = "fraction") %>% filter(descr != "Asthma") %>%
+  ggplot() + geom_tile(aes(x = asthma, y = icd, fill = fraction)) + scale_y_discrete(breaks = originalLabel, labels = newLabel) +
+  xlab("") + ylab("") +
+  scale_fill_gradient2(low = "blue", mid = "white",
+  high = "magenta", midpoint = 0.6) + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10), panel.border = element_blank())
+
+ggsave("./data/images/otherICDcodes.png", width = 8, height = 5)
+```
+
+
+How long patients are tracked in this dataset?
+```{r}
+median_track <- df4ML$record_duration %>% median()
+print(str_c("median tracking time (years): ", median_track, collapse = T))
+```
+
+# Conclusion
+
+
+# Disconnect database
+```{r}
+dbDisconnect(db)
+```
+
+

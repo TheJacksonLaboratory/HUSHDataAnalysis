@@ -2,8 +2,10 @@
 title: "R Notebook"
 output: html_notebook
 ---
-```{r}
 
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
 ```
 
 Statistics of the loinc2hpo annotation file
@@ -14,7 +16,8 @@ library(tidyverse)
 
 load the annotation file
 ```{r}
-annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t")
+annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE)
+top2000Loinc <- read.csv("/Users/zhangx/Downloads/LOINC_2/Accessory/Top2000/LOINC_1.6_Top2000CommonLabResultsUS.csv", stringsAsFactors = FALSE)
 ```
 
 
@@ -23,24 +26,82 @@ distribution of annotatio LOINC types
 ```{r}
 loincTypes <- annotationFile %>% select(loincId, loincScale) %>% distinct()
 ggplot(loincTypes) + 
-  geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..)), fill = "black") +
-  xlab("LOINC type") + ylab("percentage") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10)) + 
+  geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..), fill = loincScale)) +
+  xlab("LOINC type") + ylab("percentage")  +
+  scale_x_discrete(limits = c("Qn", "Ord", "Nom"), breaks = c("Qn", "Ord", "Nom"), labels = c("Qn", "Ord", "Nom")) + # do not show "Unknown"
+  theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), legend.position = "none") + 
   scale_y_continuous(labels = scales::percent)
-ggsave("annotatedLoincDistribution.png", width = 2.4, height = 2)
-loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
+loincTypeStatistics <- loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
+loincTypeStatistics
+print(sum(loincTypeStatistics$no))
+```
+```{r}
+ggsave("./data/images/annotatedLoincDistribution.png", width = 1.5, height = 1.5)
 ```
 
 count the total number of HPO terms
 ```{r}
 annotationFile %>% select(hpoTermId) %>% distinct() %>% count()
 noOfLOINCsMappedToEachHPO <- annotationFile %>% select(loincId, hpoTermId) %>% distinct() %>% group_by(hpoTermId) %>% mutate(noLoinc = n()) %>% ungroup() %>% select(hpoTermId, noLoinc) %>% distinct() 
+sum(noOfLOINCsMappedToEachHPO$noLoinc >= 2) / nrow(noOfLOINCsMappedToEachHPO)
+mean(noOfLOINCsMappedToEachHPO$noLoinc)
+median(noOfLOINCsMappedToEachHPO$noLoinc)
 
-ggplot(noOfLOINCsMappedToEachHPO) + geom_bar(aes(noLoinc, ..count.. / sum (..count..)), fill = "black") + 
+ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count.. / sum (..count..)), fill = "black", binwidth =1) + 
   scale_y_continuous(labels = scales::percent) +
-  scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
-  xlab("no. of LOINC codes mapped to the each HPO term") + ylab("frequency") + theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 10))
-ggsave("distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
+  #scale_x_continuous(limits = c(0, 40)) +  #skip the 200 extreme case
+  xlab("number of distinct LOINC codes mapped to the same HPO terms") + ylab("frequency") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75)) + scale_x_reverse() + coord_flip()
+#ggsave("./data/images/distribution of no. of LOINCs mapped to each HPO.png", width = 4, height = 2)
+
+HIGHLIGHT = 10
+HPO_example = noOfLOINCsMappedToEachHPO %>% filter(noLoinc == HIGHLIGHT) %>% select(hpoTermId) %>% unlist() %>% as.character() %>% str_c(collapse = "\n")
+
+noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc)) %>% group_by(noLoinc) %>% summarise(noHPO = n()) %>% ungroup() %>%
+  rename(aggrgFactor = noLoinc) %>% 
+  mutate(tohighlight = ifelse(aggrgFactor == HIGHLIGHT, "Y", "N")) %>%
+  ggplot() + 
+  geom_bar(aes(x = aggrgFactor, y = noHPO/sum(noHPO), fill = tohighlight), stat = "identity",  
+           size = 0.2) + 
+  #geom_text(aes(x = 10, y = 0.3, label = str_c("mapped to 10 LOINC tests:", HPO_example, sep = "\n")), size = 2, color = "orange") +
+  scale_y_continuous(labels = scales::percent)+
+  #scale_x_continuous(limits = c(21, 0), trans = "reverse", breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
+  scale_x_continuous(limits = c(0, 21), breaks = seq(0, 20, 5), labels = c("0", "5", "10", "15", expression("">="20"))) +
+  scale_fill_manual(limits = c("Y", "N"), values = c("dodgerblue", "dodgerblue")) +
+  xlab("number of mapped LOINC terms per HPO term") + ylab("percentage of HPO terms") + theme_bw() +
+  theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75), legend.position = "none")
+
+ggsave("./data/images/distribution of HPO terms.png", width = 3, height = 1.6)
+
+```
+
+analyze how many top2000 LOINC is annotated
+```{r}
+MAXRANK = 2000 # other LOINC codes should not be analyzed
+top2000Loinc <- top2000Loinc %>% rename(loincId = LOINC..) %>% filter(Rank <= MAXRANK)
+annotatedLoinc <- annotationFile %>% select(loincId) %>% distinct()
+top2000Loinc %>% filter(Rank < 2000) %>% inner_join(annotatedLoinc, by = "loincId") %>% count
+coverage <- function(x) {
+  n <- top2000Loinc %>% filter(Rank <= x) %>% inner_join(annotatedLoinc, by = "loincId") %>% count %>% unlist
+  return (n)
+}
+x <- seq(1:MAXRANK)
+coverage_x <- rep(0, length(x))
+for (i in 1:length(x)) {
+  coverage_x[i] = coverage(x[i])
+}
+coverage_df <- data.frame(rank = x, covered = coverage_x)
+break_points <- c(100, 200, 500, 1000, 1500, 2000)
+break_points_coverage <- coverage_df %>% filter(is.element(rank, break_points)) %>% select(covered) %>% unlist 
+break_points_label <- str_c(round(break_points_coverage/break_points * 100, 1), "%")
+ggplot(coverage_df) + geom_line(aes(x = rank, y = covered), size = 1, color = "blue") + 
+  geom_label(aes(x = rank, y = covered, label = break_points_label), data = coverage_df %>% filter(is.element(rank, break_points)),nudge_x = -50, nudge_y = 20) + 
+  geom_point(aes(x = rank, y = covered), data = coverage_df %>% filter(is.element(rank, break_points)), shape = 21, size = 2, color = "black", fill = "red") + 
+  scale_x_continuous(breaks = break_points ) +
+  xlab("number of top ranked LOINC codes") + ylab("number of mapped LOINC codes") + 
+  theme_bw() + theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75))
+
+ggsave("./data/images/distribution of annotated HPO terms.png", width = 5, height = 2.5)
 ```
 

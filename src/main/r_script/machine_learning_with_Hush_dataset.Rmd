@@ -1,0 +1,426 @@
+---
+title: "Machine_learning_with_Hush_data"
+author: "Aaron Zhang"
+date: "10/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The goal of this section is to determine whether HPO terms aggregated from lab tests can be used for medical research with EHR, e.g. machine learning to predict medical outcomes.
+
+```{r}
+patientPartation <- patients %>% left_join(patient_withAsthmaICD, by = "patient_num") %>% mutate(withAsthmaICDCode = replace_na(withAsthmaICDCode, "N")) %>% 
+  distinct() %>%
+  group_by(withAsthmaICDCode) %>%
+  summarise(count = n()) %>% ungroup() 
+patientPartation %>%
+  ggplot() + geom_bar(aes(x = 1, y = count, fill = withAsthmaICDCode), color = "black", stat = "identity", position = "stack") + xlab("") + ylab("") + 
+  scale_fill_manual(values = c(N = "white", Y = "black"), breaks = c("N", "Y")) +
+  theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", panel.border = element_blank(), axis.line = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) 
+
+ggsave("./data/images/asthma_code_partation.png", width = 1, height = 4)
+```
+
+### load data 
+optional: import data if starting from serialized data
+```{r}
+library(tidyverse)
+df4ML <- read.csv("./data/Hush+_data_matrix.csv", header = TRUE)
+noasthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_noasthmaNoDiabetesNoLiverDamage.csv", header = TRUE)
+asthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_asthmaNodiabetesNoLiverDamage.csv", header = TRUE)
+joined_data <- asthmaNoDiabetesNoLiverDamage %>% mutate(foldchange_asthma = severePercent/nonSeverePercent, significe_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_asthma, significe_asthma) %>% full_join(
+  noasthmaNoDiabetesNoLiverDamage  %>% mutate(foldchange_no_asthma = severePercent/nonSeverePercent, significance_no_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_no_asthma, significance_no_asthma))
+```
+
+### selecte features
+We have shown that only a subset of HPO terms are statistically significantly associated with frequent prednisone prescription, i.e. asthma severity. So we only choose those HPO terms for the machine learning task, together with sex, age and encounter number. 
+```{r}
+# selected HPO terms: statistically significant in either groups-with asthma and without asthma
+selectedFeatures <- joined_data %>% filter(significe_asthma == "Y" | significance_no_asthma == "Y")
+selectedFeatures <- selectedFeatures$hpo
+# only choose records for patients diagnosed with asthma, not diabetes or chronic liver damage
+df4ML_filtered <- df4ML %>% filter(withAsthmaICDCode == "Y" & withDiabeteICDCode == "N" & withChronicLiverDamageICDCode == "N")
+df4ML_selected <- df4ML_filtered[,c("patient_num","sex_cd", "age", "encounter_no_days",selectedFeatures, "prscbCount")]
+#skip feature selection at this step
+#Conclusion: it performs worse!
+#df4ML_selected <- df4ML_filtered %>% select(patient_num, sex_cd, age, encounter_no_days, everything(), -record_duration, -starts_with("with"))
+dim(df4ML_selected)
+
+#factorize sex
+df4ML_selected$sex_cd = as.factor(df4ML_selected$sex_cd)
+#binarize prednisone prescription to 0 and 1--0 if not severe, 1 if severe
+#Important: 
+#Since there are more non-severe patients than severe patients, and that we are dropping many non-severe patients to balance the two classes, we will create a more strigent criteria for non-severe patients
+#Conclusion: it is not helpful. So switch back by changing the conditions in the ifelse statement
+#df4ML_selected <- df4ML_selected %>% mutate(isFrequent = ifelse(prscbCount > PREDNISON_THRESHOLD, 1, ifelse(prscbCount <= PREDNISON_THRESHOLD, 0, 0.5))) %>% select(-prscbCount)
+df4ML_selected <- df4ML_selected %>% mutate(isFrequent = ifelse(prscbCount > PREDNISON_THRESHOLD, 1, 0)) %>% select(-prscbCount)
+df4ML_selected$isFrequent = as.factor(df4ML_selected$isFrequent)
+
+#set patient number of row names
+rownames(df4ML_selected) = df4ML_selected$patient_num
+df4ML_selected$patient_num = NULL
+```
+
+### load libraries
+The caret library is used for machine learning. The doSNOW library is used for parallel computation. 
+```{r}
+require(caret)
+require(doSNOW)
+require(pROC)
+```
+
+### preprocessing 
+
+#### create dummy vars for sex
+```{r}
+target.index = ncol(df4ML_selected)
+dmy <- dummyVars(~ ., data = df4ML_selected[,-target.index]) # only sex_cd column is factor
+df4ML_dmy <- predict(dmy, df4ML_selected[,-target.index])
+```
+
+#### Impute missing age. We could omit rows with missing age as well. 
+```{r}
+impute <- preProcess(as.data.frame(df4ML_dmy), method = "bagImpute")
+df4ML_dmy_imputed <- predict(impute, df4ML_dmy)
+#df4ML_dmy <- df4ML_dmy_imputed
+#df4ML_dmy <- as.data.frame(df4ML_dmy)
+df4ML_dmy_imputed <- as.data.frame(df4ML_dmy_imputed)
+df4ML_dmy_imputed$isFrequent <- df4ML_selected$isFrequent   #add back the prediction target
+```
+
+### data partation
+partation data into training and testing, ratio = 0.7
+```{r}
+indexes <- createDataPartition(df4ML_dmy_imputed$isFrequent, p = 0.7, list = FALSE)
+training <- df4ML_dmy_imputed[indexes,]
+#remove intermediant patients
+training <- training %>% filter(isFrequent == 0 | isFrequent == 1)
+testing <- df4ML_dmy_imputed[-indexes,]
+#change back intermediant patients to non-severe patients
+testing$isFrequent[testing$isFrequent == 0.5] = 0 
+```
+optional: binarize the encounter days
+```{r}
+#training$encounter_no_days <- ifelse(training$encounter_no_days > VISITTIMES_THRESHOLD, 1, 0)
+#testing$encounter_no_days <- ifelse(testing$encounter_no_days > VISITTIMES_THRESHOLD, 1, 0)
+```
+
+remove features that have "almost" zero variations.
+```{r}
+nearZeroFeatures <- nearZeroVar(training)
+training <- training[,-nearZeroFeatures]
+testing <- testing[,-nearZeroFeatures]
+train_pos <- training[training$isFrequent==1,]
+train_neg <- training[training$isFrequent==0,]
+pos_size = nrow(train_pos)
+neg_size = nrow(train_neg)
+```
+
+To address class imbalance problem (severe:nonsevere ~ 1:11), we tried two method: 
+1. resample severe patients so that the number of severe patients matches non-severe patients. The caveate is that we added a lot of duplications.
+2. sample the non-severe class to only choose a subset (equal size to severe patients). The caveate is that we dropped many samples. 
+
+The initial trial indicated that the second method works better.
+```{r}
+#only select same number of negative controls
+train_neg_sample <- train_neg[sample(1:neg_size, pos_size),]
+training <- rbind(train_pos, train_neg_sample)
+#add positive controls--not as good as the last solution
+#train_pos_expand <- train_pos[sample(1:pos_size, neg_size, replace = TRUE),]
+#training <- rbind(train_pos_expand, train_neg)
+
+training$isFrequent <- make.names(training$isFrequent)
+testing$isFrequent <- make.names(testing$isFrequent)
+training$isFrequent <- as.factor(training$isFrequent)
+testing$isFrequent <- as.factor(testing$isFrequent)
+```
+
+### build a model
+
+#### first test a linear model
+The Baysian Generalized Linear model is simple to use. So we tested this as our first step. This model does not have parameters to tune, so we just used cross validation (10 folds, 3 repeats)
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = TRUE, classProbs = TRUE)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+bayesglm <- train(training[,-target.index], training$isFrequent, method = "bayesglm", trControl = train.ctrl, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(bayesglm, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+
+
+```
+
+The result is not quite good. We only have 11.9% recall. We try a method with boosting. 
+```{r}
+library(mboost)
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, verboseIter = TRUE)
+#tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
+#this is the best hyperparameters
+tune.grid = expand.grid(prune = c("no"), mstop = c(30))
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+#mstop = 150, prune = "no"
+glmboost <- train(training[,-target.index], training$isFrequent, method = "glmboost", trControl = train.ctrl, tuneGrid = tune.grid, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(glmboost, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+another boosting method
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+tune.grid = expand.grid(trials = 20, model = c("tree"), winnow = FALSE)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+C50 <- train(training[,-target.index], training$isFrequent, method = "C5.0", trControl = train.ctrl, tuneLength = 5, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(C50, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+The gradient boosting methods are the winners so far.
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+#tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
+#this is the best hyperparameters
+#tune.grid = expand.grid(n.trees = 200, interaction.depth = 1, shrinkage = 0.1, n.minobsinnode = 10)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+#mstop = 150, prune = "no"
+gbm <- train(training[,-target.index], training$isFrequent, method = "gbm", trControl = train.ctrl, tuneLength = 5, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(gbm, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE)
+#tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
+#this is the best hyperparameters
+#tune.grid = expand.grid(n.trees = 200, interaction.depth = 1, shrinkage = 0.1, n.minobsinnode = 10)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+#mstop = 150, prune = "no"
+xgboost <- train(training[,-target.index], training$isFrequent, method = "xgbTree", trControl = train.ctrl, tuneLength = 5, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(xgboost, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+prediction <- predict(xgboost, testing[,-target.index], type = "prob")
+require(pROC)
+roc1 <- roc(testing$isFrequent, prediction$X1, smooth = TRUE)
+data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
+```
+
+Try random forest
+```{r}
+train.ctrl.rf = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = T, search = "grid")
+tunegrid <- expand.grid(.mtry = c(10))
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+target.index = ncol(training)
+# one can specify ntree = 300, but default works equally well
+rf <- train(training[,-target.index], training$isFrequent, method = "rf", trControl = train.ctrl.rf, tuneGrid = tunegrid, preProcess = c("center","scale", "YeoJohnson"))
+stopCluster(c1)
+rf
+prediction <- predict(rf, testing[,-target.index])
+confusionMatrix(prediction, testing$isFrequent)
+
+
+```
+
+try svm
+```{r}
+#folds = 3
+#cvIndex <- createFolds(training$isFrequent, folds, returnTrain = TRUE)
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+#train.ctrl = trainControl(method = "none")
+tune.grid <- expand.grid(sigma = c(0.1872799), C = c(2))
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+svmRadial <- train(isFrequent ~., data = training, method = "svmRadial", trControl = train.ctrl, tuneGrid = tune.grid, preProcess = c("center", "scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(svmRadial, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+Try another SVM
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
+#best: 3, 0.01, 1
+tune.grid <- expand.grid(degree=2:4, scale = c(0.001, 0.01, 0.1, 1), C = c(0.1, 1, 10))
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+svmPoly <- train(isFrequent ~., data = training, method = "svmPoly", trControl = train.ctrl, tuneGrid = tune.grid, preProcess = c("center", "scale", "YeoJohnson"))
+stopCluster(c1)
+prediction <- predict(svmPoly, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+
+try neural network
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+#tune.grid <- expand.grid(size=10, decay=c(0.00001, 0.0001, 0.0005, 0.001))
+tune.grid <- expand.grid(layer1 = c(15, 20, 25), layer2 = c(8, 10, 15), layer3 = c(4, 6, 8))
+# best
+#tune.grid <- expand.grid(layer1 = 25, layer2 = 10, layer3 = 8)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+nnet <- train(isFrequent ~., data = training, method = "mlpML", preProcess = c("center", "scale", "YeoJohnson"), trControl = train.ctrl, tuneGrid = tune.grid)
+stopCluster(c1)
+prediction <- predict(nnet, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+
+```
+
+try naive bayes
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = TRUE, classProbs = TRUE)
+#0, FALSE, 1
+tune.grid = expand.grid(laplace = 0:3, usekernel = FALSE, adjust = 1:3)
+target.index = ncol(training)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+naive_bayes <- train(training[,-target.index], training$isFrequent, method = "naive_bayes", trControl = train.ctrl, tuneLength = 10, preProcess = c("center", "scale", "YeoJohnson"))
+#naive_bayes <- train(training[,-target.index], training$isFrequent, method = "naive_bayes", trControl = train.ctrl, tuneLength = 10)
+stopCluster(c1)
+prediction <- predict(naive_bayes, testing[,-target.index])
+cm <- confusionMatrix(prediction, testing$isFrequent)
+cm
+```
+
+Test whether ensemble works better than any one of them. 
+```{r}
+require(caretEnsemble)
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, savePredictions = "final", classProbs = TRUE)
+target.index = ncol(training)
+alg_list <- c("bayesglm", "glmboost", "C5.0", "gbm", "rf", "svmRadial", "svmPoly", "mlpML", "xgbTree" )
+#folds = 3
+#cvIndex <- createFolds(training$isFrequent, folds, returnTrain = TRUE)
+tuneSettings <- list(
+  glmboost = caretModelSpec(method = "glmboost", tune.grid = expand.grid(prune = c("no"), mstop = c(30))),
+  c50 = caretModelSpec(method = "C5.0", tuneLength = 5),
+  gbm = caretModelSpec(method = "gbm", tuneLength = 5 ),
+  rf = caretModelSpec(method = "rf", tunegrid <- expand.grid(.mtry = c(10))),
+  svmRadial = caretModelSpec(method = "svmRadial", tune.grid <- expand.grid(sigma = c(0.1872799), C = c(2))),
+  svmPoly = caretModelSpec(method = "svmPoly", tune.grid <- expand.grid(degree=2:4, scale = c(0.001, 0.01, 0.1, 1), C = c(0.1, 1, 10))),
+  mlpML = caretModelSpec(method = "mlpML", tune.grid <- expand.grid(layer1 = c(15, 20, 25), layer2 = c(8, 10, 15), layer3 = c(4, 6, 8))),
+  xgbtree = caretModelSpec(method = "xgbTree", tuneLength = 5)
+)
+c1 <- makeCluster(3, type = "SOCK")
+registerDoSNOW(c1)
+models_ensemble <- caretList(training[,-target.index], training$isFrequent, preProcess = c("center", "scale", "YeoJohnson"), trControl = train.ctrl, methodList = alg_list, tuneList = tuneSettings, continue_on_fail = TRUE)
+#naive_bayes <- train(training[,-target.index], training$isFrequent, method = "naive_bayes", trControl = train.ctrl, tuneLength = 10)
+prediction <- predict(models_ensemble, testing[,-target.index])
+poll <- vector(mode = "character")
+p_threshold = 0.73
+prediction = prediction[,c("C5.0", "gbm", "bayesglm", "glmboost", "rf", "svmRadial", "svmPoly", "mlpML", "xgbTree")]
+for (i in 1:nrow(prediction)) {
+  #poll[i] = ifelse(mean(prediction[i,] > p_threshold), "X1", "X0")
+  poll[i] = ifelse(sum(prediction[i,] == "X1") >= ncol(prediction)/2, "X1", "X0")
+}
+#cm <- confusionMatrix(as.factor(poll), testing$isFrequent)
+#cm
+stack.train.ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+stack.rf <- caretStack(models_ensemble, method = "rf", trControl = stack.train.ctrl)
+stopCluster(c1)
+#calculate ROC and AUC
+prob4roc = cbind(as.data.frame(prediction), isFrequent = testing$isFrequent)
+rocs <- list()
+aucs <- list()
+for(i in 1:ncol(prediction)) {
+  rocs[[i]] <- roc(prob4roc$isFrequent, prob4roc[,i], smooth = TRUE)
+  aucs[[i]] = rocs[[i]]$auc
+}
+names(rocs) = colnames(prediction)
+names(aucs) = colnames(prediction)
+print(unlist(aucs))
+
+aucs_text = "Area under curve:"
+for (i in 1:length(aucs)) {
+  aucs_text = paste(c(aucs_text, paste(c(toString(names(aucs[i]), width = 10), toString(round(aucs[[i]], 3))), collapse = ": ")), collapse = "\n")
+}
+print(toString(aucs_text))
+#plot the roc for xgbTree
+roc_data = data.frame(FPP = vector(mode = "double"), TPP = vector(mode = "double"), model_names = vector(mode = "character"))
+for (i in 1:length(rocs)) {
+  model_name = names(rocs[i])
+  print(model_name)
+  specificities = rocs[[i]]$specificities
+  sensitivies = rocs[[i]]$sensitivities
+  roc_data <- rbind(roc_data,  data.frame(FPP = 1- specificities, TPP = sensitivies, model_names=rep(model_name, length(specificities))))
+}
+ggplot(roc_data) + geom_line(aes(x = FPP, y = TPP, color = model_names, group = model_names)) + annotate("text", x = 0.5, y = 0.5, label = aucs_text) +
+  xlab("false positive rate") + ylab("true positive rate") +
+  theme_bw() + theme(panel.grid = element_blank())
+```
+The result suggests that simplying polling different models does not improve prediction. @TODO: what is the correct way to use multiple models?
+
+
+Look visualize patients. Plot patients based on their HPO terms (do a PCA first), look at whether severe and nonsevere patients are placed at different regions
+```{r}
+data_cluster <- df4ML_dmy_imputed 
+#data_cluster <- data_cluster %>% mutate(encounter_no_days = ifelse(encounter_no_days > VISITTIMES_THRESHOLD, 1, 0))
+
+k_cluster <- kmeans(data_cluster[,5:41], centers = 6, nstart = 4)
+data_clustered <- data_cluster %>% mutate(k_means_cluster = k_cluster$cluster)
+require(pcaPP)
+require(caret)
+preprocess <- preProcess(data_cluster[,c(5:41)], method = c("center", "scale", "YeoJohnson"))
+data_cluster_transformed <- predict(preprocess, newdata = data_cluster)
+data_cluster_2d <- PCAgrid(data_cluster_transformed[,c(5:41)], k = 2, scores = TRUE)
+cluster_pca <- cbind(data_clustered, data_cluster_2d$scores)
+#data_cluster_2d <- prcomp(data_cluster_transformed[,c(5:41)], scale. = TRUE, rank. = 2)
+#cluster_pca <- cbind(data_clustered, data_cluster_2d$x)
+ggplot(cluster_pca) + geom_point(aes(x = Comp.1, y = Comp.2, color = as.factor(isFrequent), shape = as.factor(isFrequent)), size = 1.3,  alpha = 0.6) +
+  scale_shape_manual(name = "isFrequent", values = c(20, 5)) + scale_color_manual(name = "isFrequent",breaks = c(0, 1), values = c("deepskyblue", "red")) +
+  xlab("PC1") + ylab("PC2") +
+  theme_bw() + theme(panel.grid = element_blank())
+```
+It defintely looks that severe patients are preferentially clustered on the right hand side.
+
+```{r}
+cluster_pca %>% mutate(Eosinophilia = ifelse(Eosinophilia >= 2, 2, Eosinophilia)) %>%
+ggplot() + geom_point(aes(x = Comp.1, y = Comp.2, color = as.factor(Eosinophilia), shape = as.factor(isFrequent)), size = 1.3,  alpha = 1) + scale_color_brewer(name = "Eosinophilia Freq", palette = 3, breaks = c(0, 1, 2), labels = c("0", "1", ">=2")) + scale_shape_manual(name = "isFrequent", values = c(15, 4), breaks = c(0, 1), labels = c("No", "Yes")) +
+  xlab("PC1") + ylab("PC2") +
+  theme_bw() + theme(panel.grid = element_blank())
+
+scale_fill_manual(name = "Eosinophilia",breaks = c(0, 1), values = c("deepskyblue", "red")) +scale_shape_manual(name = "isFrequent", values = c(15, 4)) +scale_color_gradientn(name = "Eosinophilia Freq", breaks = c(0, 1, 2), labels = c("0", "1", ">=2"), colors = c("blue", "white","magenta"), space = "Lab")
+```
+
+
+Let's aggregate patients into each tile and plot the heatmap of ratios between severe vs nonsevere patients
+```{r}
+densityData <- cluster_pca %>% mutate(comp1 = round(Comp.1 * 2, 0)/2, comp2 = round(Comp.2 * 2, 0)/2) %>% group_by(isFrequent, comp1, comp2) %>% summarize (count = n()) %>% ungroup() %>% mutate(isFrequent = make.names(isFrequent)) %>% spread(key = isFrequent, value = count, fill = 0) %>% mutate(severeCount = X1, nonSevereCount = X0) %>% select(-X0, -X1)
+
+densityData %>% filter(severeCount>=0 & nonSevereCount>=2) %>% ggplot() + 
+  geom_tile(aes(x = comp1, y = comp2, fill = severeCount/nonSevereCount)) +  
+  scale_fill_distiller(name = "ratio of counts = \nsevere/nonsevere", palette = "Spectral") + 
+  xlab("PC1") + ylab("PC2") +
+  theme_bw() + theme(panel.grid = element_blank())
+```
+
+```{r}
+densityData %>% filter(severeCount>=0 & nonSevereCount>=2) %>% ggplot() + 
+  geom_tile(aes(x = comp1, y = comp2, fill = severeCount/nonSevereCount)) + 
+  scale_fill_gradientn(name = "ratio of counts = \nsevere/nonsevere", breaks = c(0, 0.5, 1), colors = c("blue", "white","magenta"), space = "Lab")+ 
+  xlab("PC1") + ylab("PC2") +
+  theme_bw() + theme(panel.grid = element_blank())
+```
+
+Result: there are differences of HPO terms between severe and non severe asthma patients. This is the basis for doing the statistical testing. 
