@@ -102,7 +102,7 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \                  
 
 ## load data for analysis
 
-```{r}
+```{r message=FALSE}
 #load R libraries
 library(tidyverse)
 library(scales)
@@ -129,7 +129,7 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 # replace na with 0
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt", header = TRUE, sep = "\t")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v2.0.txt", header = TRUE, sep = "\t")
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
@@ -149,7 +149,9 @@ patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBS
 icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats8-2-2018.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats_v2.0.tsv", header = TRUE, sep = "\t")
+hpoTermList <- read.table("./data/hpoTermList.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+hpoTermList <- hpoTermList %>% mutate(name = make.names(label))
 ```
 
 define a helper function that handles the negation information in loinc2hpo mapping library
@@ -232,9 +234,9 @@ Next, create a plot to show the success rate.
 ```{r}
 label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
 
-loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>% 
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
-  geom_text(aes(x = 1, y = counts / sum(counts) - c(0, 0.15), label = c(label1, "")), size = 2) +
+  geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
   scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
@@ -320,7 +322,7 @@ ggplot(aggrgLOINCtypes) +
   geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
   xlab("mapped LOINC terms") + ylab("counts of HPO") + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0, 140)) +
+  scale_y_continuous(limits = c(0, 300)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
 ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 2)
@@ -344,12 +346,12 @@ head(patientTermMapFreq)
 
 export patient terms, use the java command line to infer parent terms (only abnormal phenotypes)
 ```{r}
-write.csv(patientTermMapFreq, "./data/patientTermMapFreq.csv",  row.names = FALSE, quote = FALSE)
+write.csv(patientTermMapFreq, "./data/patientTermMapFreq_v2.0.csv",  row.names = FALSE, quote = FALSE)
 #
 # run java command line
 #
 
-patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v2.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 patientTermMapFreq_inferred <- patientTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false"))
 ```
 
@@ -390,11 +392,11 @@ df4ML <- combined %>%
   select(patient_num, age, record_duration, sex_cd, everything()) %>%
   select(-prscbCount, prscbCount)
 dim(df4ML)
-colnames(df4ML)
+#colnames(df4ML)
 ```
 export the data frame for machine learning
 ```{r}
-write.csv(df4ML, "./data/Hush+_data_matrix.csv", quote = FALSE, row.names = FALSE)
+write.csv(df4ML, "./data/Hush+_data_matrix_v2.0.csv", quote = FALSE, row.names = FALSE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription
@@ -736,6 +738,11 @@ set.seed(9999)
   
   
   result_logistic <- result %>% arrange(-`odds.ratio_asthma.diagnosis`) 
+  
+  result_logistic %>% mutate(hpo = as.character(hpo)) %>%
+    left_join(hpoTermList, by = c("hpo" = "name")) %>%  View
+    
+  
   write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
   View(result_logistic)
   

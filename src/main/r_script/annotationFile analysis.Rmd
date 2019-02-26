@@ -20,6 +20,12 @@ annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingle
 top2000Loinc <- read.csv("/Users/zhangx/Downloads/LOINC_2/Accessory/Top2000/LOINC_1.6_Top2000CommonLabResultsUS.csv", stringsAsFactors = FALSE)
 ```
 
+Remove annotations that are not finalized yet
+```{r}
+annotationFile <- annotationFile %>% filter(isFinalized == "true")
+#write.table(annotationFile, "/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
+```
+
 
 distribution of annotatio LOINC types
 
