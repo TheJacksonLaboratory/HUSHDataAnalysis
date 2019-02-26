@@ -151,7 +151,7 @@ icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources
 loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats_v2.0.tsv", header = TRUE, sep = "\t")
 hpoTermList <- read.table("./data/hpoTermList.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-hpoTermList <- hpoTermList %>% mutate(name = make.names(label))
+hpoTermList$name = make.names(hpoTermList$label)
 ```
 
 define a helper function that handles the negation information in loinc2hpo mapping library
@@ -629,7 +629,7 @@ severity_class <- function(x) {
 #  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
 
 
-glm_Y = df_glm %>% select(9:133)
+glm_Y = df_glm %>% select(9:ncol(df_glm) - 1)
 library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  
@@ -739,11 +739,11 @@ set.seed(9999)
   
   result_logistic <- result %>% arrange(-`odds.ratio_asthma.diagnosis`) 
   
-  result_logistic %>% mutate(hpo = as.character(hpo)) %>%
-    left_join(hpoTermList, by = c("hpo" = "name")) %>%  View
+  result_logistic <- result_logistic %>% 
+    left_join(hpoTermList, by = c("hpo" = "name")) %>%  mutate(hpo = label) %>% select(colnames(result_logistic))
     
   
-  write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
+  write.csv(result_logistic, "./data/logistic_regression_v2.0.csv", quote = FALSE, row.names = FALSE)
   View(result_logistic)
   
   ggplot(result_logistic) + 
