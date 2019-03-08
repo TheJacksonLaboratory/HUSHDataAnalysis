@@ -16,7 +16,7 @@ library(tidyverse)
 
 load the annotation file
 ```{r}
-annotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE)
+annotationFile <- read.table("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 top2000Loinc <- read.csv("/Users/zhangx/Downloads/LOINC_2/Accessory/Top2000/LOINC_1.6_Top2000CommonLabResultsUS.csv", stringsAsFactors = FALSE)
 ```
 
@@ -111,3 +111,4 @@ ggplot(coverage_df) + geom_line(aes(x = rank, y = covered), size = 1, color = "b
 ggsave("./data/images/distribution of annotated HPO terms.png", width = 5, height = 2.5)
 ```
 
+We are going to analyze medical dito
