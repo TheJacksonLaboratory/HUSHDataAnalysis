@@ -234,16 +234,19 @@ Next, create a plot to show the success rate.
 ```{r}
 label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
 
-loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+p <- loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
   geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
   scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
+
+p
 ```
 
 ```{r}
-ggsave("./data/images/Hush lab test to HPO conversion.png", width = 1.2, height = 1.2)
+ggsave("./data/images/Hush lab test to HPO conversion.png", plot = p, width = 1.2, height = 1.2)
+ggsave("./data/images/Hush lab test to HPO conversion.pdf", plot = p, width = 1.2, height = 1.2)
 ```
 
 ### count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
@@ -280,9 +283,9 @@ print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOp
 
 plot the distribution of the unique HPO terms for each patient
 ```{r}
-ggplot(uniqueHPOperPatient) + 
+p2 <- ggplot(uniqueHPOperPatient) + 
     geom_histogram(aes(counts), binwidth = 10, fill = "orange", color = "black", size = 0.25) +
-    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+    xlab("number of unique phenotypes for each patient") + ylab("patient counts") +
   theme_bw() + 
     theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
           axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
@@ -292,11 +295,13 @@ ggplot(uniqueHPOperPatient) +
           axis.title.y = element_text(vjust = 0), 
           axis.title.x= element_text(vjust = 1))
 
+p2
 ```
 
 
 ```{r}
-ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
+ggsave("/Users/zhangx/git/HushToFhir/data/images/unique HPO term counts for each patient.png", plot = p2, width = 3, height = 2)
+ggsave("/Users/zhangx/git/HushToFhir/data/images/unique HPO term counts for each patient.pdf", plot = p2, width = 3, height = 2)
 ```
 
 ```{r}
@@ -352,15 +357,21 @@ aggrgedFromTwoLOINC <- sum(loincAggregated$loincAggrgtdFrom==2)
 aggrgedFromThreeAndMoreLOINC <- sum(loincAggregated$loincAggrgtdFrom==3)
 aggrgLOINCtypes <- data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC))  
 
-ggplot(aggrgLOINCtypes) + 
+p3 <- ggplot(aggrgLOINCtypes) + 
   geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
-  xlab("mapped LOINC terms") + ylab("counts of HPO") + 
+  xlab("mapped LOINC terms") + ylab("counts of HPO terms") + 
   theme_bw() + 
   #scale_y_continuous(limits = c(0, 240)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
-ggsave("./data/images/loinc_type_aggreg.png", width = 1.7, height = 1.5)
+p3
 ```
+
+```{r}
+ggsave("./data/images/loinc_type_aggreg.png", plot = p3, width = 1.7, height = 1.5)
+ggsave("./data/images/loinc_type_aggreg.pdf", plot = p3, width = 1.7, height = 1.5)
+```
+
 
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
 
@@ -458,12 +469,12 @@ df4ML <- combined %>%
   select(patient_num, age, record_duration, sex_cd, everything()) %>%
   select(-prscbCount, prscbCount)
 dim(df4ML)
-colnames(df4ML)
+head(colnames(df4ML), n = 15)
 ```
 export the data frame for machine learning
 ```{r}
 write.csv(df4ML, "./data/Hush+_data_matrix_v2.0.csv", quote = FALSE, row.names = FALSE)
-df4ML <- read.csv("./data/Hush+_data_matrix_v2.0.csv", header = TRUE)
+df4ML <- read.csv("/Users/zhangx/git/HushToFhir/data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription and acute asthma diagnosis
@@ -679,7 +690,7 @@ data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>%
   ungroup() %>%
   mutate(count = ifelse(sex_cd == "M", -count, count))
   
-data_pyramid %>% na.omit() %>% 
+ageDistribution <- data_pyramid %>% na.omit() %>% 
   ggplot() +
   geom_bar(aes(x = cat, y = count, fill = sex_cd), stat = "identity") + 
   scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(1.5,9.5,2) * BINWIDTH) +
@@ -687,7 +698,10 @@ data_pyramid %>% na.omit() %>%
   scale_fill_manual(name = "gender", values = c(M = "royalblue", F = "lightcoral"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") + ylab("count (x1,000)") +
   coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10))
 
-ggsave("./data/images/patient_sex_age_distribution.png", width = 2, height = 1.5)
+ageDistribution
+
+ggsave("./data/images/patient_sex_age_distribution.png", plot = ageDistribution, width = 2, height = 1.5)
+ggsave("./data/images/patient_sex_age_distribution.pdf", plot = ageDistribution, width = 2, height = 1.5)
 ```
 
 
@@ -717,6 +731,20 @@ How long patients are tracked in this dataset?
 median_track <- df4ML$record_duration %>% median()
 print(str_c("median tracking time (years): ", median_track, collapse = T))
 ```
+
+vitamin abnormality analysis
+```{r}
+patient_phenotypes <- colnames(df4ML)
+vitamin_phenotypes <- patient_phenotypes[str_detect(patient_phenotypes, "[Vv]itamin|folate|calci[(triol)|(fediol)]")]
+df4ML %>% select(vitamin_phenotypes) %>% map_int(function(x){sum(x>=3)})
+
+
+vitaminMatrixNoInfer <- patientTermMapFreq %>% filter(isNegated == "false" & str_detect(hpoTerm, "[Vv]itamin|folate|calci[(triol)|(fediol)]")) %>% spread(hpoTerm, hpoTermFreq, fill = 0)
+patient_phenotypes <- colnames(vitaminMatrixNoInfer)
+vitamin_phenotypes <- patient_phenotypes[str_detect(patient_phenotypes, "[Vv]itamin|folate|calci[(triol)|(fediol)]")]
+vitaminMatrixNoInfer %>% select(vitamin_phenotypes) %>% map_int(function(x){sum(x>=3)})
+```
+
 
 # Conclusion
 

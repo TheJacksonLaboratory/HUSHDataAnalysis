@@ -3,14 +3,15 @@ library(ggplot2)
 library(scales)
 library(ggmosaic)
 total_count <- 54683532
-concept_counts <- read.csv("/Users/zhangx/git/HushToFhir/data/cpt_category_count.csv", header = TRUE, sep = ",", skip = 1)
+setwd("/Users/zhangx/git/HushToFhir")
+concept_counts <- read.csv("./data/cpt_category_count.csv", header = TRUE, sep = ",", skip = 1)
 concept_counts$index <- seq(nrow(concept_counts))
 ggplot(concept_counts) + geom_bar(aes(x = index, y = count / total_count), stat = "identity") + 
   geom_text(aes(x = index, y = count / total_count, label = category, vjust = -2 +1  * (index + 1) %% 2, hjust = (index + 1) %% 2 * 0.4)) +
   scale_x_continuous(limit = c(0, 15)) + scale_y_continuous(limit = c(0, 0.25), labels = percent) + 
   xlab("concept category rank") + ylab("percentage frequency") + 
   theme_bw() + theme(panel.grid = element_blank())
-ggsave("concept_category_freq.pdf", width = 4.5, height = 4)
+ggsave("./images/concept_category_freq.pdf", width = 4.5, height = 4)
 ## unfortunately, you need to type in the hard address of the dataset
 ## @TODO: checkout ways to get the directory of current script
 data <- read.csv("/Users/zhangx/git/HushToFhir/data/cumulative_cpt_count.csv", header = TRUE, sep = ",", skip = 1)
@@ -22,7 +23,7 @@ ggplot(data) + geom_line(aes(x = step, y = count / total_count), color = "blue")
   scale_y_continuous(labels = percent) +
   xlab("most frequent concepts") + ylab("cumulative freq (% of total)") + ggtitle("Cumulative freq of top 500 concepts") +
   theme_bw() + theme(panel.grid = element_blank())
-ggsave("cumulative_freq_plot.pdf", width = 4, height = 5)
+ggsave("./data/images/cumulative_freq_plot.pdf", width = 4, height = 5)
 
 
 # make a mosaic plot to show the information in the dataset
@@ -52,7 +53,7 @@ ggsave("/Users/zhangx/git/HushToFhir/data/images/hush_dataset.png", width = 1.5,
 
 hush_data_line_counts$isUsed = c("Y", "Y", "N", "Y", "Y", "Y", "N", "N", "N", "N", "Y", "N")
 
-hush_data_line_counts %>% 
+data_volumes <- hush_data_line_counts %>% 
   ggplot() + 
   geom_bar(aes(x=fct_reorder(category, -linecount), y = linecount/1000000, fill = isUsed), 
            stat = "identity", color = "black", size = 0.1) +
@@ -63,4 +64,5 @@ hush_data_line_counts %>%
         axis.title = element_text(size = 8),
         panel.grid = element_blank(), 
         legend.position = "none")
-ggsave("/Users/zhangx/git/HushToFhir/data/images/hush_dataset_bar.png", width = 3, height = 2.5)
+ggsave("./data/images/hush_dataset_bar.png", plot = data_volumes, width = 3, height = 2.5)
+ggsave("./data/images/hush_dataset_bar.pdf", plot = data_volumes, width = 3, height = 2.5)

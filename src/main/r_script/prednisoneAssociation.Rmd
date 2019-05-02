@@ -6,7 +6,7 @@ output: html_document
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
-setwd("~/git/HushToFhir/")
+#setwd("~/git/HushToFhir/")
 ```
 
 # Data:
@@ -397,6 +397,8 @@ dim(df4ML)
 export the data frame for machine learning
 ```{r}
 write.csv(df4ML, "./data/Hush+_data_matrix_v2.0.csv", quote = FALSE, row.names = FALSE)
+
+df4ML <- read.csv("/Users/zhangx/git/HushToFhir/data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription
@@ -787,7 +789,7 @@ The goal of this section is to determine whether HPO terms aggregated from lab t
 optional: import data if starting from serialized data
 ```{r}
 library(tidyverse)
-df4ML <- read.csv("./data/Hush+_data_matrix.csv", header = TRUE)
+df4ML <- read.csv("data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 noasthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_noasthmaNoDiabetesNoLiverDamage.csv", header = TRUE)
 asthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_asthmaNodiabetesNoLiverDamage.csv", header = TRUE)
 joined_data <- asthmaNoDiabetesNoLiverDamage %>% mutate(foldchange_asthma = severePercent/nonSeverePercent, significe_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_asthma, significe_asthma) %>% full_join(
@@ -970,6 +972,7 @@ target.index = ncol(training)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
 #mstop = 150, prune = "no"
+tuneGrid = expand.grid()
 xgboost <- train(training[,-target.index], training$isSevere, method = "xgbTree", trControl = train.ctrl, tuneLength = 5, preProcess = c("center","scale", "YeoJohnson"))
 stopCluster(c1)
 prediction <- predict(xgboost, testing[,-target.index])
@@ -980,6 +983,28 @@ require(pROC)
 roc1 <- roc(testing$isSevere, prediction$X1, smooth = TRUE)
 data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
 ```
+
+Play with xgboost
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE)
+#tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
+#this is the best hyperparameters
+#tune.grid = expand.grid(n.trees = 200, interaction.depth = 1, shrinkage = 0.1, n.minobsinnode = 10)
+target.index = ncol(training)
+tuneGrid = expand.grid()
+dtrain <- xgb.DMatrix(data = as.matrix(training[,-target.index]), label = as.numeric(training[,target.index] == "X1"))
+model <- xgboost(data = dtrain, max.depth = 50, eta = 1, nthread = 4, nrounds = 50, objective = "binary:logistic")
+
+prediction <- predict(model, as.matrix(testing[,-target.index]))
+cm <- confusionMatrix(as.factor(as.numeric(prediction > 0.5)), as.factor(as.numeric(testing$isSevere == "X1")))
+cm
+prediction <- predict(model, as.matrix(testing[,-target.index]), type = "prob")
+require(pROC)
+roc1 <- roc(testing$isSevere, prediction, smooth = TRUE)
+data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
+
+```
+
 
 Try random forest
 ```{r}

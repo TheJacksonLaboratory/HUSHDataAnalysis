@@ -31,19 +31,22 @@ distribution of annotatio LOINC types
 
 ```{r}
 loincTypes <- annotationFile %>% select(loincId, loincScale) %>% distinct()
-ggplot(loincTypes) + 
+loincTypeDistribution <- ggplot(loincTypes) + 
   geom_bar(aes(factor(loincScale, levels = c("Qn", "Ord", "Nom", "Unknown")), ..count../sum(..count..), fill = loincScale)) +
   xlab("LOINC type") + ylab("percentage")  +
   scale_x_discrete(limits = c("Qn", "Ord", "Nom"), breaks = c("Qn", "Ord", "Nom"), labels = c("Qn", "Ord", "Nom")) + # do not show "Unknown"
   theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), legend.position = "none") + 
   scale_y_continuous(labels = scales::percent)
+
+loincTypeDistribution
 loincTypeStatistics <- loincTypes %>% group_by(loincScale) %>% summarise(no = n()) %>% mutate(percentage = no/sum(no))
 loincTypeStatistics
 print(sum(loincTypeStatistics$no))
 ```
 ```{r}
-ggsave("./data/images/annotatedLoincDistribution.png", width = 1.5, height = 1.5)
+ggsave("./data/images/annotatedLoincDistribution.png", plot = loincTypeDistribution, width = 1.5, height = 1.6)
+ggsave("./data/images/annotatedLoincDistribution.pdf", plot = loincTypeDistribution, width = 1.5, height = 1.6)
 ```
 
 count the total number of HPO terms
@@ -64,7 +67,7 @@ ggplot(noOfLOINCsMappedToEachHPO) + geom_histogram(aes(x = noLoinc, y = ..count.
 HIGHLIGHT = 10
 HPO_example = noOfLOINCsMappedToEachHPO %>% filter(noLoinc == HIGHLIGHT) %>% select(hpoTermId) %>% unlist() %>% as.character() %>% str_c(collapse = "\n")
 
-noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc)) %>% group_by(noLoinc) %>% summarise(noHPO = n()) %>% ungroup() %>%
+hpoDistribution <-  noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc)) %>% group_by(noLoinc) %>% summarise(noHPO = n()) %>% ungroup() %>%
   rename(aggrgFactor = noLoinc) %>% 
   mutate(tohighlight = ifelse(aggrgFactor == HIGHLIGHT, "Y", "N")) %>%
   ggplot() + 
@@ -78,7 +81,10 @@ noOfLOINCsMappedToEachHPO %>% mutate(noLoinc = ifelse(noLoinc >= 20, 20, noLoinc
   xlab("number of mapped LOINC terms per HPO term") + ylab("percentage of HPO terms") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_text(size = 8), axis.title = element_text(size = 8), panel.border = element_rect(size = 0.75), legend.position = "none")
 
-ggsave("./data/images/distribution of HPO terms.png", width = 3, height = 1.6)
+hpoDistribution
+ggsave("./data/images/distribution of HPO terms.png", plot = hpoDistribution, width = 3, height = 1.6)
+ggsave("./data/images/distribution of HPO terms.pdf", plot = hpoDistribution, width = 3, height = 1.6)
+
 
 ```
 
@@ -111,4 +117,22 @@ ggplot(coverage_df) + geom_line(aes(x = rank, y = covered), size = 1, color = "b
 ggsave("./data/images/distribution of annotated HPO terms.png", width = 5, height = 2.5)
 ```
 
-We are going to analyze medical dito
+We are going to analyze medical dichotomous pairs of phenotypes
+```{r}
+lowValueAnnotations <- annotationFile %>% filter(code == "L") %>% select(loincId, low = hpoTermId)
+highValueAnnotations <- annotationFile %>% filter(code == "H") %>% select(loincId, high = hpoTermId)
+dichotomousPair <- lowValueAnnotations %>% inner_join(highValueAnnotations, by = "loincId")
+dichotomousPair <- dichotomousPair %>% group_by(low, high) %>% summarise_at("loincId", function(x) {str_c(x, collapse= "|")}) %>% ungroup()
+write.csv(dichotomousPair, "~/Desktop/dichotomousPair.csv", quote = FALSE, row.names = FALSE)
+dichotomousPair %>% filter(low == high) %>% select(loincId)
+```
+
+
+```{r}
+phenomiser1 <- read.table("~/Desktop/phenomiser1.0_imprecison_grid.txt", header = TRUE)
+matrix1 <- as.matrix(phenomiser1)
+phenomiser2 <- read.table("~/Desktop/phenomiser2.0_imprecison_grid.txt", header = TRUE)
+matrix2 <- as.matrix(phenomiser2)
+## no difference, but this is with simulated data for only 50 diseases
+```
+

@@ -19,6 +19,11 @@ data/images/2018_zhang_fig1_proof1.png
 data/loincAnnotationstats_v1.0.tsv
 data/patientAbnormalTermMapFreq-inferred_v1.0.csv
 data/images/FHIR2HPO Workflow.png
+data/Hush+_data_matrix_v2.0.csv
+data/hpoTermList.txt
+data/patientAbnormalTermMapFreq-inferred_v2.0.csv
+data/patientTermMapFreq_v2.0.csv
+*.xlsx
 .Rhistory
 
 data/.DS_Store
