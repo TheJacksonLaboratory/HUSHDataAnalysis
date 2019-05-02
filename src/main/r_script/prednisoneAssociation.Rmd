@@ -1,4 +1,3 @@
----
 title: "Prednisone-association"
 author: "Aaron Zhang"
 date: "6/1/2018"
@@ -7,6 +6,7 @@ output: html_document
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = "~/git/HushToFhir/")
+#setwd("~/git/HushToFhir/")
 ```
 
 # Data:
@@ -102,7 +102,7 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -stat \                  
 
 ## load data for analysis
 
-```{r}
+```{r message=FALSE}
 #load R libraries
 library(tidyverse)
 library(scales)
@@ -129,7 +129,7 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 # replace na with 0
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation8-2-2018.txt", header = TRUE, sep = "\t")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v2.0.txt", header = TRUE, sep = "\t")
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
@@ -149,7 +149,9 @@ patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBS
 icd9_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 icd10_3_digit_codes <- read.csv("/Users/zhangx/git/HushToFhir/src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE, as.is = "character")
 loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats8-2-2018.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- read.csv("/Users/zhangx/git/HushToFhir/data/loincAnnotationstats_v2.0.tsv", header = TRUE, sep = "\t")
+hpoTermList <- read.table("./data/hpoTermList.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+hpoTermList$name = make.names(hpoTermList$label)
 ```
 
 define a helper function that handles the negation information in loinc2hpo mapping library
@@ -232,9 +234,9 @@ Next, create a plot to show the success rate.
 ```{r}
 label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
 
-loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>% 
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
-  geom_text(aes(x = 1, y = counts / sum(counts) - c(0, 0.15), label = c(label1, "")), size = 2) +
+  geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
   scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
@@ -253,7 +255,7 @@ hpoTermCountsWithDuplicationPerPatient <- loinc2hpo %>% select(mapFailed, patien
 no.HPOperPatient = sum(hpoTermCountsWithDuplicationPerPatient$counts) / nrow(patients)
 print(paste("average no. of HPO terms per patient: ", round(no.HPOperPatient, 1), sep = ""))
 
-  ggplot(hpoTermCountsWithDuplicationPerPatient) + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms\nper patient") + ylab("patient Counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
+  ggplot(hpoTermCountsWithDuplicationPerPatient) + geom_histogram(aes(counts), binwidth = 500) + xlab("no. of HPO terms\nper patient") + ylab("patient counts") + scale_x_continuous(limits = c(-500, 8000), breaks = seq(0, 8000, by = 2000)) + 
   theme_bw() + theme(panel.grid = element_blank(), axis.title = element_text(size = 10), axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1), axis.ticks.length = unit(0.1, "line"), panel.border = element_rect(size = 0.25), panel.background = element_blank(), axis.title.y = element_text(vjust = -2), axis.title.x= element_text(vjust = 2))
 ggsave("./data/images/HPO term counts for each patient.png", width = 0.8, height = 0.8 )
 
@@ -267,7 +269,7 @@ print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOp
 
   ggplot(uniqueHPOperPatient) + 
     geom_histogram(aes(counts), binwidth = 10, fill = "orange", color = "black", size = 0.25) +
-    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+    xlab("number of unique phenotypes for each patient") + ylab("patient counts") +
   theme_bw() + 
     theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
           axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
@@ -320,10 +322,10 @@ ggplot(aggrgLOINCtypes) +
   geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
   xlab("mapped LOINC terms") + ylab("counts of HPO") + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0, 140)) +
+  scale_y_continuous(limits = c(0, 300)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
-ggsave("./data/images/loinc_type_aggreg.png", width = 1.5, height = 2)
+ggsave("./data/images/loinc_type_aggreg.png", width = 1.7, height = 1.5)
 ```
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
 
@@ -344,12 +346,12 @@ head(patientTermMapFreq)
 
 export patient terms, use the java command line to infer parent terms (only abnormal phenotypes)
 ```{r}
-write.csv(patientTermMapFreq, "./data/patientTermMapFreq.csv",  row.names = FALSE, quote = FALSE)
+write.csv(patientTermMapFreq, "./data/patientTermMapFreq_v2.0.csv",  row.names = FALSE, quote = FALSE)
 #
 # run java command line
 #
 
-patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+patientTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v2.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 patientTermMapFreq_inferred <- patientTermMapFreq_inferred %>% mutate(hpoTerm = make.names(hpoTerm), isNegated = as.factor("false"))
 ```
 
@@ -390,11 +392,13 @@ df4ML <- combined %>%
   select(patient_num, age, record_duration, sex_cd, everything()) %>%
   select(-prscbCount, prscbCount)
 dim(df4ML)
-colnames(df4ML)
+#colnames(df4ML)
 ```
 export the data frame for machine learning
 ```{r}
-write.csv(df4ML, "./data/Hush+_data_matrix.csv", quote = FALSE, row.names = FALSE)
+write.csv(df4ML, "./data/Hush+_data_matrix_v2.0.csv", quote = FALSE, row.names = FALSE)
+
+df4ML <- read.csv("/Users/zhangx/git/HushToFhir/data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription
@@ -627,7 +631,7 @@ severity_class <- function(x) {
 #  select(patient_num, encounter_no_days, prscbCount, isSevere, withAsthmaICDCode)
 
 
-glm_Y = df_glm %>% select(9:133)
+glm_Y = df_glm %>% select(9:ncol(df_glm) - 1)
 library(caret)
 low_variance <- nearZeroVar(glm_Y)
 glm_Y <- glm_Y[,-low_variance]  
@@ -736,7 +740,26 @@ set.seed(9999)
   
   
   result_logistic <- result %>% arrange(-`odds.ratio_asthma.diagnosis`) 
-  write.csv(result_logistic, "./data/logistic_regression.csv", quote = FALSE, row.names = FALSE)
+  
+  result_logistic <- result_logistic %>% 
+    left_join(hpoTermList, by = c("hpo" = "name")) %>%  mutate(hpo = label) %>% select(colnames(result_logistic))
+    
+  significance_star <- function(x) {
+    p_stars <- vector(mode = "character", length = length(x))
+    for (i in 1:length(x)) {
+      if (x[i] < 0.01) {
+        p_stars[i] = "**"
+      } else if (x[i] < 0.05) {
+        p_stars[i] = "*"
+      } else {
+        p_stars[i] = "-"
+      }
+    }
+    p_stars
+  }
+  result_logistic <- result_logistic %>% mutate(significance_steroid = significance_star(p_steroid)) %>% mutate(significance_asthma.diagnosis = significance_star(p_asthma.diagnosis)) %>% select(hpo, odds.ratio_steroid, CI.95.._steroid, p_steroid, significance_steroid, odds.ratio_asthma.diagnosis, CI.95.._asthma.diagnosis, p_asthma.diagnosis, significance_asthma.diagnosis)
+  
+  write.csv(result_logistic, "./data/logistic_regression_v2.0.csv", quote = FALSE, row.names = FALSE)
   View(result_logistic)
   
   ggplot(result_logistic) + 
@@ -766,7 +789,7 @@ The goal of this section is to determine whether HPO terms aggregated from lab t
 optional: import data if starting from serialized data
 ```{r}
 library(tidyverse)
-df4ML <- read.csv("./data/Hush+_data_matrix.csv", header = TRUE)
+df4ML <- read.csv("data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 noasthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_noasthmaNoDiabetesNoLiverDamage.csv", header = TRUE)
 asthmaNoDiabetesNoLiverDamage <- read.csv("./data/patientCombinedCounts_asthmaNodiabetesNoLiverDamage.csv", header = TRUE)
 joined_data <- asthmaNoDiabetesNoLiverDamage %>% mutate(foldchange_asthma = severePercent/nonSeverePercent, significe_asthma = ifelse(pVal > 0.001, "N", "Y")) %>% select(hpo, foldchange_asthma, significe_asthma) %>% full_join(
@@ -949,6 +972,7 @@ target.index = ncol(training)
 c1 <- makeCluster(3, type = "SOCK")
 registerDoSNOW(c1)
 #mstop = 150, prune = "no"
+tuneGrid = expand.grid()
 xgboost <- train(training[,-target.index], training$isSevere, method = "xgbTree", trControl = train.ctrl, tuneLength = 5, preProcess = c("center","scale", "YeoJohnson"))
 stopCluster(c1)
 prediction <- predict(xgboost, testing[,-target.index])
@@ -959,6 +983,28 @@ require(pROC)
 roc1 <- roc(testing$isSevere, prediction$X1, smooth = TRUE)
 data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
 ```
+
+Play with xgboost
+```{r}
+train.ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 3, classProbs = TRUE)
+#tune.grid = expand.grid(prune = c("no"), mstop = seq(20, 100, 1))
+#this is the best hyperparameters
+#tune.grid = expand.grid(n.trees = 200, interaction.depth = 1, shrinkage = 0.1, n.minobsinnode = 10)
+target.index = ncol(training)
+tuneGrid = expand.grid()
+dtrain <- xgb.DMatrix(data = as.matrix(training[,-target.index]), label = as.numeric(training[,target.index] == "X1"))
+model <- xgboost(data = dtrain, max.depth = 50, eta = 1, nthread = 4, nrounds = 50, objective = "binary:logistic")
+
+prediction <- predict(model, as.matrix(testing[,-target.index]))
+cm <- confusionMatrix(as.factor(as.numeric(prediction > 0.5)), as.factor(as.numeric(testing$isSevere == "X1")))
+cm
+prediction <- predict(model, as.matrix(testing[,-target.index]), type = "prob")
+require(pROC)
+roc1 <- roc(testing$isSevere, prediction, smooth = TRUE)
+data.frame(sensitivity = roc1$sensitivities, specificity = roc1$specificities) %>% ggplot() + geom_point(aes(1-specificity, sensitivity), size = 0.5) + xlab("false positive rate") + ylab("true positive rate")
+
+```
+
 
 Try random forest
 ```{r}

@@ -1,6 +1,5 @@
 package org.jax;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.cli.*;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.jax.Exception.IllegalDataTypeException;
@@ -19,12 +18,9 @@ import org.monarchinitiative.loinc2hpo.loinc.HpoTerm4TestOutcome;
 import org.monarchinitiative.loinc2hpo.loinc.LOINC2HpoAnnotationImpl;
 import org.monarchinitiative.loinc2hpo.loinc.LoincEntry;
 import org.monarchinitiative.loinc2hpo.loinc.LoincId;
-import org.monarchinitiative.loinc2hpo.patientmodel.BagOfTerms;
 import org.monarchinitiative.loinc2hpo.patientmodel.BagOfTermsWithFrequencies;
 import org.monarchinitiative.loinc2hpo.testresult.PhenoSetUnionFind;
 import org.monarchinitiative.phenol.base.PhenolException;
-import org.monarchinitiative.phenol.formats.hpo.HpoOntology;
-import org.monarchinitiative.phenol.io.obo.hpo.HpOboParser;
 import org.monarchinitiative.phenol.ontology.data.Ontology;
 import org.monarchinitiative.phenol.ontology.data.Term;
 import org.monarchinitiative.phenol.ontology.data.TermId;
@@ -49,7 +45,7 @@ public class App {
     private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     private static Map<LoincId, LOINC2HpoAnnotationImpl> testmap = new HashMap<>();
-    private static HpoOntology hpo;
+    private static Ontology hpo;
     private static Map<String, Term> hpoTermMap;
     private static Map<TermId, Term> hpoTermMap2;
     private static Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap;
@@ -346,7 +342,7 @@ public class App {
      * @param loincEntryMap
      * @throws IOException
      */
-    public static void convertObservation(ObservationFact record, BufferedWriter writer, Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, Map<LoincId, LoincEntry> loincEntryMap) throws IOException {
+    public static void convertObservation(ObservationFact record, BufferedWriter writer, Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, Map<LoincId, LoincEntry> loincEntryMap, Ontology hpo) throws IOException {
 
         LoincId loincId = null;
         try {
@@ -407,7 +403,7 @@ public class App {
         if (outcome == null) {
             writer.write("\t\t"+ true + "\t" + "Annotation Incomplete\n");
         } else {
-            writer.write(outcome.isNegated() + "\t" + outcome.getHpoTerm().getName() + "\t" + false +  "\t\n");
+            writer.write(outcome.isNegated() + "\t" + hpo.getTermMap().get(outcome.getId()).getName() + "\t" + false +  "\t\n");
         }
     }
 
@@ -484,7 +480,7 @@ public class App {
         }
     }
 
-    static void loinc2hpo(String observationPath, String outputPath) throws IOException {
+    static void loinc2hpo(String observationPath, String outputPath, Ontology hpo) throws IOException {
 
         //open a writer to output file
         BufferedWriter writer;
@@ -508,7 +504,7 @@ public class App {
                 if (!observationFact.concept_cd().toLowerCase().startsWith("loinc")) {
                     continue;
                 }
-                convertObservation(observationFact, writer, annotationMap, loincIdLoincEntryMap);
+                convertObservation(observationFact, writer, annotationMap, loincIdLoincEntryMap, hpo);
                 count++;
                 //logger.trace("count: " + count);
                 if (count % 1000 == 0) {
@@ -633,7 +629,7 @@ public class App {
         reader.close();
     }
 
-    static void annotationStats(Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, String outputPath) throws IOException {
+    static void annotationStats(Map<LoincId, LOINC2HpoAnnotationImpl> annotationMap, String outputPath, Ontology ontology) throws IOException {
 
         BufferedWriter writer;
         if (outputPath == null) {
@@ -642,14 +638,14 @@ public class App {
             writer = new BufferedWriter(new FileWriter(outputPath));
         }
 
-        Map<Term, ArrayList<LoincId>> termLOINCcounts = new HashMap<>();
+        Map<TermId, ArrayList<LoincId>> termLOINCcounts = new HashMap<>();
         annotationMap.values().forEach(loinc2HpoAnnotation -> {
             loinc2HpoAnnotation
                     .getCandidateHpoTerms()
                     .values()
                     .stream()
                     .distinct()
-                    .map(HpoTerm4TestOutcome::getHpoTerm)
+                    .map(HpoTerm4TestOutcome::getId)
                     .distinct()
                     .forEach(hpo -> {
                         if (! termLOINCcounts.containsKey(hpo)) {
@@ -666,10 +662,10 @@ public class App {
                 .collect(Collectors.toMap(e -> e.getKey(), e-> e.getValue().size()))
                 .entrySet()
                 .stream()
-                .sorted(Map.Entry.<Term, Integer>comparingByValue().reversed())
+                .sorted(Map.Entry.<TermId, Integer>comparingByValue().reversed())
                 .forEachOrdered(s -> {
                     try {
-                        writer.write(s.getKey().getName() + "\t" + s.getValue() + "\n");
+                        writer.write(ontology.getTermMap().get(s.getKey()).getName() + "\t" + s.getValue() + "\n");
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -875,6 +871,35 @@ public class App {
         return termMapForR;
     }
 
+    private static void outputHpoTermList(String hpoPath, String outputPath) throws IOException, PhenolException {
+
+        if (hpo == null) {
+            importHPO(hpoPath);
+        }
+
+        BufferedWriter writer;
+        if (outputPath == null) {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        } else {
+            writer = new BufferedWriter(new FileWriter(outputPath));
+        }
+
+        writer.write("termId\tlabel\n");
+        hpo.getTerms().stream().distinct().forEach(term -> {
+            try {
+                writer.write("\"" + term.getId().getValue() + "\"");
+                writer.write("\t");
+                writer.write("\"" + term.getName() + "\"");
+                writer.write("\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        writer.close();
+
+    }
+
 
     public static void main( String[] args ) {
 
@@ -926,7 +951,7 @@ public class App {
                 .hasArg(false)
                 .desc("stats of annotation file")
                 .build();
-        Option hpo = Option.builder("hpo")
+        Option hpoParam = Option.builder("hpo")
                 .hasArg()
                 .argName("File")
                 .desc("hpo.obo file path")
@@ -946,6 +971,11 @@ public class App {
                 .desc("infer with HPO hierarchy")
                 .build();
 
+        Option hpoTermList = Option.builder("hpoterms")
+                .hasArg(false)
+                .desc("output hpo terms to a file")
+                .build();
+
         options.addOption(loadObservation)
                 .addOption(convertObservation)
                 .addOption(prednisone)
@@ -955,10 +985,11 @@ public class App {
                 .addOption(help)
                 .addOption(annotation)
                 .addOption(annotationStat)
-                .addOption(hpo)
+                .addOption(hpoParam)
                 .addOption(loinc)
                 .addOption(icd)
-                .addOption(infer);
+                .addOption(infer)
+                .addOption(hpoTermList);
 
         HelpFormatter formatter = new HelpFormatter();
 
@@ -1008,7 +1039,7 @@ public class App {
                 }
 
                 try {
-                    loinc2hpo(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"));
+                    loinc2hpo(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"), hpo);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -1047,7 +1078,7 @@ public class App {
                     return;
                 }
                 try {
-                    annotationStats(annotationMap, commandLine.getOptionValue("o"));
+                    annotationStats(annotationMap, commandLine.getOptionValue("o"), hpo);
                 } catch (IOException e) {
                     System.out.println("failed to output stats, try again");
                     return;
@@ -1084,6 +1115,20 @@ public class App {
 
                 try {
                     infer(commandLine.getOptionValue("i"), commandLine.getOptionValue("o"), commandLine.getOptionValue("hpo"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (PhenolException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (commandLine.hasOption("hpoterms")) {
+                if (!commandLine.hasOption("hpo")) {
+                    System.out.println("hpo file path is required");
+                    return;
+                }
+                try {
+                    outputHpoTermList(commandLine.getOptionValue("hpo"), commandLine.getOptionValue("o"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (PhenolException e) {

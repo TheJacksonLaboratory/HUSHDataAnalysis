@@ -26,11 +26,6 @@ III. Test whether the phenotypic data can be used for medical prediction with ma
 
 To simplify data query, we have parsed the dataset in Java and imported all records to a SQLite database. The source code can be accessed through https://github.com/TheJacksonLaboratory/HUSHDataAnalysis. The source repository also contains Java code for other forms of data preporation. For example, we converted laboratory tests into HPO using the LOINC to HPO mapping (refer to: https://github.com/TheJacksonLaboratory/loinc2hpoAnnotation/blob/master/Data/TSVSingleFile/annotations.tsv), we counted the frequency of each ICD-9/10 codes (first three latters) for every patient, and counted prednisone prescriptions for each patient etc. Those tasks are too complicated to implement in R. The rest of this sub-section contains bash codes that can be used to recreate those steps.
 
-```{bash}
-say hi
-```
-
-
 1) We select all diagnosis records (with ICD codes) and imported them to the database as a separate table.
 ```{bash eval = FALSE}
 java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar -icd \                                 # select ICD records
@@ -133,7 +128,7 @@ prednisonPrescribTimes <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+U
 # replace na with 0
 prednisonPrescribTimes <- prednisonPrescribTimes %>% mutate(prscbCount = ifelse(is.na(prscbCount), 0, prscbCount))
 visitCount <- dbGetQuery(db, "SELECT V.patient_num, count(distinct(O.start_date)) AS encounter_no_days FROM VISIT_DIMENSION AS V LEFT JOIN OBSERVATION_FACT AS O ON V.encounter_num = O.encounter_num AND V.patient_num = O.patient_num GROUP BY V.patient_num ORDER BY encounter_no_days DESC")
-loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v1.0.txt", header = TRUE, sep = "\t")
+loinc2hpo <- read.csv("/Users/zhangx/Documents/HUSH+_UNC_JAX/Hush+UNC_JAX/HUSH+/loinc2hpotransformation_v2.0.txt", header = TRUE, sep = "\t")
 
 #select patient subset with ICD codes for asthma
 patient_withAsthmaICD <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM ICD WHERE icd LIKE 'ICD9:493%' OR icd LIKE 'ICD10:J45%'")
@@ -153,7 +148,7 @@ patient_withAcuteAsthma <- dbGetQuery(db, "SELECT DISTINCT(patient_num) FROM OBS
 icd9_3_digit_codes <- read.csv("./src/main/resources/icd9_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 icd10_3_digit_codes <- read.csv("./src/main/resources/icd10cm_ThreeDigitCodes.tsv", sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 loinc2hpoAnnotationFile <- read.csv("/Users/zhangx/git/loinc2hpoAnnotation/Data/TSVSingleFile/annotations.tsv", sep = "\t", stringsAsFactors = FALSE, header = TRUE)
-loincAnnotationStat <- read.csv("./data/loincAnnotationstats_v1.0.tsv", header = TRUE, sep = "\t")
+loincAnnotationStat <- read.csv("./data/loincAnnotationstats_v2.0.tsv", header = TRUE, sep = "\t")
 ```
 
 define a helper function that handles the negation information in loinc2hpo mapping library
@@ -239,16 +234,19 @@ Next, create a plot to show the success rate.
 ```{r}
 label1 <- str_c("mapped\n", round(successRate, 3) * 100, "%", sep = "", collapse = "\n")
 
-loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
+p <- loinc2hpo %>% select(mapFailed, encounter_num, patient_num, concept_cd, start_date) %>% group_by(mapFailed) %>% summarise(counts = n()) %>%
   ggplot() + geom_bar(aes(x = 1, y = counts / sum(counts), fill = mapFailed), stat = "identity",   color = "black", size = 0.1) + coord_polar(theta = "y") +
   geom_text(aes(x = 1, y = counts / sum(counts) - c(0.15, 0.1), label = c(label1, "")), size = 2) +
   scale_fill_manual(breaks = c("false", "true"), values = c("lightgreen", "white")) + 
   xlab("") + ylab("") + theme_bw() +
   theme(panel.grid = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", legend.background = element_blank(), panel.border = element_blank(), legend.text = element_text(size = 8), legend.title = element_blank(), legend.key.size = unit(1, "line"), axis.title = element_text(size = 8)) 
+
+p
 ```
 
 ```{r}
-ggsave("./data/images/Hush lab test to HPO conversion.png", width = 1.2, height = 1.2)
+ggsave("./data/images/Hush lab test to HPO conversion.png", plot = p, width = 1.2, height = 1.2)
+ggsave("./data/images/Hush lab test to HPO conversion.pdf", plot = p, width = 1.2, height = 1.2)
 ```
 
 ### count the number of total HPO mapped to each patient, and total of unique HPO mapped to each HPO
@@ -285,9 +283,9 @@ print(paste("average no. of unique HPO terms per patient: ", round(no.uniqueHPOp
 
 plot the distribution of the unique HPO terms for each patient
 ```{r}
-ggplot(uniqueHPOperPatient) + 
+p2 <- ggplot(uniqueHPOperPatient) + 
     geom_histogram(aes(counts), binwidth = 10, fill = "orange", color = "black", size = 0.25) +
-    xlab("number of unique phenotypes for each patient") + ylab("patient Counts") +
+    xlab("number of unique phenotypes for each patient") + ylab("patient counts") +
   theme_bw() + 
     theme(panel.grid = element_blank(), axis.title = element_text(size = 8), 
           axis.text = element_text(size = 8), axis.ticks = element_line(size = 0.1),
@@ -297,11 +295,13 @@ ggplot(uniqueHPOperPatient) +
           axis.title.y = element_text(vjust = 0), 
           axis.title.x= element_text(vjust = 1))
 
+p2
 ```
 
 
 ```{r}
-ggsave("./data/images/unique HPO term counts for each patient.png", width = 3, height = 2)
+ggsave("/Users/zhangx/git/HushToFhir/data/images/unique HPO term counts for each patient.png", plot = p2, width = 3, height = 2)
+ggsave("/Users/zhangx/git/HushToFhir/data/images/unique HPO term counts for each patient.pdf", plot = p2, width = 3, height = 2)
 ```
 
 ```{r}
@@ -357,15 +357,21 @@ aggrgedFromTwoLOINC <- sum(loincAggregated$loincAggrgtdFrom==2)
 aggrgedFromThreeAndMoreLOINC <- sum(loincAggregated$loincAggrgtdFrom==3)
 aggrgLOINCtypes <- data.frame(aggrgtedFrom = factor(c("1", "2", ">3"), levels = c("1", "2", ">3")), count = c(aggrgedFromOneLOINC, aggrgedFromTwoLOINC, aggrgedFromThreeAndMoreLOINC))  
 
-ggplot(aggrgLOINCtypes) + 
+p3 <- ggplot(aggrgLOINCtypes) + 
   geom_bar(aes(x = factor(aggrgtedFrom), y = count, fill = aggrgtedFrom), stat = "identity", color = "black", size = 0.1) + 
-  xlab("mapped LOINC terms") + ylab("counts of HPO") + 
+  xlab("mapped LOINC terms") + ylab("counts of HPO terms") + 
   theme_bw() + 
   #scale_y_continuous(limits = c(0, 240)) +
   theme(panel.grid = element_blank(), legend.position = "none", legend.text = element_text(size = 8), axis.title = element_text(size = 8)) 
 
-ggsave("./data/images/loinc_type_aggreg.png", width = 1.7, height = 1.5)
+p3
 ```
+
+```{r}
+ggsave("./data/images/loinc_type_aggreg.png", plot = p3, width = 1.7, height = 1.5)
+ggsave("./data/images/loinc_type_aggreg.pdf", plot = p3, width = 1.7, height = 1.5)
+```
+
 
 The result shows that multiple kinds of lab tests are collapsed into one HPO term in real world data, indicating we have achieved our goal of semantic integration of lab tests! 
 
@@ -386,7 +392,7 @@ head(patientTermMapFreq)
 
 Export patient terms.
 ```{r}
-write.csv(patientTermMapFreq, "./data/patientTermMapFreq.csv",  row.names = FALSE, quote = FALSE)
+write.csv(patientTermMapFreq, "./data/patientTermMapFreq_v2.0.csv",  row.names = FALSE, quote = FALSE)
 ```
 
 An important advantage of using the Human Phenotype Ontology is that one can use its hierarchy to infer additional phenotypes. For example, *Abnormal blood glucose concentration* is the parent of *Hyperglycemia*. Therefore, one can infer that if a patient has *Hyperglycemia*, the patient also has *Abnormal blood glucose concentration*, which is exactly what it should be.
@@ -405,7 +411,7 @@ java HushToFhir-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 Read in the inferred terms and use it instead of the original list for the following analysis
 ```{r}
-patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v1.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) 
+patientAbnormalTermMapFreq_inferred <- read.table("./data/patientAbnormalTermMapFreq-inferred_v2.0.csv", sep = "\t", header = TRUE, stringsAsFactors = FALSE) 
 
 hpoTermMap <- patientAbnormalTermMapFreq_inferred %>% select(hpoTerm) %>% distinct() %>% mutate(hpo = make.names(hpoTerm))
 
@@ -417,8 +423,11 @@ count the number of phenotypic abnormalities before and after the inference. Not
 ```{r}
 abnormalTermsBeforeInferPerPatient <- patientTermMapFreq %>% filter(isNegated == "false") %>% group_by(patient_num) %>% summarise(count_before_infer = n())
 abnormalTermsWithInferPerPatient <- patientAbnormalTermMapFreq_inferred %>% group_by(patient_num) %>% summarise(count_after_infer = n())
-mean(abnormalTermsBeforeInferPerPatient$count_before_infer)
-mean(abnormalTermsWithInferPerPatient$count_after_infer)
+beforeInfer <- mean(abnormalTermsBeforeInferPerPatient$count_before_infer)
+afterInfer <- mean(abnormalTermsWithInferPerPatient$count_after_infer)
+beforeInfer
+afterInfer
+afterInfer - beforeInfer
 ```
 
 
@@ -460,12 +469,12 @@ df4ML <- combined %>%
   select(patient_num, age, record_duration, sex_cd, everything()) %>%
   select(-prscbCount, prscbCount)
 dim(df4ML)
-colnames(df4ML)
+head(colnames(df4ML), n = 15)
 ```
 export the data frame for machine learning
 ```{r}
-write.csv(df4ML, "./data/Hush+_data_matrix_v1.0.csv", quote = FALSE, row.names = FALSE)
-df4ML <- read.csv("./data/Hush+_data_matrix_v1.0.csv", header = TRUE)
+write.csv(df4ML, "./data/Hush+_data_matrix_v2.0.csv", quote = FALSE, row.names = FALSE)
+df4ML <- read.csv("/Users/zhangx/git/HushToFhir/data/Hush+_data_matrix_v2.0.csv", header = TRUE)
 ```
 
 ## identify HPO terms that are associated with frequent prednisone prescription and acute asthma diagnosis
@@ -681,7 +690,7 @@ data_pyramid <- df4ML %>% select(patient_num, age, sex_cd) %>%
   ungroup() %>%
   mutate(count = ifelse(sex_cd == "M", -count, count))
   
-data_pyramid %>% na.omit() %>% 
+ageDistribution <- data_pyramid %>% na.omit() %>% 
   ggplot() +
   geom_bar(aes(x = cat, y = count, fill = sex_cd), stat = "identity") + 
   scale_x_discrete(breaks = seq(2, 10, 2), labels = seq(1.5,9.5,2) * BINWIDTH) +
@@ -689,7 +698,10 @@ data_pyramid %>% na.omit() %>%
   scale_fill_manual(name = "gender", values = c(M = "royalblue", F = "lightcoral"), breaks = c("M", "F"), labels = c("male", "female")) + xlab("age (years)") + ylab("count (x1,000)") +
   coord_flip() + theme_bw() + theme(panel.grid = element_blank(), legend.position = "none", axis.title = element_text(size = 8), axis.text = element_text(size = 8), legend.text = element_text(size = 8), legend.title = element_text(size = 10))
 
-ggsave("./data/images/patient_sex_age_distribution.png", width = 2, height = 1.5)
+ageDistribution
+
+ggsave("./data/images/patient_sex_age_distribution.png", plot = ageDistribution, width = 2, height = 1.5)
+ggsave("./data/images/patient_sex_age_distribution.pdf", plot = ageDistribution, width = 2, height = 1.5)
 ```
 
 
@@ -719,6 +731,20 @@ How long patients are tracked in this dataset?
 median_track <- df4ML$record_duration %>% median()
 print(str_c("median tracking time (years): ", median_track, collapse = T))
 ```
+
+vitamin abnormality analysis
+```{r}
+patient_phenotypes <- colnames(df4ML)
+vitamin_phenotypes <- patient_phenotypes[str_detect(patient_phenotypes, "[Vv]itamin|folate|calci[(triol)|(fediol)]")]
+df4ML %>% select(vitamin_phenotypes) %>% map_int(function(x){sum(x>=3)})
+
+
+vitaminMatrixNoInfer <- patientTermMapFreq %>% filter(isNegated == "false" & str_detect(hpoTerm, "[Vv]itamin|folate|calci[(triol)|(fediol)]")) %>% spread(hpoTerm, hpoTermFreq, fill = 0)
+patient_phenotypes <- colnames(vitaminMatrixNoInfer)
+vitamin_phenotypes <- patient_phenotypes[str_detect(patient_phenotypes, "[Vv]itamin|folate|calci[(triol)|(fediol)]")]
+vitaminMatrixNoInfer %>% select(vitamin_phenotypes) %>% map_int(function(x){sum(x>=3)})
+```
+
 
 # Conclusion
 
